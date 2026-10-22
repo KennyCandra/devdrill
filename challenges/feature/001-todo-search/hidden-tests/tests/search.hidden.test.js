@@ -51,9 +51,15 @@ describe('search', () => {
     expect(sampleList().search('zebra')).toEqual([]);
   });
 
-  it('returns copies', () => {
+  it('matches whole tags, not parts of them', () => {
+    expect(sampleList().search('', { tag: 'trav' })).toEqual([]);
+  });
+
+  it('returns copies, tags included', () => {
     const todos = sampleList();
-    todos.search('milk')[0].title = 'changed';
-    expect(titles(todos.search('milk'))).toEqual(['Buy milk']);
+    const [milk] = todos.search('milk');
+    milk.title = 'changed';
+    milk.tags.push('changed');
+    expect(todos.search('milk')).toMatchObject([{ title: 'Buy milk', tags: ['home', 'Errands'] }]);
   });
 });

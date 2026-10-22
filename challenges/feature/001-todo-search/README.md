@@ -6,7 +6,7 @@ Users with long todo lists keep asking for a search box. Add a `search` method t
 
 - Return the todos whose **title contains `query`**, ignoring upper/lower case.
 - Ignore spaces around the query. An **empty query** matches every todo.
-- `options.tag` (optional): only todos that have this tag, ignoring case.
+- `options.tag` (optional): only todos that have this exact tag, ignoring case (`'trav'` doesn't match `'travel'`).
 - `options.status` (optional): `'all'` (default), `'open'` or `'done'`, the same as `list()`.
 - Results come back in the order the todos were added.
 - Like `list()`, return copies: changing a result must not change the stored todo.
