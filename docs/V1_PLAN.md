@@ -311,7 +311,14 @@ Deferred from the M3 review (not blocking v1):
 | Scope creep                                         | Anything not in section 2 goes to a GitHub issue labeled `later`  |
 | Name taken on npm                                   | Check in M6; keep the name in one config constant                 |
 
-## 13. Open decisions (not blocking)
+## 13. Open decisions (need Ahmed)
 
-1. Final project name (needed by M6).
-2. GitHub org or personal account (needed by M6).
+1. **Final project name.** Ahmed doesn't want "BugHunt" (it's not about hunting bugs). Free on npm as of 2026-10-22: `devdrill`, `onthejob`, `worksample`, `codesparring`, `shiftcode`, `dayone-dev`. Renaming: `packages/web/src/brand.ts`, `APP_NAME` in `packages/server/src/config.ts`, and optionally internal ids (`x-bughunt-token`, `~/.bughunt`, `BUGHUNT_HOME`, the `@bughunt/*` workspace names).
+2. **GitHub org or personal account**, then add `repository`, `homepage` and `bugs` to the release `package.json` (`scripts/build-release.ts`) so README links work on npmjs.com.
+3. **Playtest** the 8 challenges (M5) and adjust README, hints and estimates.
+4. **Publish:** `npm run build:release && npm publish ./release` (after 1–3).
+
+## 14. Later (not v1)
+
+- Review mode (v1.1) and AI hints (v1.2), as in section 2.
+- Smaller download: limit Monaco to JavaScript and JSON (about half the 15 MB UI is unused language support).
