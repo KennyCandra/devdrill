@@ -26,7 +26,7 @@ export function Button({
 
 const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   easy: 'text-success bg-success-bg',
-  medium: 'text-warning bg-hover',
+  medium: 'text-warning bg-warning-bg',
   hard: 'text-danger bg-danger-bg',
 };
 

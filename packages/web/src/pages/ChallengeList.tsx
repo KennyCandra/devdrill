@@ -1,4 +1,15 @@
-import { CheckCircle2, Circle, CircleDot, Clock, Search } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Circle,
+  CircleDot,
+  Clock,
+  Play,
+  Search,
+  Send,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type {
   ChallengeMode,
@@ -8,7 +19,8 @@ import type {
 } from '@devdrill/shared';
 import { api } from '../api/client';
 import { TopBar } from '../components/TopBar';
-import { Button, DifficultyBadge, Spinner } from '../components/ui';
+import { Dropdown } from '../components/Dropdown';
+import { Button, DifficultyBadge, Kbd, modKey, Spinner } from '../components/ui';
 import { challengePath, navigate } from '../router';
 
 type ModeFilter = 'all' | ChallengeMode;
@@ -17,6 +29,20 @@ const MODE_TABS: { value: ModeFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'debug', label: 'Debug' },
   { value: 'feature', label: 'Feature' },
+];
+
+const DIFFICULTY_OPTIONS: { value: Difficulty | 'all'; label: string }[] = [
+  { value: 'all', label: 'Any difficulty' },
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
+];
+
+const STATUS_OPTIONS: { value: ChallengeStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'Any status' },
+  { value: 'not_started', label: 'Not started' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'solved', label: 'Solved' },
 ];
 
 const STATUS_LABEL: Record<ChallengeStatus, string> = {
@@ -54,18 +80,14 @@ export function ChallengeList() {
   }, [challenges, mode, difficulty, status, query]);
 
   const solved = challenges?.filter((c) => c.progress.status === 'solved').length ?? 0;
+  // Pick up where you left off, else the first one you haven't tried.
+  const next =
+    challenges?.find((c) => c.progress.status === 'in_progress') ??
+    challenges?.find((c) => c.progress.status === 'not_started');
 
   return (
     <div className="flex h-full flex-col">
-      <TopBar
-        right={
-          challenges && (
-            <span className="text-muted">
-              {solved} of {challenges.length} solved
-            </span>
-          )
-        }
-      />
+      <TopBar />
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 overflow-auto px-6 py-6">
         <div className="animate-fade-in pb-2">
@@ -76,6 +98,10 @@ export function ChallengeList() {
             Debug code you didn't write. Add features without breaking what works.
           </p>
         </div>
+
+        {challenges && challenges.length > 0 && (
+          <Progress solved={solved} total={challenges.length} next={next} />
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <div role="group" aria-label="Mode" className="flex rounded border border-line">
@@ -94,29 +120,20 @@ export function ChallengeList() {
             ))}
           </div>
 
-          <select
-            aria-label="Difficulty"
+          <Dropdown
+            label="Difficulty"
             value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as Difficulty | 'all')}
-            className="h-7 rounded border border-line bg-bg px-2"
-          >
-            <option value="all">Any difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-
-          <select
-            aria-label="Status"
+            options={DIFFICULTY_OPTIONS}
+            defaultValue="all"
+            onChange={setDifficulty}
+          />
+          <Dropdown
+            label="Status"
             value={status}
-            onChange={(e) => setStatus(e.target.value as ChallengeStatus | 'all')}
-            className="h-7 rounded border border-line bg-bg px-2"
-          >
-            <option value="all">Any status</option>
-            <option value="not_started">Not started</option>
-            <option value="in_progress">In progress</option>
-            <option value="solved">Solved</option>
-          </select>
+            options={STATUS_OPTIONS}
+            defaultValue="all"
+            onChange={setStatus}
+          />
 
           <label className="ml-auto flex h-7 items-center gap-1.5 rounded border border-line px-2 focus-within:border-accent">
             <Search size={14} className="text-muted" aria-hidden="true" />
@@ -176,8 +193,95 @@ export function ChallengeList() {
             ))}
           </ul>
         )}
+
+        <HowItWorks />
       </main>
     </div>
+  );
+}
+
+/** How far along you are, and one obvious next step. */
+function Progress({
+  solved,
+  total,
+  next,
+}: {
+  solved: number;
+  total: number;
+  next: ChallengeSummary | undefined;
+}) {
+  const percent = Math.round((solved / total) * 100);
+  return (
+    <section
+      aria-label="Your progress"
+      className="animate-fade-in flex flex-wrap items-center gap-x-6 gap-y-3 rounded-md border border-line bg-side px-4 py-3"
+    >
+      <div className="flex min-w-48 flex-1 flex-col gap-1.5">
+        <div className="flex items-baseline justify-between">
+          <span className="font-medium">
+            {solved} of {total} solved
+          </span>
+          <span className="text-[12px] text-muted">{percent}%</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={solved}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-label="Challenges solved"
+          className="h-1.5 overflow-hidden rounded-full bg-hover"
+        >
+          <div
+            className="h-full rounded-full bg-success transition-[width] duration-200"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+      {next ? (
+        <Button variant="primary" onClick={() => navigate(challengePath(next.id))}>
+          {next.progress.status === 'in_progress' ? 'Continue' : 'Start'}: {next.title}
+          <ArrowRight size={14} aria-hidden="true" />
+        </Button>
+      ) : (
+        <span className="text-success">Every challenge solved. Nice work.</span>
+      )}
+    </section>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <section aria-labelledby="how-it-works" className="mt-4">
+      <h2
+        id="how-it-works"
+        className="mb-3 text-[11px] font-semibold tracking-wide text-muted uppercase"
+      >
+        How it works
+      </h2>
+      <ol className="grid gap-3 sm:grid-cols-3">
+        <Step icon={<BookOpen size={16} aria-hidden="true" />} title="1. Read the task">
+          Each challenge starts like a real bug report or ticket, with a few files you didn't write.
+        </Step>
+        <Step icon={<Play size={16} aria-hidden="true" />} title="2. Run the tests">
+          Check your work against the visible tests as often as you like: <Kbd>{modKey} Enter</Kbd>.
+        </Step>
+        <Step icon={<Send size={16} aria-hidden="true" />} title="3. Submit">
+          Hidden tests check the edge cases. Solve it, then compare with the reference solution.
+        </Step>
+      </ol>
+    </section>
+  );
+}
+
+function Step({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <li className="flex flex-col gap-1.5 rounded-md border border-line p-3">
+      <span className="flex items-center gap-2 font-medium">
+        <span className="text-accent">{icon}</span>
+        {title}
+      </span>
+      <span className="leading-relaxed text-muted">{children}</span>
+    </li>
   );
 }
 

@@ -25,7 +25,8 @@
   --success-bg: #1e3a2a;
   --danger: #f48771;
   --danger-bg: #4b1818;
-  --warning: #cca700;
+  --warning: #e2c08d;
+  --warning-bg: #3b3018;
   color-scheme: dark;
 }
 
@@ -47,7 +48,8 @@
   --success-bg: #e6f4ea;
   --danger: #c72e0f;
   --danger-bg: #fdecea;
-  --warning: #895503;
+  --warning: #7a4d00;
+  --warning-bg: #fdf1d6;
   color-scheme: light;
 }
 
@@ -70,6 +72,7 @@
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
   --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
   --font-sans: 'Inter Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 }
