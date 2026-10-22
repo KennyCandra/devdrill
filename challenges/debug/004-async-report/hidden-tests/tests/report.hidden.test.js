@@ -2,8 +2,9 @@ import { buildDailyReport } from '../src/report.js';
 
 describe('buildDailyReport', () => {
   it('keeps the rows in the same order as the stores given, even when some answer faster', async () => {
-    const report = await buildDailyReport(['north', 'south', 'east'], '2026-10-21');
-    expect(report.rows.map((row) => row.storeId)).toEqual(['north', 'south', 'east']);
+    const report = await buildDailyReport(['west', 'north', 'south', 'east'], '2026-10-21');
+    expect(report.rows.map((row) => row.storeId)).toEqual(['west', 'north', 'south', 'east']);
+    expect(report.totalRevenueCents).toBe(3100 + 3700 + 9900 + 1000);
   });
 
   it('counts orders and revenue per store', async () => {
