@@ -107,6 +107,11 @@ function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
       {test.message && (
         <pre className="mt-1 mb-1 ml-5 whitespace-pre-wrap text-danger">{test.message}</pre>
       )}
+      {test.detailsHidden && (
+        <p className="mt-0.5 mb-1 ml-5 font-sans text-[12px] text-muted">
+          Details unlock when you solve the challenge.
+        </p>
+      )}
     </li>
   );
 }

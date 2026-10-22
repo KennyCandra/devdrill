@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDot, CircleX, Eye } from '
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ChallengeDetail, ChallengeSummary } from '@bughunt/shared';
 import { api, ApiRequestError } from '../api/client';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TestResultList } from '../components/TestPanel';
 import { TopBar } from '../components/TopBar';
 import { Button, DifficultyBadge, Spinner, StatusScreen } from '../components/ui';
@@ -20,6 +21,7 @@ export function Results({ id }: { id: string }) {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [all, setAll] = useState<ChallengeSummary[] | null>(null);
   const [showSolution, setShowSolution] = useState(false);
+  const [confirmSolution, setConfirmSolution] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,7 +159,13 @@ export function Results({ id }: { id: string }) {
               <ArrowLeft size={14} aria-hidden="true" /> Back to the code
             </Button>
           )}
-          <Button onClick={() => setShowSolution((v) => !v)} aria-expanded={showSolution}>
+          <Button
+            onClick={() =>
+              // Not solved yet: one extra step, so peeking is a choice and not a reflex.
+              showSolution || solved ? setShowSolution((v) => !v) : setConfirmSolution(true)
+            }
+            aria-expanded={showSolution}
+          >
             <Eye size={14} aria-hidden="true" />
             {showSolution
               ? 'Hide the solution'
@@ -168,6 +176,21 @@ export function Results({ id }: { id: string }) {
         </div>
 
         {showSolution && <SolutionView id={id} />}
+
+        <ConfirmDialog
+          open={confirmSolution}
+          title="See the solution?"
+          confirmLabel="Show it"
+          tone="primary"
+          onConfirm={() => {
+            setConfirmSolution(false);
+            setShowSolution(true);
+          }}
+          onCancel={() => setConfirmSolution(false)}
+        >
+          You haven't solved this one yet. Debugging is the skill you're practicing, so it may help
+          to try a hint or one more attempt first. You can't unsee it.
+        </ConfirmDialog>
 
         {stored && (
           <section

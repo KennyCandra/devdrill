@@ -28,6 +28,8 @@ export interface TestCaseResult {
   status: TestCaseStatus;
   /** True for hidden tests, which only run on Submit. */
   hidden: boolean;
+  /** A failing hidden test whose message is withheld until the challenge is solved. */
+  detailsHidden?: boolean;
   /** First failure message, without terminal colors. */
   message?: string;
   durationMs: number;

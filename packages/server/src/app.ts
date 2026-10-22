@@ -13,6 +13,7 @@ import type {
   SolutionFile,
   SubmitRequest,
   SubmitResult,
+  TestCaseResult,
   TestRunResult,
   WorkspaceInfo,
 } from '@bughunt/shared';
@@ -143,8 +144,11 @@ export function createApp(options: AppOptions) {
   api.post('/workspaces/:id/submit', async (req, res: Response<SubmitResult>) => {
     const challenge = challengeById(req.params.id);
     const elapsedMs = parseElapsed((req.body as SubmitRequest | undefined)?.elapsedMs);
-    const run = await workspaces.submit(challenge);
-    const solved = run.status === 'passed';
+    const fullRun = await workspaces.submit(challenge);
+    const solved = fullRun.status === 'passed';
+    // Until it's solved, a failing hidden test shows only its name: its expected values
+    // would give the answer away.
+    const run = solved ? fullRun : { ...fullRun, tests: fullRun.tests.map(withholdHiddenDetails) };
 
     const updated = await progress.update((p) => {
       const entry = p.challenges[challenge.meta.id] ?? emptyProgress();
@@ -193,6 +197,12 @@ export function createApp(options: AppOptions) {
   app.use('/api', api, apiErrorHandler);
 
   return app;
+}
+
+function withholdHiddenDetails(test: TestCaseResult): TestCaseResult {
+  if (!test.hidden || test.status !== 'failed') return test;
+  const { message: _message, ...rest } = test;
+  return { ...rest, detailsHidden: true };
 }
 
 function queryPath(req: Request): string | undefined {

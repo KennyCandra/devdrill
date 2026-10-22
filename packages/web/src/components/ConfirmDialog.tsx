@@ -10,6 +10,7 @@ export function ConfirmDialog({
   title,
   children,
   confirmLabel,
+  tone = 'danger',
   onConfirm,
   onCancel,
 }: {
@@ -17,6 +18,8 @@ export function ConfirmDialog({
   title: string;
   children: ReactNode;
   confirmLabel: string;
+  /** `danger` for destructive actions, `primary` otherwise. */
+  tone?: 'danger' | 'primary';
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -52,7 +55,7 @@ export function ConfirmDialog({
         <Button ref={cancelRef} onClick={onCancel}>
           Cancel
         </Button>
-        <Button variant="danger" onClick={onConfirm}>
+        <Button variant={tone} onClick={onConfirm}>
           {confirmLabel}
         </Button>
       </div>

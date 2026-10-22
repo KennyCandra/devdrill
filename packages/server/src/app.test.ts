@@ -220,6 +220,15 @@ describe('workspace flow', () => {
     );
     const submit = await api('post', `/workspaces/${ID}/submit`).send({}).expect(200);
     expect((submit.body as SubmitResult).solved).toBe(false);
+    // Failing hidden tests show only their names until the challenge is solved.
+    const hiddenFailures = (submit.body as SubmitResult).run.tests.filter(
+      (t) => t.hidden && t.status === 'failed',
+    );
+    expect(hiddenFailures.length).toBeGreaterThan(0);
+    for (const t of hiddenFailures) {
+      expect(t.detailsHidden).toBe(true);
+      expect(t.message).toBeUndefined();
+    }
   }, 30_000);
 
   it('reset restores the starter code', async () => {
