@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import type { TestCaseResult, TestCaseStatus, TestFileError, TestRunResult } from '@bughunt/shared';
+import { appPaths } from '../config.js';
 import { withTempDir } from './tempDirs.js';
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -39,8 +40,6 @@ interface SpawnOutcome {
 }
 
 const require = createRequire(import.meta.url);
-
-const CHALLENGE_CONFIG = path.resolve(import.meta.dirname, '../../assets/vitest.config.mjs');
 
 /** Vitest runs that are still going, so they can be killed when the server stops. */
 const liveRuns = new Set<ChildProcess>();
@@ -114,7 +113,7 @@ function spawnVitest(dir: string, reportFile: string, timeoutMs: number): Promis
         dir,
         // Always our own config, never one from the workspace.
         '--config',
-        CHALLENGE_CONFIG,
+        appPaths().vitestConfig,
         '--globals',
         '--reporter=json',
         `--outputFile=${reportFile}`,

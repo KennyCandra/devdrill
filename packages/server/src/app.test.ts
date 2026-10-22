@@ -15,7 +15,7 @@ import type {
   WorkspaceInfo,
 } from '@bughunt/shared';
 import { createApp } from './app.js';
-import { challengesDir } from './config.js';
+import { appPaths } from './config.js';
 import { TOKEN_HEADER } from './security.js';
 import { loadChallenges } from './services/challengeLoader.js';
 
@@ -37,7 +37,7 @@ function api(method: 'get' | 'post' | 'put' | 'delete', url: string) {
 async function startServer(): Promise<void> {
   dataDir = await mkdtemp(path.join(tmpdir(), 'bughunt-app-test-'));
   const app = createApp({
-    challenges: await loadChallenges(challengesDir()),
+    challenges: await loadChallenges(appPaths().challenges),
     dataDir,
     token: TOKEN,
     extraOrigins: ['http://localhost:5173'],

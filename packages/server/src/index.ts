@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import open from 'open';
 import { createApp } from './app.js';
-import { APP_NAME, challengesDir, dataDir, DEFAULT_PORT, HOST } from './config.js';
+import { APP_NAME, appPaths, dataDir, DEFAULT_PORT, HOST } from './config.js';
 import { isRunning, readInstance, writeInstance } from './instanceLock.js';
 import { createSessionToken } from './security.js';
 import { loadChallenges } from './services/challengeLoader.js';
@@ -24,7 +24,7 @@ if (previous && (await isRunning(previous))) {
 
 // Reusing the last token keeps tabs from a previous run working after a restart.
 const token = previous?.token ?? createSessionToken();
-const challenges = await loadChallenges(challengesDir());
+const challenges = await loadChallenges(appPaths().challenges);
 
 const app = createApp({
   challenges,
