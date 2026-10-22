@@ -1,0 +1,13 @@
+{
+  "id": "feature-003-inventory-reservations",
+  "mode": "feature",
+  "title": "Hold stock during checkout",
+  "difficulty": "medium",
+  "estimatedMinutes": 30,
+  "tags": ["state", "maps", "time"],
+  "hints": [
+    "Keep reservations in a Map: id → { sku, qty, expiresAt }.",
+    "available(sku) is on-hand stock minus the units in active (not expired) reservations for that sku. Make sell() check available(), not on-hand.",
+    "confirm(): make sure the reservation is still active, then lower the stock and delete the reservation. release() just deletes it."
+  ]
+}
