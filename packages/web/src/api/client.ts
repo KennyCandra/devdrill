@@ -101,6 +101,19 @@ export const api = {
   submit: (id: string, body: SubmitRequest) =>
     request<SubmitResult>('POST', `/workspaces/${enc(id)}/submit`, body),
 
+  /**
+   * Last-chance save while the page closes: `keepalive` lets the request outlive the page.
+   * Browsers cap keepalive bodies at 64 KB, so very large files can't be saved this way.
+   */
+  saveFileOnUnload: (id: string, path: string, body: SaveFileRequest) => {
+    void fetch(`/api${fileUrl(id, path)}`, {
+      method: 'PUT',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json', ...(token ? { [TOKEN_HEADER]: token } : {}) },
+      body: JSON.stringify(body),
+    }).catch(() => undefined);
+  },
+
   settings: () => request<Settings>('GET', '/settings'),
   saveSettings: (patch: Partial<Settings>) => request<Settings>('PUT', '/settings', patch),
   resetProgress: () => request<{ ok: true }>('DELETE', '/progress'),

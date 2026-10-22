@@ -15,15 +15,18 @@ export function TestPanel({
     <section aria-label="Test results" className="flex h-full flex-col bg-bg">
       <header className="flex h-8 shrink-0 items-center gap-3 border-b border-line px-3">
         <span className="text-[11px] font-semibold tracking-wide text-muted uppercase">Tests</span>
-        {running && (
-          <span className="flex items-center gap-2 text-muted">
-            <Spinner /> Running tests…
-          </span>
-        )}
-        {!running && result && <Summary result={result} />}
+        {/* Only the summary is announced to screen readers, not every test. */}
+        <span role="status" className="flex items-center gap-2">
+          {running && (
+            <span className="flex items-center gap-2 text-muted">
+              <Spinner /> Running tests…
+            </span>
+          )}
+          {!running && result && <Summary result={result} />}
+        </span>
       </header>
 
-      <div className="flex-1 overflow-auto px-3 py-2 font-mono text-[12px]" aria-live="polite">
+      <div className="flex-1 overflow-auto px-3 py-2 font-mono text-[12px]">
         {error && <p className="text-danger">{error}</p>}
 
         {!error && !result && !running && (
@@ -73,11 +76,11 @@ function Summary({ result }: { result: TestRunResult }) {
 function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
   const icon =
     test.status === 'passed' ? (
-      <Check size={13} className="shrink-0 text-success" aria-label="Passed" />
+      <Check size={13} className="shrink-0 text-success" role="img" aria-label="Passed" />
     ) : test.status === 'failed' ? (
-      <X size={13} className="shrink-0 text-danger" aria-label="Failed" />
+      <X size={13} className="shrink-0 text-danger" role="img" aria-label="Failed" />
     ) : (
-      <Circle size={13} className="shrink-0 text-muted" aria-label="Skipped" />
+      <Circle size={13} className="shrink-0 text-muted" role="img" aria-label="Skipped" />
     );
 
   return (

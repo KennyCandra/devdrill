@@ -47,12 +47,12 @@ export function buildTree(files: string[]): TreeNode[] {
 export function FileTree({
   files,
   activePath,
-  dirtyPaths,
+  unsaved,
   onOpen,
 }: {
   files: string[];
   activePath: string | null;
-  dirtyPaths: Set<string>;
+  unsaved: Set<string>;
   onOpen: (path: string) => void;
 }) {
   const tree = useMemo(() => buildTree(files), [files]);
@@ -78,9 +78,13 @@ export function FileTree({
               onClick={() => toggle(node.path)}
               aria-expanded={open}
               style={indent}
-              className="flex w-full items-center gap-1 py-0.5 pr-2 text-left hover:bg-hover"
+              className="flex w-full items-center gap-1 py-0.5 pr-2 text-left hover:bg-hover focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
             >
-              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {open ? (
+                <ChevronDown size={14} aria-hidden="true" />
+              ) : (
+                <ChevronRight size={14} aria-hidden="true" />
+              )}
               {node.name}
             </button>
             {open && <ul>{render(node.children, depth + 1)}</ul>}
@@ -95,14 +99,17 @@ export function FileTree({
             onClick={() => onOpen(node.path)}
             aria-current={active ? 'true' : undefined}
             style={{ paddingLeft: indent.paddingLeft + 14 }}
-            className={`flex w-full items-center gap-1.5 py-0.5 pr-2 text-left ${
+            className={`flex w-full items-center gap-1.5 py-0.5 pr-2 text-left focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent ${
               active ? 'bg-active text-fg' : 'hover:bg-hover'
             }`}
           >
             <FileIcon name={node.name} />
             <span className="truncate">{node.name}</span>
-            {dirtyPaths.has(node.path) && (
-              <span className="ml-auto size-1.5 rounded-full bg-fg" aria-label="Unsaved" />
+            {unsaved.has(node.path) && (
+              <>
+                <span aria-hidden="true" className="ml-auto size-1.5 shrink-0 rounded-full bg-fg" />
+                <span className="sr-only"> (unsaved)</span>
+              </>
             )}
           </button>
         </li>

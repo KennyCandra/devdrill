@@ -2,7 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { readToken, setToken } from './api/client';
 import { App } from './App';
+import { applyInitialTheme } from './theme';
 import './index.css';
+
+applyInitialTheme();
 
 // Read before the first render: it also removes the token from the address bar.
 const token = readToken();

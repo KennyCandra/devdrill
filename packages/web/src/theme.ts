@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { Settings } from '@bughunt/shared';
 
 export type ResolvedTheme = 'dark' | 'light';
@@ -23,4 +23,13 @@ export function useTheme(setting: Settings['theme']): ResolvedTheme {
   }, [resolved]);
 
   return resolved;
+}
+
+const ThemeContext = createContext<ResolvedTheme>('dark');
+export const ThemeProvider = ThemeContext.Provider;
+export const useResolvedTheme = () => useContext(ThemeContext);
+
+/** Sets the theme before React renders, so light-mode users don't see a dark flash. */
+export function applyInitialTheme(): void {
+  document.documentElement.dataset.theme = prefersLight().matches ? 'light' : 'dark';
 }

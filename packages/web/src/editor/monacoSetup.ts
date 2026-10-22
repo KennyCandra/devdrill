@@ -1,11 +1,9 @@
-import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
 import TsWorker from 'monaco-editor/language/typescript/ts.worker?worker';
 
-// Use the bundled Monaco instead of the CDN copy @monaco-editor/react loads by default:
-// the app runs locally and must work offline.
+// Monaco is bundled with the app (no CDN): it runs locally and must work offline.
 self.MonacoEnvironment = {
   getWorker(_workerId: string, label: string) {
     if (label === 'typescript' || label === 'javascript') return new TsWorker();
@@ -13,8 +11,6 @@ self.MonacoEnvironment = {
     return new EditorWorker();
   },
 };
-
-loader.config({ monaco });
 
 // Challenge code is plain JS without type info; semantic errors would only be noise.
 monaco.typescript.javascriptDefaults.setDiagnosticsOptions({

@@ -1,19 +1,20 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import type { Difficulty } from '@bughunt/shared';
 
-type Variant = 'primary' | 'secondary' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-accent-bg text-on-accent hover:bg-accent-bg-hover',
   secondary: 'bg-hover text-fg hover:bg-active border border-line-strong',
   ghost: 'text-fg hover:bg-hover',
+  danger: 'bg-danger-bg text-danger border border-danger/40 hover:border-danger',
 };
 
 export function Button({
   variant = 'secondary',
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: ComponentProps<'button'> & { variant?: Variant }) {
   return (
     <button
       type="button"
@@ -75,5 +76,10 @@ export function StatusScreen({
   );
 }
 
-export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const platform =
+  typeof navigator === 'undefined'
+    ? ''
+    : ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
+        ?.platform ?? navigator.userAgent);
+export const isMac = /mac|iphone|ipad/i.test(platform);
 export const modKey = isMac ? '⌘' : 'Ctrl';

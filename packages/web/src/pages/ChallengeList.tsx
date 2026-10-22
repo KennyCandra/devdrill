@@ -71,15 +71,14 @@ export function ChallengeList() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div role="tablist" aria-label="Mode" className="flex rounded border border-line">
+          <div role="group" aria-label="Mode" className="flex rounded border border-line">
             {MODE_TABS.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
-                role="tab"
-                aria-selected={mode === tab.value}
+                aria-pressed={mode === tab.value}
                 onClick={() => setMode(tab.value)}
-                className={`px-3 py-1 transition-colors duration-100 ${
+                className={`px-3 py-1 transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-accent ${
                   mode === tab.value ? 'bg-active text-fg' : 'text-muted hover:bg-hover'
                 }`}
               >
@@ -150,19 +149,19 @@ export function ChallengeList() {
                 <a
                   href={challengePath(c.id)}
                   onClick={(e) => {
-                    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                    // Always stay in this tab: a new tab wouldn't have the session token.
                     e.preventDefault();
                     navigate(challengePath(c.id));
                   }}
                   className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-100 hover:bg-hover"
                 >
                   <StatusIcon status={c.progress.status} />
-                  <span className="flex-1 truncate">{c.title}</span>
-                  <span className="w-16 text-muted capitalize">{c.mode}</span>
+                  <span className="min-w-0 flex-1 truncate">{c.title}</span>
+                  <span className="hidden w-16 text-muted capitalize sm:inline">{c.mode}</span>
                   <span className="w-16">
                     <DifficultyBadge difficulty={c.difficulty} />
                   </span>
-                  <span className="flex w-14 items-center justify-end gap-1 text-muted">
+                  <span className="hidden w-14 items-center justify-end gap-1 text-muted sm:flex">
                     <Clock size={12} aria-hidden="true" />~{c.estimatedMinutes}m
                   </span>
                 </a>
@@ -178,10 +177,12 @@ export function ChallengeList() {
 function StatusIcon({ status }: { status: ChallengeStatus }) {
   const label = STATUS_LABEL[status];
   if (status === 'solved') {
-    return <CheckCircle2 size={16} className="shrink-0 text-success" aria-label={label} />;
+    return (
+      <CheckCircle2 size={16} className="shrink-0 text-success" role="img" aria-label={label} />
+    );
   }
   if (status === 'in_progress') {
-    return <CircleDot size={16} className="shrink-0 text-accent" aria-label={label} />;
+    return <CircleDot size={16} className="shrink-0 text-accent" role="img" aria-label={label} />;
   }
-  return <Circle size={16} className="shrink-0 text-muted" aria-label={label} />;
+  return <Circle size={16} className="shrink-0 text-muted" role="img" aria-label={label} />;
 }

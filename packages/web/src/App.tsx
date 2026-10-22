@@ -1,11 +1,11 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Settings } from '@bughunt/shared';
 import { api, ApiRequestError } from './api/client';
 import { Button, Spinner, StatusScreen } from './components/ui';
 import { ChallengeList } from './pages/ChallengeList';
 import { Workspace } from './pages/Workspace';
 import { navigate, useRoute } from './router';
-import { useTheme, type ResolvedTheme } from './theme';
+import { ThemeProvider, useTheme } from './theme';
 
 type Session =
   | { state: 'loading' }
@@ -13,9 +13,6 @@ type Session =
   | { state: 'noToken' }
   | { state: 'badToken' }
   | { state: 'offline' };
-
-const ThemeContext = createContext<ResolvedTheme>('dark');
-export const useResolvedTheme = () => useContext(ThemeContext);
 
 /** `hasToken` is read once at startup, in main.tsx. */
 export function App({ hasToken }: { hasToken: boolean }) {
@@ -66,7 +63,7 @@ export function App({ hasToken }: { hasToken: boolean }) {
       );
     case 'ready':
       return (
-        <ThemeContext.Provider value={theme}>
+        <ThemeProvider value={theme}>
           {route.name === 'list' && <ChallengeList />}
           {route.name === 'workspace' && <Workspace key={route.id} id={route.id} />}
           {route.name === 'notFound' && (
@@ -77,7 +74,7 @@ export function App({ hasToken }: { hasToken: boolean }) {
               That address doesn't match anything.
             </StatusScreen>
           )}
-        </ThemeContext.Provider>
+        </ThemeProvider>
       );
   }
 }
