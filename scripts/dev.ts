@@ -28,12 +28,16 @@ const server = start('npx', ['tsx', 'watch', 'packages/server/src/index.ts', '--
 });
 
 let viteStarted = false;
+let output = '';
 server.stdout?.on('data', (chunk: Buffer) => {
   const text = chunk.toString();
   process.stdout.write(`[server] ${text}`);
+  // Keep everything seen so far: the line we need can arrive split across chunks.
+  if (!viteStarted) output += text;
 
   // The server prints "Open: http://127.0.0.1:<port>/#token=<token>"; reuse both for Vite.
-  const match = /Open: http:\/\/127\.0\.0\.1:(\d+)\/#token=(\S+)/.exec(text);
+  // It also prints this when a dev server is already running, so both cases work.
+  const match = /Open: http:\/\/127\.0\.0\.1:(\d+)\/#token=(\S+)\n/.exec(output);
   if (!match || viteStarted) return;
   viteStarted = true;
   const [, port = '3000', token = ''] = match;

@@ -7,7 +7,13 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { Group, Panel, Separator } from 'react-resizable-panels';
+import {
+  Group,
+  Panel,
+  Separator,
+  useDefaultLayout,
+  type LayoutStorage,
+} from 'react-resizable-panels';
 import type { ChallengeDetail, TestRunResult } from '@bughunt/shared';
 import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -22,6 +28,24 @@ import { CodeEditor } from '../workspace/CodeEditor';
 import { EditorTabs } from '../workspace/EditorTabs';
 import { FileStore } from '../workspace/fileStore';
 import { SaveIndicator } from '../workspace/SaveIndicator';
+
+/** Panel sizes are a per-browser convenience; storage may be blocked (private mode). */
+const layoutStorage: LayoutStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Not saved; the default layout is used next time.
+    }
+  },
+};
 
 /** The file to open first: the first source file, else the first file. */
 function defaultFile(files: string[]): string | undefined {
@@ -38,6 +62,8 @@ export function Workspace({ id }: { id: string }) {
       }),
   );
   const buffers = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const columns = useDefaultLayout({ id: 'bughunt-columns', storage: layoutStorage });
+  const rows = useDefaultLayout({ id: 'bughunt-editor-rows', storage: layoutStorage });
 
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [files, setFiles] = useState<string[]>([]);
@@ -202,18 +228,27 @@ export function Workspace({ id }: { id: string }) {
         <SaveIndicator buffers={buffers} />
       </TopBar>
 
-      <Group orientation="horizontal" className="min-h-0 flex-1">
-        <Panel defaultSize="24" minSize={180}>
+      <Group
+        orientation="horizontal"
+        className="min-h-0 flex-1"
+        defaultLayout={columns.defaultLayout}
+        onLayoutChanged={columns.onLayoutChanged}
+      >
+        <Panel id="task" defaultSize="24" minSize={180}>
           <TaskPanel challenge={challenge} />
         </Panel>
         <ResizeHandle />
-        <Panel defaultSize="16" minSize={120}>
+        <Panel id="files" defaultSize="16" minSize={120}>
           <FileTree files={files} activePath={active} unsaved={unsaved} onOpen={openFile} />
         </Panel>
         <ResizeHandle />
-        <Panel minSize={280}>
-          <Group orientation="vertical">
-            <Panel minSize={120}>
+        <Panel id="main" minSize={280}>
+          <Group
+            orientation="vertical"
+            defaultLayout={rows.defaultLayout}
+            onLayoutChanged={rows.onLayoutChanged}
+          >
+            <Panel id="editor" minSize={120}>
               <div className="flex h-full flex-col">
                 <EditorTabs
                   tabs={tabs}
@@ -250,7 +285,7 @@ export function Workspace({ id }: { id: string }) {
               </div>
             </Panel>
             <ResizeHandle vertical />
-            <Panel defaultSize="32" minSize={80}>
+            <Panel id="tests" defaultSize="32" minSize={80}>
               <TestPanel result={result} running={running} error={message} />
             </Panel>
           </Group>
