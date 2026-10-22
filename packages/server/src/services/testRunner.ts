@@ -246,11 +246,15 @@ function toCaseStatus(status: string): TestCaseStatus {
  */
 function tidyMessage(message: string | undefined, dir: string): string {
   const prefixes = [dir + path.sep, `file://${dir}${path.sep}`];
-  return clean(message)
-    .split('\n')
-    .filter((line) => !/^\s*at .*(node_modules|node:internal|file:\/\/|<anonymous>)/.test(line))
-    .map((line) => prefixes.reduce((l, prefix) => l.split(prefix).join(''), line))
-    .join('\n');
+  return (
+    clean(message)
+      .split('\n')
+      .filter((line) => !/^\s*at .*(node_modules|node:internal|file:\/\/|<anonymous>)/.test(line))
+      // Vite adds this to every parse error; challenges never use JSX.
+      .filter((line) => !line.includes('If you are using JSX'))
+      .map((line) => prefixes.reduce((l, prefix) => l.split(prefix).join(''), line))
+      .join('\n')
+  );
 }
 
 function clean(message: string | undefined): string {

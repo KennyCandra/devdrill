@@ -59,6 +59,7 @@ export function SolutionView({ id }: { id: string }) {
       originalEditable: false,
       automaticLayout: true,
       renderSideBySide: true,
+      useInlineViewWhenSpaceIsLimited: false,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
       fontFamily: "'JetBrains Mono Variable', monospace",
@@ -124,7 +125,15 @@ export function SolutionView({ id }: { id: string }) {
         </span>
         <span>Reference solution</span>
       </div>
-      <div ref={container} className="h-[360px] overflow-hidden rounded border border-line" />
+      {file && (compare === 'yours' ? file.yours : file.starter) === file.solution ? (
+        <p className="rounded border border-line p-3 text-muted">
+          {compare === 'yours'
+            ? 'Your code matches the reference solution exactly.'
+            : 'This file is the same in the starter and the solution.'}
+        </p>
+      ) : (
+        <div ref={container} className="h-[360px] overflow-hidden rounded border border-line" />
+      )}
     </section>
   );
 }

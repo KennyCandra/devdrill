@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { addTick, formatDuration } from './timer';
+import { describe, expect, it, vi } from 'vitest';
+import { ActiveTimer, addTick, formatDuration } from './timer';
 
 describe('formatDuration', () => {
   it.each([
@@ -25,5 +25,32 @@ describe('addTick', () => {
 
   it('ignores a clock that went backwards', () => {
     expect(addTick(10_000, 5_000, 4_000)).toBe(10_000);
+  });
+});
+
+describe('ActiveTimer', () => {
+  it('counts visible time and starts over on reset', () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.clear();
+      const timer = new ActiveTimer('t1');
+      timer.start();
+      vi.advanceTimersByTime(3000);
+      expect(timer.getSnapshot()).toBe(3000);
+      expect(Number(localStorage.getItem('bughunt-time-t1'))).toBe(3000);
+
+      timer.reset();
+      expect(timer.get()).toBe(0);
+      timer.stop();
+      vi.advanceTimersByTime(3000);
+      expect(timer.get()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('picks up where it left off after a reload', () => {
+    localStorage.setItem('bughunt-time-t2', '42000');
+    expect(new ActiveTimer('t2').get()).toBe(42000);
   });
 });

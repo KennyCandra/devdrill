@@ -57,7 +57,7 @@ export function TestResultList({ result }: { result: TestRunResult }) {
         </div>
       ))}
       <ul className="flex flex-col gap-1">
-        {failedFirst(result.tests).map((t, i) => (
+        {sortForFixing(result.tests).map((t, i) => (
           <TestRow key={`${t.file}:${t.name}`} test={t} index={i} />
         ))}
       </ul>
@@ -65,9 +65,10 @@ export function TestResultList({ result }: { result: TestRunResult }) {
   );
 }
 
-/** Failures first, so the thing to fix is at the top. */
-function failedFirst(tests: TestCaseResult[]): TestCaseResult[] {
-  return [...tests].sort((a, b) => Number(b.status === 'failed') - Number(a.status === 'failed'));
+/** Visible failures first (the ones you can debug), then hidden failures, then the rest. */
+export function sortForFixing(tests: TestCaseResult[]): TestCaseResult[] {
+  const rank = (t: TestCaseResult) => (t.status !== 'failed' ? 2 : t.hidden ? 1 : 0);
+  return [...tests].sort((a, b) => rank(a) - rank(b));
 }
 
 function Summary({ result }: { result: TestRunResult }) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings } from '@bughunt/shared';
 import { api, ApiRequestError } from './api/client';
 import { Button, Spinner, StatusScreen } from './components/ui';
@@ -38,15 +38,13 @@ export function App({ hasToken }: { hasToken: boolean }) {
       );
   }, [hasToken]);
 
+  // Two quick changes can answer out of order; only the latest request's answer counts.
+  const latestUpdate = useRef(0);
   const updateSettings = useCallback(async (patch: Partial<Settings>) => {
+    const request = ++latestUpdate.current;
     const saved = await api.saveSettings(patch);
-    setSession({ state: 'ready', settings: saved });
+    if (request === latestUpdate.current) setSession({ state: 'ready', settings: saved });
   }, []);
-  const settingsValue = useMemo(
-    () =>
-      session.state === 'ready' ? { settings: session.settings, update: updateSettings } : null,
-    [session, updateSettings],
-  );
 
   switch (session.state) {
     case 'loading':
@@ -76,7 +74,7 @@ export function App({ hasToken }: { hasToken: boolean }) {
       );
     case 'ready':
       return (
-        <SettingsProvider value={settingsValue!}>
+        <SettingsProvider value={{ settings: session.settings, update: updateSettings }}>
           <ThemeProvider value={theme}>
             {route.name === 'list' && <ChallengeList />}
             {route.name === 'settings' && <SettingsPage />}

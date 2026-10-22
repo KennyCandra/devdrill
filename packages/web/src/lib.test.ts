@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { readToken } from './api/client';
 import { buildTree } from './components/FileTree';
+import { sortForFixing } from './components/TestPanel';
 import { challengePath, parseRoute } from './router';
 
 describe('buildTree', () => {
@@ -58,5 +59,23 @@ describe('readToken', () => {
 
   it('returns null when there is no token anywhere', () => {
     expect(readToken()).toBeNull();
+  });
+});
+
+describe('sortForFixing', () => {
+  it('puts visible failures first, then hidden failures, then the rest', () => {
+    const t = (name: string, status: 'passed' | 'failed', hidden: boolean) => ({
+      file: 'f',
+      name,
+      status,
+      hidden,
+      durationMs: 0,
+    });
+    const sorted = sortForFixing([
+      t('hidden fail', 'failed', true),
+      t('pass', 'passed', false),
+      t('visible fail', 'failed', false),
+    ]);
+    expect(sorted.map((x) => x.name)).toEqual(['visible fail', 'hidden fail', 'pass']);
   });
 });

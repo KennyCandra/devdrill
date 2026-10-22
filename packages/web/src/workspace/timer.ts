@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-
 const TICK_MS = 1000;
 /** A longer gap means the computer slept or the tab was frozen; don't count it. */
 const MAX_TICK_GAP_MS = 5000;
@@ -22,41 +20,79 @@ export function addTick(elapsedMs: number, lastTick: number, now: number): numbe
   return gap > 0 && gap <= MAX_TICK_GAP_MS ? elapsedMs + gap : elapsedMs;
 }
 
-function readElapsed(id: string): number {
-  try {
-    return Number(localStorage.getItem(timeKey(id))) || 0;
-  } catch {
-    return 0;
-  }
-}
-
 /**
- * Time actively spent on a challenge: only while this page is open and visible.
- * Kept per browser, so it survives reloads. Returns the elapsed ms and a getter
- * for event handlers (Submit) that need the latest value.
+ * Active time on the current attempt at a challenge: it only counts while the page is
+ * visible, and starts over after a solve or a file reset. Kept per browser so it
+ * survives reloads. A tiny store, so only the timer display re-renders every second.
  */
-export function useActiveTime(id: string): [number, () => number] {
-  const [elapsed, setElapsed] = useState(() => readElapsed(id));
-  const elapsedRef = useRef(elapsed);
+export class ActiveTimer {
+  private elapsed: number;
+  private lastTick = Date.now();
+  private interval: ReturnType<typeof setInterval> | undefined;
+  private readonly listeners = new Set<() => void>();
 
-  useEffect(() => {
-    let lastTick = Date.now();
-    const tick = () => {
-      const now = Date.now();
-      if (document.visibilityState === 'visible') {
-        elapsedRef.current = addTick(elapsedRef.current, lastTick, now);
-        setElapsed(elapsedRef.current);
-        try {
-          localStorage.setItem(timeKey(id), String(Math.round(elapsedRef.current)));
-        } catch {
-          // Not persisted; the timer still runs for this visit.
-        }
-      }
-      lastTick = now;
-    };
-    const interval = setInterval(tick, TICK_MS);
-    return () => clearInterval(interval);
-  }, [id]);
+  constructor(private readonly id: string) {
+    this.elapsed = this.read();
+  }
 
-  return [elapsed, () => elapsedRef.current];
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  /** Whole seconds, so subscribers re-render at most once a second. */
+  getSnapshot = (): number => Math.floor(this.elapsed / 1000) * 1000;
+
+  get(): number {
+    return this.elapsed;
+  }
+
+  start(): void {
+    if (this.interval) return;
+    this.lastTick = Date.now();
+    this.interval = setInterval(() => this.tick(), TICK_MS);
+  }
+
+  stop(): void {
+    clearInterval(this.interval);
+    this.interval = undefined;
+  }
+
+  /** Starts a new attempt. */
+  reset(): void {
+    this.elapsed = 0;
+    this.lastTick = Date.now();
+    this.save();
+    this.emit();
+  }
+
+  private tick(): void {
+    const now = Date.now();
+    if (document.visibilityState === 'visible') {
+      this.elapsed = addTick(this.elapsed, this.lastTick, now);
+      this.save();
+      this.emit();
+    }
+    this.lastTick = now;
+  }
+
+  private read(): number {
+    try {
+      return Number(localStorage.getItem(timeKey(this.id))) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private save(): void {
+    try {
+      localStorage.setItem(timeKey(this.id), String(Math.round(this.elapsed)));
+    } catch {
+      // Not persisted; the timer still runs for this visit.
+    }
+  }
+
+  private emit(): void {
+    for (const listener of this.listeners) listener();
+  }
 }

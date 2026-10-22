@@ -93,8 +93,8 @@ export function SettingsPage() {
             <span>
               Show a timer
               <span className="block text-muted">
-                Counts the time you spend on a challenge, like a timed interview. Your best time is
-                saved either way.
+                Counts the time you spend on a challenge, like a timed interview. Your best solve
+                time is saved either way.
               </span>
             </span>
           </label>

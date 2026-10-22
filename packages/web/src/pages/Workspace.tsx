@@ -29,7 +29,7 @@ import { EditorTabs } from '../workspace/EditorTabs';
 import { FileStore } from '../workspace/fileStore';
 import { SaveIndicator } from '../workspace/SaveIndicator';
 import { saveResult } from '../workspace/results';
-import { useActiveTime } from '../workspace/timer';
+import { ActiveTimer } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
 
 /** Panel sizes are a per-browser convenience; storage may be blocked (private mode). */
@@ -67,7 +67,11 @@ export function Workspace({ id }: { id: string }) {
   const buffers = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const columns = useDefaultLayout({ id: 'bughunt-columns', storage: layoutStorage });
   const rows = useDefaultLayout({ id: 'bughunt-editor-rows', storage: layoutStorage });
-  const [elapsedMs, getElapsedMs] = useActiveTime(id);
+  const [timer] = useState(() => new ActiveTimer(id));
+  useEffect(() => {
+    timer.start();
+    return () => timer.stop();
+  }, [timer]);
 
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [files, setFiles] = useState<string[]>([]);
@@ -136,22 +140,25 @@ export function Workspace({ id }: { id: string }) {
     setMessage(null);
     try {
       await store.flush();
-      const elapsed = getElapsedMs();
+      const elapsed = timer.get();
       const result = await api.submit(id, { elapsedMs: elapsed });
       saveResult(id, { submit: result, elapsedMs: elapsed });
+      if (result.solved) timer.reset(); // the next try is a new attempt
       if (mounted.current) navigate(resultsPath(id));
     } catch (err) {
       if (!mounted.current) return;
       setMessage((err as Error).message);
       setSubmitting(false);
     }
-  }, [id, busy, store, getElapsedMs]);
+  }, [id, busy, store, timer]);
 
   const reset = async () => {
     setConfirmReset(false);
+    if (busy) return;
     try {
       await store.clear(); // lets in-flight saves finish first
       const ws = await api.reset(id);
+      timer.reset(); // starting over is a new attempt
       setFiles(ws.files);
       setResult(null);
       setMessage(null);
@@ -174,9 +181,15 @@ export function Workspace({ id }: { id: string }) {
   };
 
   // Keyboard shortcuts outside the editor (CodeEditor handles them inside).
-  const shortcuts = useRef({ runTests, submit, save: () => store.flush() });
+  // While the reset dialog is open, Run and Submit shortcuts do nothing.
+  const actions = () => ({
+    runTests: confirmReset ? () => Promise.resolve() : runTests,
+    submit: confirmReset ? () => Promise.resolve() : submit,
+    save: () => store.flush(),
+  });
+  const shortcuts = useRef(actions());
   useLayoutEffect(() => {
-    shortcuts.current = { runTests, submit, save: () => store.flush() };
+    shortcuts.current = actions();
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -248,7 +261,7 @@ export function Workspace({ id }: { id: string }) {
         right={
           <>
             <SaveIndicator buffers={buffers} />
-            <TimerDisplay elapsedMs={elapsedMs} />
+            <TimerDisplay timer={timer} />
           </>
         }
       >
@@ -341,7 +354,7 @@ export function Workspace({ id }: { id: string }) {
       </Group>
 
       <footer className="flex h-11 shrink-0 items-center gap-2 border-t border-line bg-bar px-3">
-        <Button variant="ghost" onClick={() => setConfirmReset(true)}>
+        <Button variant="ghost" onClick={() => setConfirmReset(true)} disabled={busy}>
           <RotateCcw size={14} aria-hidden="true" /> Reset
         </Button>
         <Button
