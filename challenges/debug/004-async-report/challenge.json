@@ -1,0 +1,13 @@
+{
+  "id": "debug-004-async-report",
+  "mode": "debug",
+  "title": "Daily report is always empty",
+  "difficulty": "medium",
+  "estimatedMinutes": 20,
+  "tags": ["async", "promises"],
+  "hints": [
+    "Add a console.log inside the loop and another just before the return. Which one prints first?",
+    "forEach doesn't wait for an async callback. It starts them all and moves on.",
+    "Wait for every store before building the totals: a for...of loop with await, or Promise.all over a map. Keep the rows in the same order as storeIds."
+  ]
+}
