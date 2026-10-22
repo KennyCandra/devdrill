@@ -27,14 +27,14 @@ const SKIP_OR_FOCUS = /\b(?:describe|suite|it|test)\s*\.\s*(?:skip|only|todo|ski
 type Layer = 'starter' | 'hidden-tests' | 'solution';
 
 /**
- * Checks one challenge folder against the rules in docs/V1_PLAN.md (section 5).
+ * Checks one challenge folder against the rules listed in CONTRIBUTING.md ("Validate").
  * Runs the tests, so it takes a few seconds per challenge.
  */
 export async function validateChallenge(dir: string): Promise<ValidationResult> {
   const errors: string[] = [];
   const done = (): ValidationResult => ({ dir, ok: errors.length === 0, errors });
 
-  // Rule 5: metadata and README.
+  // Metadata and README.
   const meta = await readMeta(dir, errors);
   const readme = await readText(path.join(dir, 'README.md'));
   if (!readme?.trim()) errors.push('README.md is missing or empty.');
@@ -51,7 +51,7 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   }
   if (errors.length > 0 || !meta) return done();
 
-  // Rule 1: zero dependencies, plain JS only.
+  // Plain JavaScript, no dependencies.
   await checkPackageJson(roots.starter, errors);
   await initLexer();
   for (const layer of Object.keys(roots) as Layer[]) {
@@ -89,7 +89,7 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   }
   if (errors.length > 0) return done();
 
-  // Rules 3 + 4: run the tests.
+  // Debug / feature behaviour: run the tests.
   const onStarter = await runLayers([roots.starter, roots['hidden-tests']]);
   const onSolution = await runLayers([roots.starter, roots.solution, roots['hidden-tests']]);
   checkBehaviour(meta, onStarter, onSolution, new Set(files['hidden-tests']), errors);

@@ -18,14 +18,14 @@ challenges/<debug|feature>/<NNN-short-name>/
 ├── challenge.json
 ├── README.md            # the task, shown in the app
 ├── starter/             # what the player gets: code + visible tests
-│   ├── package.json     # exactly { "type": "module" }
+│   ├── package.json     # { "type": "module" } and no dependencies
 │   ├── src/...
 │   └── tests/*.test.js
 ├── hidden-tests/        # same layout as starter; files named *.hidden.test.js
 └── solution/            # ONLY the files that change, copied over starter/
 ```
 
-Use the next free number in that mode (`004-…`). Copy an existing challenge as a template.
+Name the folder `NNN-short-name` with the next free number in that mode (look at the existing folders; numbers are per mode). Copy an existing challenge as a template.
 
 `challenge.json`:
 
@@ -33,7 +33,7 @@ Use the next free number in that mode (`004-…`). Copy an existing challenge as
 {
   "id": "debug-006-short-name",
   "mode": "debug",
-  "title": "Cart total ignores discount",
+  "title": "Invoice totals are off by a cent",
   "difficulty": "easy",
   "estimatedMinutes": 15,
   "tags": ["arrays", "async"],
@@ -57,13 +57,17 @@ The `id` is the mode plus the folder name.
 npm run validate -- challenges/debug/006-short-name
 ```
 
-The validator checks the rules:
+Run `npm run validate` with no arguments too: it also checks that your number isn't already used in that mode.
 
-1. Plain ESM JavaScript, no dependencies, only relative or `node:` imports (no `import ... from 'vitest'`: `describe`, `it` and `expect` are globals).
-2. No symlinks, no `vitest.config.*`, no `.skip` / `.only` / `.todo`.
-3. Debug: at least one visible and one hidden test fail on `starter/`; everything passes on `solution/`.
-4. Feature: all visible tests pass on `starter/`; at least one hidden test fails; everything passes on `solution/`.
-5. The solution run runs exactly the same tests as the starter run.
+The validator checks:
+
+1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` isn't empty.
+2. **Plain JavaScript, no dependencies:** only `.js`/`.mjs` files; `starter/package.json` has `"type": "module"` and no dependencies; only relative or `node:` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
+3. **Every test runs:** no symlinks, no `vitest.config.*` or `vite.config.*`, no `.skip` / `.only` / `.todo` / `.skipIf` / `.runIf`.
+4. **Layout:** hidden test files are named `*.hidden.test.js` and don't share a path with a starter file; `solution/` doesn't contain tests or `package.json`.
+5. **Debug:** at least one visible and one hidden test fail on `starter/`; everything passes on `solution/`.
+6. **Feature:** all visible tests pass on `starter/`; at least one hidden test fails; everything passes on `solution/`.
+7. **Same tests:** the solution run runs exactly the same tests as the starter run.
 
 ### 5. Playtest
 

@@ -280,14 +280,14 @@ Deferred from the M3 review (not blocking v1):
 
 ### M6 — Release (~2–3 hours)
 
-- [ ] Build: web → static files served by Express; single `bin` entry
-- [ ] Static UI: keep the Host check, never put the token in HTML, send `Content-Security-Policy: frame-ancestors 'none'`, JSON 404 for unknown `/api`
-- [ ] Ship `assets/vitest.config.mjs` with the bundle and point `CHALLENGE_CONFIG` at it
-- [ ] Bundle the server with tsup/esbuild (inlines shared types, avoids `rootDir` issues); `tsconfig.build.json` excluding tests
-- [ ] Tarball smoke test also with `npm i --ignore-scripts` (esbuild postinstall not needed)
-- [ ] `npx` smoke test from a packed tarball (`npm pack`) in an empty folder
-- [ ] README: what it is, screenshot, `npx bughunt`, how to contribute, and a note that hidden tests and solutions are readable on purpose (honor system)
-- [ ] `CONTRIBUTING.md`: how to add a challenge + validation rules
+- [x] Build: web → static files served by Express; single `bin` entry
+- [x] Static UI: keep the Host check, never put the token in HTML, send `Content-Security-Policy: frame-ancestors 'none'`, JSON 404 for unknown `/api`
+- [x] Ship `assets/vitest.config.mjs` with the bundle and point `CHALLENGE_CONFIG` at it
+- [x] Bundle the server with tsup/esbuild (inlines shared types, avoids `rootDir` issues); `tsconfig.build.json` excluding tests
+- [x] Tarball smoke test also with `npm i --ignore-scripts` (esbuild postinstall not needed)
+- [x] `npx` smoke test from a packed tarball (`npm pack`) in an empty folder
+- [x] README: what it is, screenshot, `npx bughunt`, how to contribute, and a note that hidden tests and solutions are readable on purpose (honor system)
+- [x] `CONTRIBUTING.md`: how to add a challenge + validation rules
 - [ ] Pick the final name, check npm availability, publish
 
 **Done when:** a fresh machine with Node ≥ 22 can run `npx <name>` and solve a challenge.

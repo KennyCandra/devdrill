@@ -12,6 +12,8 @@ BugHunt gives you small, realistic JavaScript projects to practice exactly that,
 npx bughunt
 ```
 
+![A debug challenge: the task on the left, the code in the middle, failing tests below](docs/screenshot.jpg)
+
 Requires [Node.js](https://nodejs.org) 22 (22.12+), 24, or 26 and newer.
 
 ## How it works
