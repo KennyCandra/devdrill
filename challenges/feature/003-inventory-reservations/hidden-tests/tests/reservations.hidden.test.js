@@ -75,6 +75,19 @@ describe('reservations', () => {
     expect(inv.onHand('sneakers')).toBe(3);
   });
 
+  it("can't release an unknown, already released or expired reservation", () => {
+    const { inv, advance } = setup(3);
+    expect(() => inv.release('nope')).toThrow();
+
+    const once = inv.reserve('sneakers', 1);
+    inv.release(once);
+    expect(() => inv.release(once)).toThrow();
+
+    const expired = inv.reserve('sneakers', 1, { ttlMs: 100 });
+    advance(100);
+    expect(() => inv.release(expired)).toThrow();
+  });
+
   it("can't confirm the same reservation twice", () => {
     const { inv } = setup(3);
     const id = inv.reserve('sneakers', 1);
