@@ -311,6 +311,8 @@ export function Workspace({ id }: { id: string }) {
                         smoothScrolling: true,
                       }}
                     />
+                  ) : active ? (
+                    <Spinner className="m-4 text-muted" />
                   ) : (
                     <p className="p-4 text-muted">Pick a file on the left.</p>
                   )}

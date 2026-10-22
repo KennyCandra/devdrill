@@ -40,6 +40,10 @@ describe('runTests', () => {
       ['tests/math.test.js', 'math > is wrong', 'failed'],
     ]);
     expect(result.tests[1]?.message).toContain('expected 2 to be 3');
+    // Paths are relative and Vitest's own stack frames are gone.
+    expect(result.tests[1]?.message).toContain('tests/math.test.js:');
+    expect(result.tests[1]?.message).not.toContain(dir);
+    expect(result.tests[1]?.message).not.toContain('node_modules');
   });
 
   it('passes when every test passes', async () => {
@@ -67,8 +71,8 @@ describe('runTests', () => {
     ['beforeAll throws', `beforeAll(() => { throw new Error('boom'); }); it('x', () => {});`],
     ['afterAll throws', `afterAll(() => { throw new Error('boom'); }); it('x', () => {});`],
     [
-      'an error is thrown after the tests finish',
-      `it('x', () => { setTimeout(() => { throw new Error('late'); }, 0); });`,
+      'a promise rejects without being awaited',
+      `it('x', () => { void Promise.reject(new Error('unhandled')); });`,
     ],
   ])('fails when %s', async (_label, source) => {
     const dir = await project({ 'a.test.js': source });

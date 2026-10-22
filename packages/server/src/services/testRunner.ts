@@ -189,7 +189,7 @@ function toRunResult(
     const relFile = path.relative(dir, file.name).split(path.sep).join('/');
 
     // A file can fail outside any test: syntax error, throwing beforeAll/afterAll.
-    const fileMessage = clean(file.message);
+    const fileMessage = tidyMessage(file.message, dir);
     if (file.status === 'failed' && (fileMessage || file.assertionResults.length === 0)) {
       fileErrors.push({ file: relFile, message: fileMessage || 'Test file failed to load.' });
     }
@@ -201,7 +201,7 @@ function toRunResult(
         name: [...t.ancestorTitles, t.title].join(' > '),
         status: toCaseStatus(t.status),
         hidden: false,
-        ...(message ? { message: clean(message) } : {}),
+        ...(message ? { message: tidyMessage(message, dir) } : {}),
         durationMs: Math.round(t.duration ?? 0),
       });
     }
@@ -238,6 +238,19 @@ function toCaseStatus(status: string): TestCaseStatus {
   if (status === 'passed') return 'passed';
   if (status === 'failed') return 'failed';
   return 'skipped';
+}
+
+/**
+ * Makes a failure message readable in the UI: paths relative to the run folder,
+ * and no stack frames from Vitest or Node internals.
+ */
+function tidyMessage(message: string | undefined, dir: string): string {
+  const prefixes = [dir + path.sep, `file://${dir}${path.sep}`];
+  return clean(message)
+    .split('\n')
+    .filter((line) => !/^\s*at .*(node_modules|node:internal|file:\/\/)/.test(line))
+    .map((line) => prefixes.reduce((l, prefix) => l.split(prefix).join(''), line))
+    .join('\n');
 }
 
 function clean(message: string | undefined): string {
