@@ -31,6 +31,27 @@ export function loadResult(id: string): StoredResult | null {
   return memory.get(id) ?? null;
 }
 
+export function clearResult(id: string): void {
+  memory.delete(id);
+  try {
+    sessionStorage.removeItem(resultKey(id));
+  } catch {
+    // Nothing stored.
+  }
+}
+
+/** Forgets every stored result (after "Reset all progress"). */
+export function clearAllResults(): void {
+  memory.clear();
+  try {
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith('bughunt-result-')) sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Nothing stored.
+  }
+}
+
 /**
  * The challenge to suggest next: the first unsolved one after the current one in list
  * order, wrapping around; null when everything else is solved.

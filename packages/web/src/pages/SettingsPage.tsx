@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TopBar } from '../components/TopBar';
 import { Button } from '../components/ui';
 import { useSettings } from '../settings';
+import { clearAllResults } from '../workspace/results';
 
 const THEMES: { value: Settings['theme']; label: string }[] = [
   { value: 'system', label: 'Match system' },
@@ -37,6 +38,7 @@ export function SettingsPage() {
       } catch {
         // Storage unavailable: nothing stored there.
       }
+      clearAllResults();
       setResetDone(true);
     } catch (err) {
       setError((err as Error).message);

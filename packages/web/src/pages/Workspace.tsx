@@ -121,6 +121,15 @@ export function Workspace({ id }: { id: string }) {
     }
   }, [id, busy, store]);
 
+  // Submit can finish after the user left this screen; don't pull them back.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const submit = useCallback(async () => {
     if (busy) return;
     setSubmitting(true);
@@ -130,8 +139,9 @@ export function Workspace({ id }: { id: string }) {
       const elapsed = getElapsedMs();
       const result = await api.submit(id, { elapsedMs: elapsed });
       saveResult(id, { submit: result, elapsedMs: elapsed });
-      navigate(resultsPath(id));
+      if (mounted.current) navigate(resultsPath(id));
     } catch (err) {
+      if (!mounted.current) return;
       setMessage((err as Error).message);
       setSubmitting(false);
     }
@@ -254,6 +264,15 @@ export function Workspace({ id }: { id: string }) {
         <h1 className="min-w-0 truncate">{challenge.title}</h1>
         <DifficultyBadge difficulty={challenge.difficulty} />
         <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
+        {challenge.progress.attempts > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate(resultsPath(id))}
+            className="shrink-0 rounded px-1 text-muted underline-offset-2 hover:bg-hover hover:text-fg hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            Results
+          </button>
+        )}
       </TopBar>
 
       <Group
