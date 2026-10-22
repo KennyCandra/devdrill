@@ -20,8 +20,13 @@ describe('preferences', () => {
   });
 
   it('protects the defaults from whoever reads them', () => {
-    getDefaults().notifications.email = false;
-    getDefaults().theme = 'pink';
+    // Returning a copy or freezing the defaults are both fine, so a throw is allowed here.
+    try {
+      getDefaults().notifications.email = false;
+      getDefaults().theme = 'pink';
+    } catch {
+      // Frozen: the change was refused, which is what we want.
+    }
     expect(createPreferences().notifications.email).toBe(true);
     expect(createPreferences().theme).toBe('light');
   });

@@ -6,7 +6,7 @@ It turns out that when one user turns a notification channel off, **new users wh
 
 ## Your task
 
-Find out how one user's settings reach other users and fix it. All tests must pass.
+Find out how one user's settings reach other users and fix it. Make sure the defaults stay safe too: code that reads them (like `getDefaults()`, which the settings page uses for "Reset to defaults") must not be able to change them. All tests must pass.
 
 ## Files
 
