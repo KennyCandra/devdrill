@@ -202,16 +202,28 @@ export function createApp(options: AppOptions) {
     const uiDir = options.uiDir;
     app.use(uiSecurity);
     // Built assets have content hashes in their names, so they can be cached for good.
+    // A missing asset is a real 404 (e.g. an old tab asking for a chunk from before an
+    // upgrade), not the app page with a 200.
     app.use(
       '/assets',
-      express.static(path.join(uiDir, 'assets'), { immutable: true, maxAge: '1y' }),
+      express.static(path.join(uiDir, 'assets'), {
+        immutable: true,
+        maxAge: '1y',
+        fallthrough: false,
+      }),
     );
     app.use(express.static(uiDir, { index: false }));
-    // Every other page is the single-page app; it reads the route from the URL.
+    // Every other page is the single-page app; it reads the route from the URL. Paths that
+    // look like files (have an extension) and weren't found above are 404s.
     app.use((req, res, next) => {
       if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      if (path.extname(req.path) !== '') {
+        res.status(404).type('text/plain').send('Not found');
+        return;
+      }
       res.set('Cache-Control', 'no-cache').sendFile(path.join(uiDir, 'index.html'));
     });
+    app.use(staticErrorHandler);
   }
 
   return app;
@@ -233,6 +245,22 @@ function parseElapsed(value: unknown): number | undefined {
     throw new HttpError(400, '"elapsedMs" must be a positive number.');
   }
   return Math.round(value);
+}
+
+/** Errors from express.static (404 for missing assets, 400 for malformed paths) as plain text. */
+function staticErrorHandler(
+  err: unknown,
+  _req: Request,
+  res: Response,
+  // Express recognises error handlers by their four parameters.
+  _next: NextFunction,
+): void {
+  const status = (err as { status?: unknown }).status;
+  const code = typeof status === 'number' && status >= 400 && status < 500 ? status : 500;
+  res
+    .status(code)
+    .type('text/plain')
+    .send(code === 404 ? 'Not found' : 'Bad request');
 }
 
 function apiErrorHandler(

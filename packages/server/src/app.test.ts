@@ -446,6 +446,24 @@ describe('serving the built UI', () => {
     expect(res.headers['cache-control']).toContain('immutable');
   });
 
+  it.each(['/assets/old-chunk-123.js', '/nope.js', '/favicon.ico'])(
+    'answers a missing file %s with 404, not the app page',
+    async (missing) => {
+      const res = await request(uiServer).get(missing).set('Host', uiHost).expect(404);
+      expect(res.text).not.toContain('<title>');
+    },
+  );
+
+  it.each([
+    '/..%2f..%2fpackage.json',
+    '/assets/..%2f..%2fpackage.json',
+    '/%2e%2e/%2e%2e/etc/passwd',
+  ])('never serves files outside the UI folder: %s', async (attack) => {
+    const res = await request(uiServer).get(attack).set('Host', uiHost);
+    expect(res.text).not.toContain('"dependencies"');
+    expect(res.text).not.toContain('root:');
+  });
+
   it('rejects a foreign Host for the UI too', async () => {
     await request(uiServer).get('/').set('Host', 'evil.example').expect(403);
   });
