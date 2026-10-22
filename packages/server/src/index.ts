@@ -34,6 +34,9 @@ const previous = await readInstance(home);
 if (previous && (await isRunning(previous))) {
   const url = appUrl(previous.port, previous.token);
   console.log(`${APP_NAME} is already running.\nOpen: ${url}`);
+  if (options.port !== undefined && options.port !== previous.port) {
+    console.log(`(It's on port ${previous.port}; --port only applies when starting a new server.)`);
+  }
   if (options.open) await openBrowser(url);
   process.exit(0);
 }

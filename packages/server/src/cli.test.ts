@@ -18,7 +18,7 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['-v'])).toMatchObject({ version: true });
   });
 
-  it.each(['abc', '0', '70000', '3.5'])('rejects --port %s', (port) => {
+  it.each(['abc', '0', '70000', '3.5', '0x10', '1e3', ''])('rejects --port %s', (port) => {
     expect(() => parseCliArgs(['--port', port])).toThrow('--port must be');
   });
 

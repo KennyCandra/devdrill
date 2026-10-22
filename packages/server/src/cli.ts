@@ -12,7 +12,8 @@ export interface CliOptions {
 export const HELP = `Usage: npx ${APP_NAME} [options]
 
 Practice debugging and adding features to real code, in your browser.
-Starts a local server and opens the app. Your code and progress stay in ~/.${APP_NAME}.
+Starts a local server and opens the app. Your code and progress stay in
+~/.${APP_NAME} (or the folder in the BUGHUNT_HOME environment variable).
 
 Options:
   --port <number>  Use this port instead of 3000 (fails if it's taken)
@@ -37,7 +38,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
 
   let port: number | undefined;
   if (values.port !== undefined) {
-    port = Number(values.port);
+    // Digits only: Number() would also accept "0x10" and "1e3".
+    port = /^\d+$/.test(values.port) ? Number(values.port) : NaN;
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error(`--port must be a number from 1 to 65535, not "${values.port}".`);
     }

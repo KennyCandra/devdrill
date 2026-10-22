@@ -27,7 +27,8 @@ export interface SecurityOptions {
 export function apiSecurity({ token, extraOrigins = [] }: SecurityOptions) {
   const expected = Buffer.from(token);
 
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    res.set('X-Content-Type-Options', 'nosniff');
     const allowedHosts = hostsFor(req);
     if (!allowedHosts.includes(req.headers.host ?? '')) {
       throw new HttpError(403, 'Unexpected Host header.');
@@ -70,6 +71,8 @@ export function uiSecurity(req: Request, res: Response, next: NextFunction): voi
   res.set({
     'Content-Security-Policy': CONTENT_SECURITY_POLICY,
     'X-Content-Type-Options': 'nosniff',
+    // For browsers too old for CSP frame-ancestors.
+    'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'no-referrer',
     'Cross-Origin-Opener-Policy': 'same-origin',
   });
