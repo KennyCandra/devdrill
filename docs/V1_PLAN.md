@@ -271,9 +271,10 @@ Deferred from the M3 review (not blocking v1):
 
 ### M5 — Feature mode + all challenges (~1 day + playtesting)
 
-- [ ] Feature-mode validation rule (rule 4)
-- [ ] Challenges #2–#8, each playtested and adjusted
-- [ ] Workspace labels for feature mode ("Existing tests must keep passing")
+- [x] Feature-mode validation rule (rule 4)
+- [x] Challenges #2–#8 written and validated
+- [ ] Ahmed playtests each one and we adjust
+- [x] Workspace labels for feature mode ("Existing tests must keep passing")
 
 **Done when:** all 8 challenges pass validation and Ahmed has played each one.
 

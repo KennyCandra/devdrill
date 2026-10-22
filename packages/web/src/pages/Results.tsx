@@ -188,8 +188,8 @@ export function Results({ id }: { id: string }) {
           }}
           onCancel={() => setConfirmSolution(false)}
         >
-          You haven't solved this one yet. Debugging is the skill you're practicing, so it may help
-          to try a hint or one more attempt first. You can't unsee it.
+          You haven't solved this one yet. Working it out yourself is the practice, so a hint or one
+          more attempt may help first. You can't unsee it.
         </ConfirmDialog>
 
         {stored && (
