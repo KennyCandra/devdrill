@@ -1,0 +1,13 @@
+{
+  "id": "debug-005-shared-defaults",
+  "mode": "debug",
+  "title": "Settings leak between users",
+  "difficulty": "medium",
+  "estimatedMinutes": 20,
+  "tags": ["objects", "references"],
+  "hints": [
+    "Create two users, change one, then log both. Are they really two separate objects all the way down?",
+    "The spread operator {...obj} copies only the top level. Nested objects are still shared.",
+    "Give every user their own notifications object, and make sure nothing can change DEFAULTS (structuredClone helps)."
+  ]
+}
