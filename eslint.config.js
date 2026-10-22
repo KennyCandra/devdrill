@@ -8,7 +8,7 @@ export default defineConfig(
   {
     // challenges/ contains intentionally buggy code; it is checked by the
     // validation script instead of the linter.
-    ignores: ['**/node_modules/**', '**/dist/**', 'challenges/**', '.dev-data/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', 'challenges/**', '.dev-data/**', 'release/**'],
   },
   js.configs.recommended,
   {

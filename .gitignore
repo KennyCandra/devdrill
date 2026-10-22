@@ -8,3 +8,4 @@ coverage/
 *.tgz
 Thumbs.db
 .dev-data/
+release/
