@@ -31,6 +31,7 @@ import { SaveIndicator } from '../workspace/SaveIndicator';
 import { saveResult } from '../workspace/results';
 import { ActiveTimer } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
+import { PRODUCT_NAME } from '../brand';
 
 /** Panel sizes are a per-browser convenience; storage may be blocked (private mode). */
 const layoutStorage: LayoutStorage = {
@@ -322,7 +323,9 @@ export function Workspace({ id }: { id: string }) {
                     role="alert"
                     className="flex flex-wrap items-center gap-2 border-b border-line bg-danger-bg px-3 py-1.5"
                   >
-                    <span className="mr-auto">{conflict} changed outside BugHunt.</span>
+                    <span className="mr-auto">
+                      {conflict} changed outside {PRODUCT_NAME}.
+                    </span>
                     <Button onClick={() => void store.save(conflict, { overwrite: true })}>
                       Keep mine
                     </Button>

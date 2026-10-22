@@ -9,6 +9,7 @@ import { Workspace } from './pages/Workspace';
 import { navigate, useRoute } from './router';
 import { SettingsProvider } from './settings';
 import { ThemeProvider, useTheme } from './theme';
+import { PRODUCT_NAME, RUN_COMMAND } from './brand';
 
 type Session =
   | { state: 'loading' }
@@ -57,19 +58,19 @@ export function App({ hasToken }: { hasToken: boolean }) {
     case 'badToken':
       return (
         <StatusScreen title="Open the link from your terminal">
-          For your safety, BugHunt only works through the link it prints when it starts (the one
-          ending in <code className="font-mono">#token=…</code>). Copy it from the terminal, or run{' '}
-          <code className="font-mono">npx bughunt</code> again.
+          For your safety, {PRODUCT_NAME} only works through the link it prints when it starts (the
+          one ending in <code className="font-mono">#token=…</code>). Copy it from the terminal, or
+          run <code className="font-mono">{RUN_COMMAND}</code> again.
         </StatusScreen>
       );
     case 'offline':
       return (
         <StatusScreen
-          title="Can't reach the BugHunt server"
+          title={`Can't reach the ${PRODUCT_NAME} server`}
           action={<Button onClick={() => window.location.reload()}>Try again</Button>}
         >
           The server isn't running. Start it again with{' '}
-          <code className="font-mono">npx bughunt</code>.
+          <code className="font-mono">{RUN_COMMAND}</code>.
         </StatusScreen>
       );
     case 'ready':

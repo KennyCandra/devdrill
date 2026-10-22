@@ -2,10 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { readToken, setToken } from './api/client';
 import { App } from './App';
+import { PRODUCT_NAME } from './brand';
 import { applyInitialTheme } from './theme';
 import './index.css';
 
 applyInitialTheme();
+document.title = PRODUCT_NAME;
 
 // Read before the first render: it also removes the token from the address bar.
 const token = readToken();

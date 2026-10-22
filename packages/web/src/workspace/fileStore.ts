@@ -1,5 +1,6 @@
 import type { FileContent, SavedFile, SaveFileRequest } from '@bughunt/shared';
 import { ApiRequestError } from '../api/client';
+import { PRODUCT_NAME } from '../brand';
 
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'conflict' | 'error';
 
@@ -163,7 +164,7 @@ export class FileStore {
       }
       const attempt = this.retries.get(path) ?? 0;
       const message =
-        err instanceof ApiRequestError ? err.message : "Can't reach the BugHunt server.";
+        err instanceof ApiRequestError ? err.message : `Can't reach the ${PRODUCT_NAME} server.`;
       this.set(path, { ...current, state: 'error', error: message });
       const delay = RETRY_DELAYS_MS[attempt];
       if (delay !== undefined) {
