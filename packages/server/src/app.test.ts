@@ -146,6 +146,16 @@ describe('workspace flow', () => {
     await api('post', `/workspaces/${ID}/reset`).expect(200);
   });
 
+  it('handles two starts at once (React dev mode sends two)', async () => {
+    await rm(path.join(dataDir, 'workspaces', ID), { recursive: true });
+    const [a, b] = await Promise.all([
+      api('post', `/challenges/${ID}/start`),
+      api('post', `/challenges/${ID}/start`),
+    ]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect((a.body as WorkspaceInfo).files).toEqual((b.body as WorkspaceInfo).files);
+  });
+
   it('needs the challenge to be started first', async () => {
     await rm(path.join(dataDir, 'workspaces', ID), { recursive: true });
     const res = await api('get', `/workspaces/${ID}`).expect(404);

@@ -23,6 +23,8 @@ export const MAX_FILE_BYTES = 512 * 1024;
  */
 export class WorkspaceManager {
   private readonly busy = new Set<string>();
+  /** In-flight first-time copies, so concurrent starts share one instead of racing. */
+  private readonly starting = new Map<string, Promise<void>>();
 
   constructor(
     private readonly root: string,
@@ -43,9 +45,18 @@ export class WorkspaceManager {
 
   /** Creates the workspace from `starter/` if it doesn't exist yet. Returns its files. */
   async start(challenge: Challenge): Promise<string[]> {
-    if (!(await this.exists(challenge))) {
-      await this.exclusive(challenge, () => this.copyStarter(challenge));
+    const id = challenge.meta.id;
+    let pending = this.starting.get(id);
+    if (!pending && !(await this.exists(challenge))) {
+      pending =
+        this.starting.get(id) ??
+        this.exclusive(challenge, async () => {
+          // Another start may have finished while this one waited.
+          if (!(await this.exists(challenge))) await this.copyStarter(challenge);
+        }).finally(() => this.starting.delete(id));
+      this.starting.set(id, pending);
     }
+    await pending;
     return listFiles(this.dirFor(challenge));
   }
 
@@ -197,7 +208,7 @@ export class WorkspaceManager {
 
   private async exclusive<T>(challenge: Challenge, task: () => Promise<T>): Promise<T> {
     if (this.busy.has(challenge.meta.id)) {
-      throw new HttpError(409, 'Tests are already running. Wait for them to finish.');
+      throw new HttpError(409, 'Tests or a reset are already running. Wait for them to finish.');
     }
     this.busy.add(challenge.meta.id);
     try {
