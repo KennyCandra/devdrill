@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CircleCheckBig, CircleX } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleCheckBig, CircleX, Eye } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ChallengeDetail, ChallengeSummary } from '@bughunt/shared';
 import { api } from '../api/client';
@@ -7,12 +7,14 @@ import { TopBar } from '../components/TopBar';
 import { Button, DifficultyBadge, StatusScreen } from '../components/ui';
 import { challengePath, navigate } from '../router';
 import { loadResult, nextChallenge } from '../workspace/results';
+import { SolutionView } from '../workspace/SolutionView';
 import { formatDuration } from '../workspace/timer';
 
 export function Results({ id }: { id: string }) {
   const [stored] = useState(() => loadResult(id));
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [all, setAll] = useState<ChallengeSummary[] | null>(null);
+  const [showSolution, setShowSolution] = useState(false);
 
   useEffect(() => {
     api
@@ -105,7 +107,17 @@ export function Results({ id }: { id: string }) {
               <ArrowLeft size={14} aria-hidden="true" /> Back to the code
             </Button>
           )}
+          <Button onClick={() => setShowSolution((v) => !v)} aria-expanded={showSolution}>
+            <Eye size={14} aria-hidden="true" />
+            {showSolution
+              ? 'Hide the solution'
+              : solved
+                ? 'Compare with the solution'
+                : 'Show the solution'}
+          </Button>
         </div>
+
+        {showSolution && <SolutionView id={id} />}
 
         <section
           aria-label="Test results"
