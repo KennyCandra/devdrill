@@ -144,7 +144,7 @@ Each one is playtested by Ahmed before merge. Feedback → edit → re-validate.
 
 `status`: `not_started` | `in_progress` | `solved`.
 
-`settings.json`: `{ "timerEnabled": false, "theme": "system" }`
+`settings.json`: `{ "timerEnabled": true, "theme": "system" }` (the timer is on by default; it can be turned off in Settings, decided 2026-10-23)
 
 ## 8. Server API
 

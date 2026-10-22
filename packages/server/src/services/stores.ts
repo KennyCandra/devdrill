@@ -7,7 +7,7 @@ export interface ProgressFile {
   challenges: Record<string, ProgressEntry>;
 }
 
-export const DEFAULT_SETTINGS: Settings = { timerEnabled: false, theme: 'system' };
+export const DEFAULT_SETTINGS: Settings = { timerEnabled: true, theme: 'system' };
 
 const STATUSES: readonly ChallengeStatus[] = ['not_started', 'in_progress', 'solved'];
 const THEMES: readonly Settings['theme'][] = ['system', 'light', 'dark'];

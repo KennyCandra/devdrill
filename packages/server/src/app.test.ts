@@ -372,10 +372,11 @@ describe('session', () => {
 describe('settings', () => {
   it('returns defaults and saves valid changes', async () => {
     const res = await api('get', '/settings').expect(200);
-    expect(res.body).toEqual({ timerEnabled: false, theme: 'system' });
-    await api('put', '/settings').send({ timerEnabled: true }).expect(200);
+    // The timer is on unless the user turns it off.
+    expect(res.body).toEqual({ timerEnabled: true, theme: 'system' });
+    await api('put', '/settings').send({ timerEnabled: false }).expect(200);
     const after = await api('get', '/settings').expect(200);
-    expect(after.body).toEqual({ timerEnabled: true, theme: 'system' });
+    expect(after.body).toEqual({ timerEnabled: false, theme: 'system' });
   });
 
   it.each([{ timerEnabled: 'yes' }, { theme: 'pink' }, { unknown: 1 }])(

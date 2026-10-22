@@ -27,7 +27,7 @@ Each challenge has a short task description, a few files, and tests.
 2. **Submit** (`⌘/Ctrl + Shift + Enter`) also runs **hidden tests** that check the edge cases. Fixing only the symptom the visible tests show usually isn't enough.
 3. **Results** tell you what passed and failed. Hidden tests show only their names until you solve the challenge. After solving, you can compare your code with the reference solution.
 
-Hints come one at a time, from "where to look" to "almost the answer". There's an optional timer.
+Hints come one at a time, from "where to look" to "almost the answer". A timer runs while you work, like in a timed interview; you can turn it off in Settings.
 
 **Honor system:** the hidden tests and solutions ship with the app, and you can read them if you go looking. It's practice; the only person you'd be fooling is yourself.
 
