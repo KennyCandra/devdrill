@@ -19,7 +19,8 @@
     "test": "vitest run",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run validate",
     "validate": "tsx scripts/validate-challenges.ts",
-    "build:release": "tsx scripts/build-release.ts"
+    "build:release": "tsx scripts/build-release.ts",
+    "smoke:release": "tsx scripts/smoke-release.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

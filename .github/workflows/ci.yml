@@ -32,3 +32,21 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run validate
+
+  # Builds the package, installs it into an empty folder like a user would, and solves a
+  # challenge through it. This is the only place the published layout is tested.
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:release
+      - run: npm run smoke:release
