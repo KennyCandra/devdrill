@@ -262,10 +262,10 @@ Deferred from the M3 review (not blocking v1):
 
 ### M4 — Submit, results, timer (~half a day)
 
-- [ ] Submit button + results page
-- [ ] Reference solution viewer
-- [ ] Optional timer (from settings, toggle in workspace)
-- [ ] Settings page
+- [x] Submit button + results page
+- [x] Reference solution viewer
+- [x] Optional timer (from settings, toggle in workspace)
+- [x] Settings page
 
 **Done when:** the full debug loop works end to end, and progress survives a server restart.
 

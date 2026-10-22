@@ -45,6 +45,18 @@ export function Results({ id }: { id: string }) {
   const visibleFailed = run.tests.filter((t) => !t.hidden && t.status !== 'passed').length;
   const next = all ? nextChallenge(all, id) : null;
 
+  const summaryText = (): string => {
+    if (solved) return 'Every test passes, including the hidden ones.';
+    if (run.status === 'timeout') return 'The tests timed out. Look for an infinite loop.';
+    if (run.fileErrors.length > 0 || run.status === 'error') {
+      return "Some tests couldn't run at all. Look for a syntax error in your code.";
+    }
+    if (visibleFailed > 0) {
+      return `${visibleFailed} visible ${plural(visibleFailed, 'test')} still ${visibleFailed === 1 ? 'fails' : 'fail'}.`;
+    }
+    return `The visible tests pass, but ${hiddenFailed} hidden ${plural(hiddenFailed, 'test')} ${hiddenFailed === 1 ? 'fails' : 'fail'}. Hidden tests check cases the visible ones don't.`;
+  };
+
   return (
     <div className="flex h-full flex-col">
       <TopBar>
@@ -68,15 +80,7 @@ export function Results({ id }: { id: string }) {
             <h1 className="text-[20px] font-semibold tracking-tight">
               {solved ? 'Solved' : 'Not quite yet'}
             </h1>
-            <p className="mt-1 text-muted">
-              {solved
-                ? 'Every test passes, including the hidden ones.'
-                : run.status === 'timeout'
-                  ? 'The tests timed out. Look for an infinite loop.'
-                  : visibleFailed > 0
-                    ? `${visibleFailed} visible ${plural(visibleFailed, 'test')} still ${visibleFailed === 1 ? 'fails' : 'fail'}.`
-                    : `The visible tests pass, but ${hiddenFailed} hidden ${plural(hiddenFailed, 'test')} ${hiddenFailed === 1 ? 'fails' : 'fail'}. Hidden tests check cases the visible ones don't.`}
-            </p>
+            <p className="mt-1 text-muted">{summaryText()}</p>
           </div>
         </header>
 
