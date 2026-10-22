@@ -1,0 +1,13 @@
+{
+  "id": "feature-001-todo-search",
+  "mode": "feature",
+  "title": "Add search to the todo list",
+  "difficulty": "easy",
+  "estimatedMinutes": 15,
+  "tags": ["arrays", "strings"],
+  "hints": [
+    "Start from list(): search is list() plus two more filters.",
+    "Compare lowercase versions of both the title and the query, and trim the query first.",
+    "Return copies the way list() does, so callers can't change the stored todos."
+  ]
+}
