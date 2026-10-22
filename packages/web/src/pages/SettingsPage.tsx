@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { Settings } from '@bughunt/shared';
+import type { Settings } from '@devdrill/shared';
 import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TopBar } from '../components/TopBar';
@@ -31,7 +31,7 @@ export function SettingsPage() {
       // Revealed hints are per-browser; clear them too so it's a real fresh start.
       try {
         for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('bughunt-hints-') || key.startsWith('bughunt-time-')) {
+          if (key.startsWith('devdrill-hints-') || key.startsWith('devdrill-time-')) {
             localStorage.removeItem(key);
           }
         }

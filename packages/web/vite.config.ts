@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // In dev, `npm run dev` starts the API server and passes its port here.
-const apiPort = process.env.BUGHUNT_API_PORT ?? '3000';
+const apiPort = process.env.DEVDRILL_API_PORT ?? '3000';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

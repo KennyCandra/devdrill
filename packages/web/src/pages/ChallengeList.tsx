@@ -1,6 +1,11 @@
 import { CheckCircle2, Circle, CircleDot, Clock, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { ChallengeMode, ChallengeStatus, ChallengeSummary, Difficulty } from '@bughunt/shared';
+import type {
+  ChallengeMode,
+  ChallengeStatus,
+  ChallengeSummary,
+  Difficulty,
+} from '@devdrill/shared';
 import { api } from '../api/client';
 import { TopBar } from '../components/TopBar';
 import { Button, DifficultyBadge, Spinner } from '../components/ui';

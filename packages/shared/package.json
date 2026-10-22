@@ -1,9 +1,9 @@
 {
-  "name": "@bughunt/shared",
+  "name": "@devdrill/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Types shared by the BugHunt server and web UI.",
+  "description": "Types shared by the DevDrill server and web UI.",
   "exports": {
     ".": {
       "types": "./src/index.ts",

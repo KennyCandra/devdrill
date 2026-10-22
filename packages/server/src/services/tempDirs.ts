@@ -11,7 +11,7 @@ export async function withTempDir<T>(
   prefix: string,
   task: (dir: string) => Promise<T>,
 ): Promise<T> {
-  const dir = await mkdtemp(path.join(tmpdir(), `bughunt-${prefix}-`));
+  const dir = await mkdtemp(path.join(tmpdir(), `devdrill-${prefix}-`));
   live.add(dir);
   try {
     return await task(dir);

@@ -1,4 +1,4 @@
-import type { ChallengeSummary, SubmitResult } from '@bughunt/shared';
+import type { ChallengeSummary, SubmitResult } from '@devdrill/shared';
 
 export interface StoredResult {
   submit: SubmitResult;
@@ -6,7 +6,7 @@ export interface StoredResult {
   elapsedMs: number;
 }
 
-const resultKey = (id: string) => `bughunt-result-${id}`;
+const resultKey = (id: string) => `devdrill-result-${id}`;
 
 // Fallback for when sessionStorage is unavailable: the result still survives navigation.
 const memory = new Map<string, StoredResult>();
@@ -45,7 +45,7 @@ export function clearAllResults(): void {
   memory.clear();
   try {
     for (const key of Object.keys(sessionStorage)) {
-      if (key.startsWith('bughunt-result-')) sessionStorage.removeItem(key);
+      if (key.startsWith('devdrill-result-')) sessionStorage.removeItem(key);
     }
   } catch {
     // Nothing stored.

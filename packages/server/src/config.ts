@@ -2,17 +2,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-// The project name is a placeholder until release (see docs/V1_PLAN.md, section 13).
-// Keep every user-facing use of the name behind this constant.
-export const APP_NAME = 'bughunt';
+// The CLI and package name. Keep every user-facing use of the name behind this constant.
+export const APP_NAME = 'devdrill';
 
 export const HOST = '127.0.0.1';
 
 export const DEFAULT_PORT = 3000;
 
-/** Workspaces, progress and settings. `BUGHUNT_HOME` overrides it (used by tests). */
+/** Workspaces, progress and settings. `DEVDRILL_HOME` overrides it (used by tests). */
 export function dataDir(): string {
-  return process.env.BUGHUNT_HOME ?? path.join(homedir(), `.${APP_NAME}`);
+  return process.env.DEVDRILL_HOME ?? path.join(homedir(), `.${APP_NAME}`);
 }
 
 export interface AppPaths {
@@ -40,8 +39,8 @@ export function appPaths(): AppPaths {
     name?: string;
     version?: string;
   };
-  const published = pkg.name !== '@bughunt/server';
-  const uiDir = process.env.BUGHUNT_UI_DIR ?? path.join(root, 'ui');
+  const published = pkg.name !== '@devdrill/server';
+  const uiDir = process.env.DEVDRILL_UI_DIR ?? path.join(root, 'ui');
 
   cached = {
     challenges: published ? path.join(root, 'challenges') : path.resolve(root, '../../challenges'),

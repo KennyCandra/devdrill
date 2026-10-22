@@ -1,15 +1,13 @@
-# BugHunt
+# DevDrill
 
 > **In the era of AI, practice the skills you actually need.**
->
-> _"BugHunt" is a working name; the final one is still being picked._
 
 AI writes a lot of code now. What's left for you, and what interviews increasingly test, is **working with code you didn't write**: finding why it's broken, and changing it without breaking what already works.
 
-BugHunt gives you small, realistic JavaScript projects to practice exactly that, in a VS Code-style editor in your browser. Everything runs on your own machine.
+DevDrill gives you small, realistic JavaScript projects to practice exactly that, in a VS Code-style editor in your browser. Everything runs on your own machine.
 
 ```bash
-npx bughunt
+npx devdrill
 ```
 
 ![A debug challenge: the task on the left, the code in the middle, failing tests below](docs/screenshot.jpg)
@@ -51,14 +49,14 @@ New challenges are very welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Options
 
 ```
-npx bughunt --port 4000   # use a specific port (default 3000, or a free one)
-npx bughunt --no-open     # don't open a browser; just print the link
-npx bughunt --help
+npx devdrill --port 4000   # use a specific port (default 3000, or a free one)
+npx devdrill --no-open     # don't open a browser; just print the link
+npx devdrill --help
 ```
 
 ## Your data and safety
 
-- Your code, progress and settings live in `~/.bughunt`. Settings → "Reset all progress" starts over.
+- Your code, progress and settings live in `~/.devdrill`. Settings → "Reset all progress" starts over.
 - The server listens on `127.0.0.1` only. Because your code runs on your machine, the API is locked down so other websites can't reach it: it checks the Host and Origin headers, requires JSON, and needs a secret token. That's why the app opens with a link ending in `#token=…`.
 - Your tests run with the app's own Vitest; challenges have no dependencies and nothing is installed per challenge.
 

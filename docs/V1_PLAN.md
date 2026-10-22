@@ -1,6 +1,6 @@
-# BugHunt — Version 1 Plan
+# DevDrill — Version 1 Plan
 
-> "BugHunt" is a placeholder name. Status: **plan agreed, coding not started.**
+> Name: **DevDrill** (chosen 2026-10-22; "BugHunt" was the working name). Status: v1 built (M0–M6); waiting on playtest and publish.
 
 ## 1. Goal
 
@@ -10,7 +10,7 @@ A local, open-source practice tool for the AI-era interview skills:
 2. **Feature** — add a feature without breaking existing behavior.
 3. **Review** — review a PR and catch the planted issues _(v1.1, not in v1)_.
 
-Users run `npx bughunt`, a local server starts, and the browser opens. Nothing runs in the cloud.
+Users run `npx devdrill`, a local server starts, and the browser opens. Nothing runs in the cloud.
 
 ## 2. Version 1 scope
 
@@ -23,7 +23,7 @@ Users run `npx bughunt`, a local server starts, and the browser opens. Nothing r
 | Optional timer                      | Accounts, cloud, leaderboards            |
 | Results screen + reference solution | Anti-cheating (honor system)             |
 | Challenge validation script + CI    |                                          |
-| `npx bughunt` works                 |                                          |
+| `npx devdrill` works                |                                          |
 
 ## 3. Stack
 
@@ -35,7 +35,7 @@ Users run `npx bughunt`, a local server starts, and the browser opens. Nothing r
 | UI              | React + Vite + Tailwind                           |
 | Editor          | Monaco (`@monaco-editor/react`)                   |
 | Challenge tests | Vitest (bundled with the app)                     |
-| Storage         | Local JSON files in `~/.bughunt/`                 |
+| Storage         | Local JSON files in `~/.devdrill/`                |
 | Repo            | npm workspaces monorepo                           |
 | Quality         | ESLint + Prettier, Vitest for the app's own tests |
 | License         | MIT                                               |
@@ -43,7 +43,7 @@ Users run `npx bughunt`, a local server starts, and the browser opens. Nothing r
 ## 4. Repo structure
 
 ```
-bughunt/
+devdrill/
 ├── package.json                 # npm workspaces
 ├── packages/
 │   ├── shared/src/types.ts      # API + challenge types
@@ -121,7 +121,7 @@ Each one is playtested by Ahmed before merge. Feedback → edit → re-validate.
 ## 7. Local data
 
 ```
-~/.bughunt/
+~/.devdrill/
 ├── workspaces/<challengeId>/    # user's working copy (from starter/)
 ├── progress.json
 └── settings.json
@@ -175,7 +175,7 @@ All under `/api`. Server binds to `127.0.0.1` only.
 
 **Port:** try 3000; if busy, fall back to a free port.
 
-**One server per data folder:** `~/.bughunt/server.json` (mode 0600) holds pid, port and token. A second launch opens the running server instead of starting a rival. A restart reuses the token and port, so open tabs keep working.
+**One server per data folder:** `~/.devdrill/server.json` (mode 0600) holds pid, port and token. A second launch opens the running server instead of starting a rival. A restart reuses the token and port, so open tabs keep working.
 
 **Pinned test config:** every run uses `packages/server/assets/vitest.config.mjs` via `--config`, so a `vitest.config.js` in the workspace can't skip hidden tests.
 
@@ -243,8 +243,8 @@ Binding to localhost is not enough: any website the user visits can send request
 ### M3 — UI: list + workspace (~1 day)
 
 - [x] Vite + React + Tailwind setup, `/api` proxy to Express
-- [x] Vite proxy needs `changeOrigin: true` (Host check) and the server started with `BUGHUNT_DEV_ORIGIN=http://localhost:5173`
-- [x] Token: read from `#token=` on load, keep in `sessionStorage`, send as `x-bughunt-token`; call `GET /api/session` first and show a clear "reopen the link from the terminal" screen on 401
+- [x] Vite proxy needs `changeOrigin: true` (Host check) and the server started with `DEVDRILL_DEV_ORIGIN=http://localhost:5173`
+- [x] Token: read from `#token=` on load, keep in `sessionStorage`, send as `x-devdrill-token`; call `GET /api/session` first and show a clear "reopen the link from the terminal" screen on 401
 - [x] Autosave sends `baseMtimeMs`; on 409 offer reload
 - [x] Web tsconfig: `"jsx": "react-jsx"`, `types: ["vite/client"]`; ESLint React hooks plugin
 - [x] `vitest.config.ts` → `test.projects` (web: happy-dom, server: node)
@@ -286,7 +286,7 @@ Deferred from the M3 review (not blocking v1):
 - [x] Bundle the server with tsup/esbuild (inlines shared types, avoids `rootDir` issues); `tsconfig.build.json` excluding tests
 - [x] Tarball smoke test also with `npm i --ignore-scripts` (esbuild postinstall not needed)
 - [x] `npx` smoke test from a packed tarball (`npm pack`) in an empty folder
-- [x] README: what it is, screenshot, `npx bughunt`, how to contribute, and a note that hidden tests and solutions are readable on purpose (honor system)
+- [x] README: what it is, screenshot, `npx devdrill`, how to contribute, and a note that hidden tests and solutions are readable on purpose (honor system)
 - [x] `CONTRIBUTING.md`: how to add a challenge + validation rules
 - [ ] Pick the final name, check npm availability, publish
 
@@ -313,7 +313,7 @@ Deferred from the M3 review (not blocking v1):
 
 ## 13. Open decisions (need Ahmed)
 
-1. **Final project name.** Ahmed doesn't want "BugHunt" (it's not about hunting bugs). Free on npm as of 2026-10-22: `devdrill`, `onthejob`, `worksample`, `codesparring`, `shiftcode`, `dayone-dev`. Renaming: `packages/web/src/brand.ts`, `APP_NAME` in `packages/server/src/config.ts`, and optionally internal ids (`x-bughunt-token`, `~/.bughunt`, `BUGHUNT_HOME`, the `@bughunt/*` workspace names).
+1. ~~**Final project name.**~~ **DevDrill** (`npx devdrill`), chosen 2026-10-22.
 2. **GitHub org or personal account**, then add `repository`, `homepage` and `bugs` to the release `package.json` (`scripts/build-release.ts`) so README links work on npmjs.com.
 3. **Playtest** the 8 challenges (M5) and adjust README, hints and estimates.
 4. **Publish:** `npm run build:release && npm publish ./release` (after 1–3).

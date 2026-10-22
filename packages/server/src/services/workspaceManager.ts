@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { FileContent, SavedFile, SolutionFile, TestRunResult } from '@bughunt/shared';
+import type { FileContent, SavedFile, SolutionFile, TestRunResult } from '@devdrill/shared';
 import { HttpError } from '../httpError.js';
 import type { Challenge } from './challengeLoader.js';
 import {

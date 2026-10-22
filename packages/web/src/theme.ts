@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { Settings } from '@bughunt/shared';
+import type { Settings } from '@devdrill/shared';
 
 export type ResolvedTheme = 'dark' | 'light';
 

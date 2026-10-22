@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Settings } from '@bughunt/shared';
+import type { Settings } from '@devdrill/shared';
 import { DEFAULT_SETTINGS } from './defaults';
 
 export interface SettingsValue {

@@ -13,7 +13,7 @@ import type {
   SubmitResult,
   TestRunResult,
   WorkspaceInfo,
-} from '@bughunt/shared';
+} from '@devdrill/shared';
 import { createApp } from './app.js';
 import { appPaths } from './config.js';
 import { TOKEN_HEADER } from './security.js';
@@ -35,7 +35,7 @@ function api(method: 'get' | 'post' | 'put' | 'delete', url: string) {
 }
 
 async function startServer(): Promise<void> {
-  dataDir = await mkdtemp(path.join(tmpdir(), 'bughunt-app-test-'));
+  dataDir = await mkdtemp(path.join(tmpdir(), 'devdrill-app-test-'));
   const app = createApp({
     challenges: await loadChallenges(appPaths().challenges),
     dataDir,
@@ -402,9 +402,9 @@ describe('serving the built UI', () => {
   let uiDir: string;
 
   beforeAll(async () => {
-    uiDir = await mkdtemp(path.join(tmpdir(), 'bughunt-ui-test-'));
+    uiDir = await mkdtemp(path.join(tmpdir(), 'devdrill-ui-test-'));
     await mkdir(path.join(uiDir, 'assets'));
-    await writeFile(path.join(uiDir, 'index.html'), '<!doctype html><title>BugHunt</title>');
+    await writeFile(path.join(uiDir, 'index.html'), '<!doctype html><title>DevDrill</title>');
     await writeFile(path.join(uiDir, 'assets', 'app-abc123.js'), 'console.log(1);');
     const app = createApp({
       challenges: await loadChallenges(appPaths().challenges),
@@ -424,7 +424,7 @@ describe('serving the built UI', () => {
 
   it('serves the app page with security headers and no token', async () => {
     const res = await request(uiServer).get('/').set('Host', uiHost).expect(200);
-    expect(res.text).toContain('<title>BugHunt</title>');
+    expect(res.text).toContain('<title>DevDrill</title>');
     expect(res.text).not.toContain(TOKEN);
     expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
     expect(res.headers['x-content-type-options']).toBe('nosniff');
@@ -435,7 +435,7 @@ describe('serving the built UI', () => {
       .get(`/challenge/${ID}/results`)
       .set('Host', uiHost)
       .expect(200);
-    expect(res.text).toContain('<title>BugHunt</title>');
+    expect(res.text).toContain('<title>DevDrill</title>');
   });
 
   it('serves hashed assets with long caching', async () => {

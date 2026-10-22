@@ -1,4 +1,4 @@
-import type { ChallengeMeta, ChallengeMode, Difficulty } from '@bughunt/shared';
+import type { ChallengeMeta, ChallengeMode, Difficulty } from '@devdrill/shared';
 
 const MODES: readonly ChallengeMode[] = ['debug', 'feature'];
 const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard'];

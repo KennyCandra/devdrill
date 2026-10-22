@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Settings } from '@bughunt/shared';
+import type { Settings } from '@devdrill/shared';
 import { api, ApiRequestError } from './api/client';
 import { Button, Spinner, StatusScreen } from './components/ui';
 import { ChallengeList } from './pages/ChallengeList';

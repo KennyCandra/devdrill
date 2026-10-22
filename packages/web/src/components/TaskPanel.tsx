@@ -1,7 +1,7 @@
 import { Bug, Lightbulb, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import Markdown, { type Components } from 'react-markdown';
-import type { ChallengeDetail } from '@bughunt/shared';
+import type { ChallengeDetail } from '@devdrill/shared';
 import { Button } from './ui';
 
 // Links leave the app in a new tab, so leaving never drops unsaved work.
@@ -9,7 +9,7 @@ const markdownComponents: Components = {
   a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
 };
 
-const hintsKey = (id: string) => `bughunt-hints-${id}`;
+const hintsKey = (id: string) => `devdrill-hints-${id}`;
 
 function readShownHints(id: string): number {
   try {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SolutionFile } from '@bughunt/shared';
+import type { SolutionFile } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { Spinner } from '../components/ui';
 import { languageFor, monaco } from '../editor/monacoSetup';

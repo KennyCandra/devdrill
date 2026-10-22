@@ -2,7 +2,7 @@
 //
 //   npm run dev
 //
-// Dev data lives in .dev-data/ (git-ignored), so it never touches your real ~/.bughunt.
+// Dev data lives in .dev-data/ (git-ignored), so it never touches your real ~/.devdrill.
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
@@ -23,8 +23,8 @@ function start(command: string, args: string[], env: Record<string, string>): Ch
 }
 
 const server = start('npx', ['tsx', 'watch', 'packages/server/src/index.ts', '--no-open'], {
-  BUGHUNT_HOME: path.join(ROOT, '.dev-data'),
-  BUGHUNT_DEV_ORIGIN: DEV_ORIGIN,
+  DEVDRILL_HOME: path.join(ROOT, '.dev-data'),
+  DEVDRILL_DEV_ORIGIN: DEV_ORIGIN,
 });
 
 let viteStarted = false;
@@ -42,7 +42,7 @@ server.stdout?.on('data', (chunk: Buffer) => {
   viteStarted = true;
   const [, port = '3000', token = ''] = match;
 
-  const vite = start('npx', ['vite', 'packages/web'], { BUGHUNT_API_PORT: port });
+  const vite = start('npx', ['vite', 'packages/web'], { DEVDRILL_API_PORT: port });
   vite.stdout?.on('data', (c: Buffer) => process.stdout.write(`[web] ${c.toString()}`));
   console.log(`\nDev UI: ${DEV_ORIGIN}/#token=${token}\n`);
 });

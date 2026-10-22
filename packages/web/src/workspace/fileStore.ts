@@ -1,4 +1,4 @@
-import type { FileContent, SavedFile, SaveFileRequest } from '@bughunt/shared';
+import type { FileContent, SavedFile, SaveFileRequest } from '@devdrill/shared';
 import { ApiRequestError } from '../api/client';
 import { PRODUCT_NAME } from '../brand';
 

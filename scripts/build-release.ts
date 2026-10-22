@@ -9,7 +9,7 @@
 //   ├── README.md, LICENSE
 //
 //   npm run build:release
-//   npm pack ./release      # then try it: npx ./bughunt-<version>.tgz
+//   npm pack ./release      # then try it: npx ./devdrill-<version>.tgz
 //
 // packages/server/src/config.ts knows this layout (see appPaths()).
 

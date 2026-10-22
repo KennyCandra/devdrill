@@ -2,7 +2,7 @@ import { cp, lstat, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { init as initLexer, parse as parseImports } from 'es-module-lexer';
-import type { ChallengeMeta, TestRunResult } from '@bughunt/shared';
+import type { ChallengeMeta, TestRunResult } from '@devdrill/shared';
 import { parseChallengeMeta } from '../../packages/server/src/services/challengeMeta.js';
 import { IGNORED_FILES } from '../../packages/server/src/services/files.js';
 import { runTests } from '../../packages/server/src/services/testRunner.js';
@@ -247,7 +247,7 @@ function checkBehaviour(
 
 /** Copies each folder on top of the previous one into a temp folder, then runs the tests. */
 async function runLayers(layers: string[]): Promise<TestRunResult> {
-  const work = await mkdtemp(path.join(tmpdir(), 'bughunt-validate-'));
+  const work = await mkdtemp(path.join(tmpdir(), 'devdrill-validate-'));
   try {
     for (const layer of layers) {
       await cp(layer, work, {

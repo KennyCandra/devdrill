@@ -1,5 +1,5 @@
 {
-  "name": "bughunt-monorepo",
+  "name": "devdrill-monorepo",
   "private": true,
   "type": "module",
   "workspaces": [

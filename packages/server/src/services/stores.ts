@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { ChallengeStatus, ProgressEntry, Settings } from '@bughunt/shared';
+import type { ChallengeStatus, ProgressEntry, Settings } from '@devdrill/shared';
 import { HttpError } from '../httpError.js';
 import { JsonStore } from './jsonStore.js';
 

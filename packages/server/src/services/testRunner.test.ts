@@ -7,7 +7,7 @@ import { runTests } from './testRunner.js';
 const dirs: string[] = [];
 
 async function project(files: Record<string, string>): Promise<string> {
-  const dir = await mkdtemp(path.join(tmpdir(), 'bughunt-runner-test-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'devdrill-runner-test-'));
   dirs.push(dir);
   await writeFile(path.join(dir, 'package.json'), '{ "type": "module" }');
   for (const [name, content] of Object.entries(files)) {

@@ -1,5 +1,5 @@
 import { Check, Circle, EyeOff, X } from 'lucide-react';
-import type { TestCaseResult, TestRunResult } from '@bughunt/shared';
+import type { TestCaseResult, TestRunResult } from '@devdrill/shared';
 import { Kbd, modKey, Spinner } from './ui';
 
 export function TestPanel({

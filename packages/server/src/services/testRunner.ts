@@ -4,7 +4,12 @@ import { readFile, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
-import type { TestCaseResult, TestCaseStatus, TestFileError, TestRunResult } from '@bughunt/shared';
+import type {
+  TestCaseResult,
+  TestCaseStatus,
+  TestFileError,
+  TestRunResult,
+} from '@devdrill/shared';
 import { appPaths } from '../config.js';
 import { withTempDir } from './tempDirs.js';
 

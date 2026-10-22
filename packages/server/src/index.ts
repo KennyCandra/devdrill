@@ -51,7 +51,7 @@ const app = createApp({
   token,
   uiDir: appPaths().ui,
   // The Vite dev server (milestone M3) proxies /api from this origin.
-  extraOrigins: process.env.BUGHUNT_DEV_ORIGIN ? [process.env.BUGHUNT_DEV_ORIGIN] : [],
+  extraOrigins: process.env.DEVDRILL_DEV_ORIGIN ? [process.env.DEVDRILL_DEV_ORIGIN] : [],
 });
 
 const server = await listen(options.port, previous?.port ?? DEFAULT_PORT);

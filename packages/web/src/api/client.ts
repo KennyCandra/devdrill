@@ -12,10 +12,10 @@ import type {
   SubmitResult,
   TestRunResult,
   WorkspaceInfo,
-} from '@bughunt/shared';
+} from '@devdrill/shared';
 
-const TOKEN_HEADER = 'x-bughunt-token';
-const TOKEN_KEY = 'bughunt-token';
+const TOKEN_HEADER = 'x-devdrill-token';
+const TOKEN_KEY = 'devdrill-token';
 
 /** An error response from the API, with its HTTP status. */
 export class ApiRequestError extends Error {

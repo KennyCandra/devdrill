@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ChallengeStatus, ChallengeSummary } from '@bughunt/shared';
+import type { ChallengeStatus, ChallengeSummary } from '@devdrill/shared';
 import { nextChallenge } from './results';
 
 function challenge(id: string, status: ChallengeStatus): ChallengeSummary {

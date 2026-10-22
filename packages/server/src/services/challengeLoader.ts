@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ChallengeMeta } from '@bughunt/shared';
+import type { ChallengeMeta } from '@devdrill/shared';
 import { parseChallengeMeta } from './challengeMeta.js';
 
 export interface Challenge {

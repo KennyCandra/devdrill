@@ -2,7 +2,7 @@ const TICK_MS = 1000;
 /** A longer gap means the computer slept or the tab was frozen; don't count it. */
 const MAX_TICK_GAP_MS = 5000;
 
-const timeKey = (id: string) => `bughunt-time-${id}`;
+const timeKey = (id: string) => `devdrill-time-${id}`;
 
 /** "4:05", "12:30", "1:02:03". */
 export function formatDuration(ms: number): string {

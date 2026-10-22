@@ -37,7 +37,7 @@ describe('ActiveTimer', () => {
       timer.start();
       vi.advanceTimersByTime(3000);
       expect(timer.getSnapshot()).toBe(3000);
-      expect(Number(localStorage.getItem('bughunt-time-t1'))).toBe(3000);
+      expect(Number(localStorage.getItem('devdrill-time-t1'))).toBe(3000);
 
       timer.reset();
       expect(timer.get()).toBe(0);
@@ -50,7 +50,7 @@ describe('ActiveTimer', () => {
   });
 
   it('picks up where it left off after a reload', () => {
-    localStorage.setItem('bughunt-time-t2', '42000');
+    localStorage.setItem('devdrill-time-t2', '42000');
     expect(new ActiveTimer('t2').get()).toBe(42000);
   });
 });

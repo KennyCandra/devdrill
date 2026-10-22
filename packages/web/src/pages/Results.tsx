@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDot, CircleX, Eye } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import type { ChallengeDetail, ChallengeSummary } from '@bughunt/shared';
+import type { ChallengeDetail, ChallengeSummary } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TestResultList } from '../components/TestPanel';

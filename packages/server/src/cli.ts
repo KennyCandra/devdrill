@@ -13,7 +13,7 @@ export const HELP = `Usage: npx ${APP_NAME} [options]
 
 Practice debugging and adding features to real code, in your browser.
 Starts a local server and opens the app. Your code and progress stay in
-~/.${APP_NAME} (or the folder in the BUGHUNT_HOME environment variable).
+~/.${APP_NAME} (or the folder in the DEVDRILL_HOME environment variable).
 
 Options:
   --port <number>  Use this port instead of 3000 (fails if it's taken)

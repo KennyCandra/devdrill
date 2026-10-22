@@ -74,7 +74,7 @@ try {
   const port = await freePort();
   server = spawn(process.execPath, [cli, '--no-open', '--port', String(port)], {
     cwd: app,
-    env: { ...process.env, BUGHUNT_HOME: home },
+    env: { ...process.env, DEVDRILL_HOME: home },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const token = await new Promise<string>((resolve, reject) => {
@@ -99,7 +99,7 @@ try {
     const res = await fetch(`${base}/api${route}`, {
       method,
       headers: {
-        'x-bughunt-token': token,
+        'x-devdrill-token': token,
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

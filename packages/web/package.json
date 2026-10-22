@@ -1,16 +1,16 @@
 {
-  "name": "@bughunt/web",
+  "name": "@devdrill/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "BugHunt web UI (React + Vite).",
+  "description": "DevDrill web UI (React + Vite).",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@bughunt/shared": "*",
+    "@devdrill/shared": "*",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

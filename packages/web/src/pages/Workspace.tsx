@@ -14,7 +14,7 @@ import {
   useDefaultLayout,
   type LayoutStorage,
 } from 'react-resizable-panels';
-import type { ChallengeDetail, TestRunResult } from '@bughunt/shared';
+import type { ChallengeDetail, TestRunResult } from '@devdrill/shared';
 import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FileTree } from '../components/FileTree';
@@ -66,8 +66,8 @@ export function Workspace({ id }: { id: string }) {
       }),
   );
   const buffers = useSyncExternalStore(store.subscribe, store.getSnapshot);
-  const columns = useDefaultLayout({ id: 'bughunt-columns', storage: layoutStorage });
-  const rows = useDefaultLayout({ id: 'bughunt-editor-rows', storage: layoutStorage });
+  const columns = useDefaultLayout({ id: 'devdrill-columns', storage: layoutStorage });
+  const rows = useDefaultLayout({ id: 'devdrill-editor-rows', storage: layoutStorage });
   const [timer] = useState(() => new ActiveTimer(id));
   useEffect(() => {
     timer.start();

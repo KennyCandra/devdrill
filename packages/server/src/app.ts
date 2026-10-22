@@ -16,7 +16,7 @@ import type {
   TestCaseResult,
   TestRunResult,
   WorkspaceInfo,
-} from '@bughunt/shared';
+} from '@devdrill/shared';
 import { APP_NAME } from './config.js';
 import { HttpError } from './httpError.js';
 import { apiSecurity, uiSecurity } from './security.js';
@@ -31,7 +31,7 @@ import { MAX_FILE_BYTES, WorkspaceManager } from './services/workspaceManager.js
 
 export interface AppOptions {
   challenges: Map<string, Challenge>;
-  /** Where workspaces, progress.json and settings.json live (normally ~/.bughunt). */
+  /** Where workspaces, progress.json and settings.json live (normally ~/.devdrill). */
   dataDir: string;
   token: string;
   extraOrigins?: string[];

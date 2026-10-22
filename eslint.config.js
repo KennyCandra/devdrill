@@ -26,15 +26,15 @@ export default defineConfig(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
       ],
-      // @bughunt/shared is types-only and is never built or published,
+      // @devdrill/shared is types-only and is never built or published,
       // so a runtime import of it would crash the published server.
       '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           paths: [
             {
-              name: '@bughunt/shared',
-              message: '@bughunt/shared is types-only. Use `import type`.',
+              name: '@devdrill/shared',
+              message: '@devdrill/shared is types-only. Use `import type`.',
               allowTypeImports: true,
             },
           ],

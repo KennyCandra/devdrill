@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { HttpError } from './httpError.js';
 
 /** Header the web UI sends the session token in. A custom header also forces a CORS preflight. */
-export const TOKEN_HEADER = 'x-bughunt-token';
+export const TOKEN_HEADER = 'x-devdrill-token';
 
 export function createSessionToken(): string {
   return randomBytes(24).toString('base64url');

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SaveFileRequest } from '@bughunt/shared';
+import type { SaveFileRequest } from '@devdrill/shared';
 import { ApiRequestError } from '../api/client';
 import { FileStore, type FileApi } from './fileStore';
 

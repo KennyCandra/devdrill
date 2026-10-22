@@ -49,11 +49,11 @@ describe('readToken', () => {
     expect(readToken()).toBe('abc123');
     expect(window.location.hash).toBe('');
     expect(window.location.pathname).toBe('/challenge/x');
-    expect(sessionStorage.getItem('bughunt-token')).toBe('abc123');
+    expect(sessionStorage.getItem('devdrill-token')).toBe('abc123');
   });
 
   it('falls back to the stored token after a reload', () => {
-    sessionStorage.setItem('bughunt-token', 'stored');
+    sessionStorage.setItem('devdrill-token', 'stored');
     expect(readToken()).toBe('stored');
   });
 

@@ -10,7 +10,7 @@ const GOOD = path.resolve(import.meta.dirname, '../../challenges/debug/001-cart-
 let root: string;
 
 beforeAll(async () => {
-  root = await mkdtemp(path.join(tmpdir(), 'bughunt-validate-test-'));
+  root = await mkdtemp(path.join(tmpdir(), 'devdrill-validate-test-'));
 });
 
 afterAll(async () => {

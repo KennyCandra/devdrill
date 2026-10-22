@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react';
-import type { Difficulty } from '@bughunt/shared';
+import type { Difficulty } from '@devdrill/shared';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
