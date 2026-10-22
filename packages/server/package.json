@@ -1,0 +1,19 @@
+{
+  "name": "@bughunt/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Express server for BugHunt.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@bughunt/shared": "*"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "open": "^11.0.4",
+    "vitest": "^5.0.5"
+  }
+}

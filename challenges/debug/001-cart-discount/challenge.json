@@ -1,0 +1,16 @@
+{
+  "id": "debug-001-cart-discount",
+  "mode": "debug",
+  "title": "Cart total ignores discount",
+  "difficulty": "easy",
+  "estimatedMinutes": 10,
+  "tags": [
+    "strings",
+    "debugging"
+  ],
+  "hints": [
+    "Add a console.log of the coupon inside calculateDiscount and run the tests.",
+    "Which branch of calculateDiscount does a SAVE10 coupon reach?",
+    "Compare how a percent coupon is defined in coupons.js with how discount.js checks for it."
+  ]
+}

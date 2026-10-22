@@ -1,0 +1,10 @@
+{
+  // Typechecks root-level TypeScript (scripts/ and config files).
+  // Each package under packages/ has its own tsconfig.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["scripts", "*.config.ts"]
+}

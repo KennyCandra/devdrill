@@ -1,0 +1,13 @@
+{
+  "name": "@bughunt/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BugHunt web UI (React + Vite). Set up in milestone M3.",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@bughunt/shared": "*"
+  }
+}

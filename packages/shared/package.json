@@ -1,0 +1,16 @@
+{
+  "name": "@bughunt/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Types shared by the BugHunt server and web UI.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
