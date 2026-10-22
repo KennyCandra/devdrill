@@ -35,6 +35,17 @@ describe('rate limiter (per user)', () => {
     expect(limiter.remaining('ben')).toBe(3);
   });
 
+  it("doesn't start a user's window when you only ask about them", () => {
+    const c = clock();
+    const limiter = createRateLimiter({ limit: 1, windowMs: 1000, now: c.now });
+    limiter.remaining('ana'); // t = 0: just asking
+    limiter.retryAfterMs('ana');
+    c.advance(500);
+    limiter.tryRequest('ana'); // first request: window 500–1500
+    c.advance(600); // t = 1100
+    expect(limiter.tryRequest('ana')).toBe(false);
+  });
+
   it('reports when a user can retry', () => {
     const c = clock();
     const limiter = createRateLimiter({ limit: 1, windowMs: 1000, now: c.now });
