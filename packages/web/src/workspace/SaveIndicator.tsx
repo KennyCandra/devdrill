@@ -20,10 +20,7 @@ export function SaveIndicator({ buffers }: { buffers: Record<string, FileBuffer>
   }
 
   return (
-    <span
-      role="status"
-      className={`ml-auto shrink-0 truncate text-[12px] whitespace-nowrap ${tone}`}
-    >
+    <span role="status" className={`min-w-0 truncate text-[12px] whitespace-nowrap ${tone}`}>
       {label}
     </span>
   );

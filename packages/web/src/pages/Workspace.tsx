@@ -1,4 +1,4 @@
-import { ArrowLeft, Play, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, Send } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -22,12 +22,13 @@ import { TaskPanel } from '../components/TaskPanel';
 import { TestPanel } from '../components/TestPanel';
 import { TopBar } from '../components/TopBar';
 import { Button, DifficultyBadge, Kbd, modKey, Spinner, StatusScreen } from '../components/ui';
-import { navigate } from '../router';
+import { navigate, resultsPath } from '../router';
 import { useResolvedTheme } from '../theme';
 import { CodeEditor } from '../workspace/CodeEditor';
 import { EditorTabs } from '../workspace/EditorTabs';
 import { FileStore } from '../workspace/fileStore';
 import { SaveIndicator } from '../workspace/SaveIndicator';
+import { saveResult } from '../workspace/results';
 import { useActiveTime } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
 
@@ -66,7 +67,7 @@ export function Workspace({ id }: { id: string }) {
   const buffers = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const columns = useDefaultLayout({ id: 'bughunt-columns', storage: layoutStorage });
   const rows = useDefaultLayout({ id: 'bughunt-editor-rows', storage: layoutStorage });
-  const [elapsedMs] = useActiveTime(id);
+  const [elapsedMs, getElapsedMs] = useActiveTime(id);
 
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [files, setFiles] = useState<string[]>([]);
@@ -75,6 +76,8 @@ export function Workspace({ id }: { id: string }) {
   const [active, setActive] = useState<string | null>(null);
   const [result, setResult] = useState<TestRunResult | null>(null);
   const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const busy = running || submitting;
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -105,7 +108,7 @@ export function Workspace({ id }: { id: string }) {
   }, [id, openFile]);
 
   const runTests = useCallback(async () => {
-    if (running) return;
+    if (busy) return;
     setRunning(true);
     setMessage(null);
     try {
@@ -116,7 +119,23 @@ export function Workspace({ id }: { id: string }) {
     } finally {
       setRunning(false);
     }
-  }, [id, running, store]);
+  }, [id, busy, store]);
+
+  const submit = useCallback(async () => {
+    if (busy) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await store.flush();
+      const elapsed = getElapsedMs();
+      const result = await api.submit(id, { elapsedMs: elapsed });
+      saveResult(id, { submit: result, elapsedMs: elapsed });
+      navigate(resultsPath(id));
+    } catch (err) {
+      setMessage((err as Error).message);
+      setSubmitting(false);
+    }
+  }, [id, busy, store, getElapsedMs]);
 
   const reset = async () => {
     setConfirmReset(false);
@@ -145,9 +164,9 @@ export function Workspace({ id }: { id: string }) {
   };
 
   // Keyboard shortcuts outside the editor (CodeEditor handles them inside).
-  const shortcuts = useRef({ runTests, save: () => store.flush() });
+  const shortcuts = useRef({ runTests, submit, save: () => store.flush() });
   useLayoutEffect(() => {
-    shortcuts.current = { runTests, save: () => store.flush() };
+    shortcuts.current = { runTests, submit, save: () => store.flush() };
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -155,9 +174,9 @@ export function Workspace({ id }: { id: string }) {
       if (e.key === 's') {
         e.preventDefault();
         void shortcuts.current.save();
-      } else if (e.key === 'Enter' && !e.shiftKey) {
+      } else if (e.key === 'Enter') {
         e.preventDefault();
-        void shortcuts.current.runTests();
+        void (e.shiftKey ? shortcuts.current.submit() : shortcuts.current.runTests());
       }
     };
     window.addEventListener('keydown', onKey);
@@ -215,7 +234,14 @@ export function Workspace({ id }: { id: string }) {
 
   return (
     <div className="flex h-full min-w-[720px] flex-col">
-      <TopBar>
+      <TopBar
+        right={
+          <>
+            <SaveIndicator buffers={buffers} />
+            <TimerDisplay elapsedMs={elapsedMs} />
+          </>
+        }
+      >
         <span className="text-muted">/</span>
         <button
           type="button"
@@ -228,8 +254,6 @@ export function Workspace({ id }: { id: string }) {
         <h1 className="min-w-0 truncate">{challenge.title}</h1>
         <DifficultyBadge difficulty={challenge.difficulty} />
         <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
-        <SaveIndicator buffers={buffers} />
-        <TimerDisplay elapsedMs={elapsedMs} />
       </TopBar>
 
       <Group
@@ -284,13 +308,14 @@ export function Workspace({ id }: { id: string }) {
                     onEdit={(path, content) => store.edit(path, content)}
                     onSaveShortcut={() => void store.flush()}
                     onRunShortcut={() => void shortcuts.current.runTests()}
+                    onSubmitShortcut={() => void shortcuts.current.submit()}
                   />
                 </div>
               </div>
             </Panel>
             <ResizeHandle vertical />
             <Panel id="tests" defaultSize="32" minSize={80}>
-              <TestPanel result={result} running={running} error={message} />
+              <TestPanel result={result} running={busy} error={message} />
             </Panel>
           </Group>
         </Panel>
@@ -300,18 +325,26 @@ export function Workspace({ id }: { id: string }) {
         <Button variant="ghost" onClick={() => setConfirmReset(true)}>
           <RotateCcw size={14} aria-hidden="true" /> Reset
         </Button>
-        <span className="ml-auto flex items-center gap-1 text-muted" aria-hidden="true">
-          <Kbd>{modKey}</Kbd>
-          <Kbd>Enter</Kbd>
-        </span>
         <Button
-          variant="primary"
+          className="ml-auto"
           onClick={() => void runTests()}
-          disabled={running}
+          disabled={busy}
+          title={`Run the visible tests (${modKey} Enter)`}
           aria-keyshortcuts="Control+Enter Meta+Enter"
         >
           {running ? <Spinner /> : <Play size={14} aria-hidden="true" />}
           {running ? 'Running…' : 'Run tests'}
+          <Kbd>{modKey} ↵</Kbd>
+        </Button>
+        <Button
+          variant="primary"
+          onClick={() => void submit()}
+          disabled={busy}
+          title={`Run all tests, including hidden ones (${modKey} Shift Enter)`}
+          aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter"
+        >
+          {submitting ? <Spinner /> : <Send size={14} aria-hidden="true" />}
+          {submitting ? 'Submitting…' : 'Submit'}
         </Button>
       </footer>
 

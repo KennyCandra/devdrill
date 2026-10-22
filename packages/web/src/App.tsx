@@ -3,6 +3,7 @@ import type { Settings } from '@bughunt/shared';
 import { api, ApiRequestError } from './api/client';
 import { Button, Spinner, StatusScreen } from './components/ui';
 import { ChallengeList } from './pages/ChallengeList';
+import { Results } from './pages/Results';
 import { SettingsPage } from './pages/SettingsPage';
 import { Workspace } from './pages/Workspace';
 import { navigate, useRoute } from './router';
@@ -79,6 +80,7 @@ export function App({ hasToken }: { hasToken: boolean }) {
           <ThemeProvider value={theme}>
             {route.name === 'list' && <ChallengeList />}
             {route.name === 'settings' && <SettingsPage />}
+            {route.name === 'results' && <Results key={route.id} id={route.id} />}
             {route.name === 'workspace' && <Workspace key={route.id} id={route.id} />}
             {route.name === 'notFound' && (
               <StatusScreen

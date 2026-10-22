@@ -248,7 +248,7 @@ function tidyMessage(message: string | undefined, dir: string): string {
   const prefixes = [dir + path.sep, `file://${dir}${path.sep}`];
   return clean(message)
     .split('\n')
-    .filter((line) => !/^\s*at .*(node_modules|node:internal|file:\/\/)/.test(line))
+    .filter((line) => !/^\s*at .*(node_modules|node:internal|file:\/\/|<anonymous>)/.test(line))
     .map((line) => prefixes.reduce((l, prefix) => l.split(prefix).join(''), line))
     .join('\n');
 }

@@ -52,13 +52,15 @@ export function ChallengeList() {
 
   return (
     <div className="flex h-full flex-col">
-      <TopBar>
-        {challenges && (
-          <span className="ml-auto text-muted">
-            {solved} of {challenges.length} solved
-          </span>
-        )}
-      </TopBar>
+      <TopBar
+        right={
+          challenges && (
+            <span className="text-muted">
+              {solved} of {challenges.length} solved
+            </span>
+          )
+        }
+      />
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 overflow-auto px-6 py-6">
         <div className="animate-fade-in pb-2">

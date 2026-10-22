@@ -35,30 +35,39 @@ export function TestPanel({
           </p>
         )}
 
-        {!running && result?.errorMessage && (
-          <pre className="mb-2 whitespace-pre-wrap text-danger">{result.errorMessage}</pre>
-        )}
-
-        {!running &&
-          result?.fileErrors.map((fe) => (
-            <div key={fe.file} className="animate-fade-in mb-2">
-              <p className="text-danger">
-                <X size={12} className="inline" aria-hidden="true" /> {fe.file} could not run
-              </p>
-              <pre className="mt-1 ml-4 whitespace-pre-wrap text-muted">{fe.message}</pre>
-            </div>
-          ))}
-
-        {!running && result && (
-          <ul className="flex flex-col gap-1">
-            {result.tests.map((t, i) => (
-              <TestRow key={`${t.file}:${t.name}`} test={t} index={i} />
-            ))}
-          </ul>
-        )}
+        {!running && result && <TestResultList result={result} />}
       </div>
     </section>
   );
+}
+
+/** Runner errors, files that couldn't load, then every test. */
+export function TestResultList({ result }: { result: TestRunResult }) {
+  return (
+    <>
+      {result.errorMessage && (
+        <pre className="mb-2 whitespace-pre-wrap text-danger">{result.errorMessage}</pre>
+      )}
+      {result.fileErrors.map((fe) => (
+        <div key={fe.file} className="animate-fade-in mb-2">
+          <p className="text-danger">
+            <X size={12} className="inline" aria-hidden="true" /> {fe.file} could not run
+          </p>
+          <pre className="mt-1 ml-4 whitespace-pre-wrap text-muted">{fe.message}</pre>
+        </div>
+      ))}
+      <ul className="flex flex-col gap-1">
+        {failedFirst(result.tests).map((t, i) => (
+          <TestRow key={`${t.file}:${t.name}`} test={t} index={i} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Failures first, so the thing to fix is at the top. */
+function failedFirst(tests: TestCaseResult[]): TestCaseResult[] {
+  return [...tests].sort((a, b) => Number(b.status === 'failed') - Number(a.status === 'failed'));
 }
 
 function Summary({ result }: { result: TestRunResult }) {
