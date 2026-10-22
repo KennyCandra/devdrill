@@ -28,8 +28,7 @@ export function apiSecurity({ token, extraOrigins = [] }: SecurityOptions) {
   const expected = Buffer.from(token);
 
   return (req: Request, _res: Response, next: NextFunction): void => {
-    const port = req.socket.localPort;
-    const allowedHosts = [`127.0.0.1:${port}`, `localhost:${port}`];
+    const allowedHosts = hostsFor(req);
     if (!allowedHosts.includes(req.headers.host ?? '')) {
       throw new HttpError(403, 'Unexpected Host header.');
     }
@@ -56,6 +55,45 @@ export function apiSecurity({ token, extraOrigins = [] }: SecurityOptions) {
 
     next();
   };
+}
+
+/**
+ * For the web UI's static files: the Host check (so a rebinding site can't read the app),
+ * plus headers that stop other sites from framing it and lock down what the page can load.
+ * The token is never in these files; the page reads it from the URL fragment.
+ */
+export function uiSecurity(req: Request, res: Response, next: NextFunction): void {
+  if (!hostsFor(req).includes(req.headers.host ?? '')) {
+    res.status(403).type('text/plain').send('Unexpected Host header.');
+    return;
+  }
+  res.set({
+    'Content-Security-Policy': CONTENT_SECURITY_POLICY,
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+  });
+  next();
+}
+
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  // Monaco sets inline styles for layout and syntax colors.
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "worker-src 'self' blob:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "object-src 'none'",
+].join('; ');
+
+function hostsFor(req: Request): string[] {
+  const port = req.socket.localPort;
+  return [`127.0.0.1:${port}`, `localhost:${port}`];
 }
 
 function hasBody(req: Request): boolean {

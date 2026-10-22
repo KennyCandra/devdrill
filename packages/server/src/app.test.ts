@@ -395,3 +395,67 @@ describe('reset progress', () => {
     await api('get', `/workspaces/${ID}`).expect(404);
   });
 });
+
+describe('serving the built UI', () => {
+  let uiServer: Server;
+  let uiHost: string;
+  let uiDir: string;
+
+  beforeAll(async () => {
+    uiDir = await mkdtemp(path.join(tmpdir(), 'bughunt-ui-test-'));
+    await mkdir(path.join(uiDir, 'assets'));
+    await writeFile(path.join(uiDir, 'index.html'), '<!doctype html><title>BugHunt</title>');
+    await writeFile(path.join(uiDir, 'assets', 'app-abc123.js'), 'console.log(1);');
+    const app = createApp({
+      challenges: await loadChallenges(appPaths().challenges),
+      dataDir,
+      token: TOKEN,
+      uiDir,
+    });
+    uiServer = app.listen(0, '127.0.0.1');
+    await new Promise((resolve) => uiServer.once('listening', resolve));
+    uiHost = `127.0.0.1:${(uiServer.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    uiServer.close();
+    await rm(uiDir, { recursive: true, force: true });
+  });
+
+  it('serves the app page with security headers and no token', async () => {
+    const res = await request(uiServer).get('/').set('Host', uiHost).expect(200);
+    expect(res.text).toContain('<title>BugHunt</title>');
+    expect(res.text).not.toContain(TOKEN);
+    expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('serves the app page for app routes', async () => {
+    const res = await request(uiServer)
+      .get(`/challenge/${ID}/results`)
+      .set('Host', uiHost)
+      .expect(200);
+    expect(res.text).toContain('<title>BugHunt</title>');
+  });
+
+  it('serves hashed assets with long caching', async () => {
+    const res = await request(uiServer)
+      .get('/assets/app-abc123.js')
+      .set('Host', uiHost)
+      .expect(200);
+    expect(res.headers['cache-control']).toContain('immutable');
+  });
+
+  it('rejects a foreign Host for the UI too', async () => {
+    await request(uiServer).get('/').set('Host', 'evil.example').expect(403);
+  });
+
+  it('still answers unknown API routes with JSON', async () => {
+    const res = await request(uiServer)
+      .get('/api/nope')
+      .set('Host', uiHost)
+      .set(TOKEN_HEADER, TOKEN)
+      .expect(404);
+    expect(res.body).toEqual({ error: 'Unknown API route.' });
+  });
+});

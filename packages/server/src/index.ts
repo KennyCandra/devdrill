@@ -30,6 +30,7 @@ const app = createApp({
   challenges,
   dataDir: home,
   token,
+  uiDir: appPaths().ui,
   // The Vite dev server (milestone M3) proxies /api from this origin.
   extraOrigins: process.env.BUGHUNT_DEV_ORIGIN ? [process.env.BUGHUNT_DEV_ORIGIN] : [],
 });

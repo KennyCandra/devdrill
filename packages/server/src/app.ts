@@ -19,7 +19,7 @@ import type {
 } from '@bughunt/shared';
 import { APP_NAME } from './config.js';
 import { HttpError } from './httpError.js';
-import { apiSecurity } from './security.js';
+import { apiSecurity, uiSecurity } from './security.js';
 import type { Challenge } from './services/challengeLoader.js';
 import {
   createProgressStore,
@@ -36,6 +36,8 @@ export interface AppOptions {
   token: string;
   extraOrigins?: string[];
   testTimeoutMs?: number;
+  /** The built web UI to serve, if any (in development Vite serves it instead). */
+  uiDir?: string | null;
 }
 
 export function createApp(options: AppOptions) {
@@ -195,6 +197,22 @@ export function createApp(options: AppOptions) {
   });
 
   app.use('/api', api, apiErrorHandler);
+
+  if (options.uiDir) {
+    const uiDir = options.uiDir;
+    app.use(uiSecurity);
+    // Built assets have content hashes in their names, so they can be cached for good.
+    app.use(
+      '/assets',
+      express.static(path.join(uiDir, 'assets'), { immutable: true, maxAge: '1y' }),
+    );
+    app.use(express.static(uiDir, { index: false }));
+    // Every other page is the single-page app; it reads the route from the URL.
+    app.use((req, res, next) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      res.set('Cache-Control', 'no-cache').sendFile(path.join(uiDir, 'index.html'));
+    });
+  }
 
   return app;
 }
