@@ -12,7 +12,7 @@ BugHunt gives you small, realistic JavaScript projects to practice exactly that,
 npx bughunt
 ```
 
-Requires [Node.js](https://nodejs.org) 22.12 or newer.
+Requires [Node.js](https://nodejs.org) 22 (22.12+), 24, or 26 and newer.
 
 ## How it works
 
@@ -61,6 +61,8 @@ npx bughunt --help
 - Your tests run with the app's own Vitest; challenges have no dependencies and nothing is installed per challenge.
 
 ## Development
+
+Developing needs Node 22.13+ (for ESLint), 24, or 26+.
 
 ```bash
 npm install

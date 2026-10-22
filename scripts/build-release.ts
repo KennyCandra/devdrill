@@ -79,7 +79,8 @@ const releasePkg = {
   type: 'module',
   bin: { [APP_NAME]: 'dist/cli.js' },
   files: ['dist', 'ui', 'assets', 'challenges'],
-  engines: { node: '>=22.12.0' },
+  // Vitest's own range: Node 23 and 25 aren't supported.
+  engines: { node: '^22.12.0 || ^24.0.0 || >=26.0.0' },
   dependencies: serverPkg.dependencies,
 };
 await writeFile(path.join(OUT, 'package.json'), JSON.stringify(releasePkg, null, 2) + '\n');
