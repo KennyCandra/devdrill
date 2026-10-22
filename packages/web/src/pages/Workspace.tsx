@@ -28,6 +28,8 @@ import { CodeEditor } from '../workspace/CodeEditor';
 import { EditorTabs } from '../workspace/EditorTabs';
 import { FileStore } from '../workspace/fileStore';
 import { SaveIndicator } from '../workspace/SaveIndicator';
+import { useActiveTime } from '../workspace/timer';
+import { TimerDisplay } from '../workspace/TimerDisplay';
 
 /** Panel sizes are a per-browser convenience; storage may be blocked (private mode). */
 const layoutStorage: LayoutStorage = {
@@ -64,6 +66,7 @@ export function Workspace({ id }: { id: string }) {
   const buffers = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const columns = useDefaultLayout({ id: 'bughunt-columns', storage: layoutStorage });
   const rows = useDefaultLayout({ id: 'bughunt-editor-rows', storage: layoutStorage });
+  const [elapsedMs] = useActiveTime(id);
 
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [files, setFiles] = useState<string[]>([]);
@@ -226,6 +229,7 @@ export function Workspace({ id }: { id: string }) {
         <DifficultyBadge difficulty={challenge.difficulty} />
         <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
         <SaveIndicator buffers={buffers} />
+        <TimerDisplay elapsedMs={elapsedMs} />
       </TopBar>
 
       <Group
