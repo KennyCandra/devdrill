@@ -1,6 +1,6 @@
 import { addItem, applyCoupon, createCart, total } from '../src/cart.js';
 
-describe('coupons (hidden)', () => {
+describe('coupons', () => {
   it('rounds the percent discount once on the whole cart, not per item', () => {
     // Per item: 83.25 -> 83, twice = 166 off. Whole cart: 166.5 -> 167 off.
     const cart = createCart();
