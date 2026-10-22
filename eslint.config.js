@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -7,7 +8,7 @@ export default defineConfig(
   {
     // challenges/ contains intentionally buggy code; it is checked by the
     // validation script instead of the linter.
-    ignores: ['**/node_modules/**', '**/dist/**', 'challenges/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', 'challenges/**', '.dev-data/**'],
   },
   js.configs.recommended,
   {
@@ -43,7 +44,7 @@ export default defineConfig(
   },
   {
     // Vitest's asymmetric matchers (expect.any, expect.stringContaining) are typed as any.
-    files: ['**/*.test.ts'],
+    files: ['**/*.test.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
     },
@@ -56,8 +57,15 @@ export default defineConfig(
   },
   {
     files: ['packages/web/**'],
+    extends: [reactHooks.configs.flat['recommended-latest']],
     languageOptions: {
       globals: { ...globals.browser },
+    },
+  },
+  {
+    files: ['packages/web/vite.config.ts'],
+    languageOptions: {
+      globals: { ...globals.node },
     },
   },
 );

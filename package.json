@@ -11,6 +11,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "dev": "tsx scripts/dev.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -26,6 +27,7 @@
     "@types/supertest": "^7.2.1",
     "es-module-lexer": "^3.0.4",
     "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
     "supertest": "^7.3.1",

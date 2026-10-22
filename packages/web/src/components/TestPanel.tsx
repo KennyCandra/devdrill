@@ -1,0 +1,99 @@
+import { Check, Circle, EyeOff, X } from 'lucide-react';
+import type { TestCaseResult, TestRunResult } from '@bughunt/shared';
+import { Kbd, modKey, Spinner } from './ui';
+
+export function TestPanel({
+  result,
+  running,
+  error,
+}: {
+  result: TestRunResult | null;
+  running: boolean;
+  error: string | null;
+}) {
+  return (
+    <section aria-label="Test results" className="flex h-full flex-col bg-bg">
+      <header className="flex h-8 shrink-0 items-center gap-3 border-b border-line px-3">
+        <span className="text-[11px] font-semibold tracking-wide text-muted uppercase">Tests</span>
+        {running && (
+          <span className="flex items-center gap-2 text-muted">
+            <Spinner /> Running tests…
+          </span>
+        )}
+        {!running && result && <Summary result={result} />}
+      </header>
+
+      <div className="flex-1 overflow-auto px-3 py-2 font-mono text-[12px]" aria-live="polite">
+        {error && <p className="text-danger">{error}</p>}
+
+        {!error && !result && !running && (
+          <p className="font-sans text-muted">
+            Run the tests to see results. <Kbd>{modKey}</Kbd> <Kbd>Enter</Kbd>
+          </p>
+        )}
+
+        {!running && result?.errorMessage && (
+          <pre className="mb-2 whitespace-pre-wrap text-danger">{result.errorMessage}</pre>
+        )}
+
+        {!running &&
+          result?.fileErrors.map((fe) => (
+            <div key={fe.file} className="animate-fade-in mb-2">
+              <p className="text-danger">
+                <X size={12} className="inline" aria-hidden="true" /> {fe.file} could not run
+              </p>
+              <pre className="mt-1 ml-4 whitespace-pre-wrap text-muted">{fe.message}</pre>
+            </div>
+          ))}
+
+        {!running && result && (
+          <ul className="flex flex-col gap-1">
+            {result.tests.map((t, i) => (
+              <TestRow key={`${t.file}:${t.name}`} test={t} index={i} />
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Summary({ result }: { result: TestRunResult }) {
+  if (result.status === 'timeout') return <span className="text-danger">Timed out</span>;
+  if (result.status === 'error') return <span className="text-danger">Couldn't run tests</span>;
+  return (
+    <span className="flex items-center gap-3">
+      <span className="text-success">{result.passed} passed</span>
+      {result.failed > 0 && <span className="text-danger">{result.failed} failed</span>}
+      <span className="text-muted">{(result.durationMs / 1000).toFixed(1)}s</span>
+    </span>
+  );
+}
+
+function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
+  const icon =
+    test.status === 'passed' ? (
+      <Check size={13} className="shrink-0 text-success" aria-label="Passed" />
+    ) : test.status === 'failed' ? (
+      <X size={13} className="shrink-0 text-danger" aria-label="Failed" />
+    ) : (
+      <Circle size={13} className="shrink-0 text-muted" aria-label="Skipped" />
+    );
+
+  return (
+    <li className="animate-fade-in" style={{ animationDelay: `${Math.min(index, 20) * 15}ms` }}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <span className={test.status === 'failed' ? 'text-fg' : 'text-muted'}>{test.name}</span>
+        {test.hidden && (
+          <span className="flex items-center gap-1 text-[11px] text-muted">
+            <EyeOff size={11} aria-hidden="true" /> hidden
+          </span>
+        )}
+      </div>
+      {test.message && (
+        <pre className="mt-1 mb-1 ml-5 whitespace-pre-wrap text-danger">{test.message}</pre>
+      )}
+    </li>
+  );
+}

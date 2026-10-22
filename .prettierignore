@@ -3,3 +3,4 @@ dist
 package-lock.json
 # Challenge code is authored by hand; formatting is part of the challenge.
 challenges
+.dev-data

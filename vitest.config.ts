@@ -4,6 +4,21 @@ import { defineConfig } from 'vitest/config';
 // separately by the validation script and the server, never by this config.
 export default defineConfig({
   test: {
-    include: ['packages/*/src/**/*.test.ts', 'scripts/**/*.test.ts'],
+    projects: [
+      {
+        test: {
+          name: 'node',
+          include: ['packages/server/src/**/*.test.ts', 'scripts/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
+        test: {
+          name: 'web',
+          include: ['packages/web/src/**/*.test.{ts,tsx}'],
+          environment: 'happy-dom',
+        },
+      },
+    ],
   },
 });

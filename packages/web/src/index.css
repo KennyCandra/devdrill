@@ -1,0 +1,143 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/*
+ * Colors follow VS Code's default themes (docs/V1_PLAN.md, "Visual design").
+ * Dark is the default; [data-theme] on <html> is set from the user's setting.
+ */
+:root,
+[data-theme='dark'] {
+  --bg: #1e1e1e;
+  --bg-side: #252526;
+  --bg-bar: #181818;
+  --bg-hover: #2a2d2e;
+  --bg-active: #37373d;
+  --border: #2b2b2b;
+  --border-strong: #3c3c3c;
+  --text: #cccccc;
+  --text-muted: #8b8b8b;
+  --accent: #3794ff;
+  --accent-bg: #0e639c;
+  --accent-bg-hover: #1177bb;
+  --on-accent: #ffffff;
+  --success: #73c991;
+  --success-bg: #1e3a2a;
+  --danger: #f48771;
+  --danger-bg: #4b1818;
+  --warning: #cca700;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #ffffff;
+  --bg-side: #f8f8f8;
+  --bg-bar: #f3f3f3;
+  --bg-hover: #e8e8e8;
+  --bg-active: #e4e6f1;
+  --border: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --text: #1f1f1f;
+  --text-muted: #616161;
+  --accent: #005fb8;
+  --accent-bg: #005fb8;
+  --accent-bg-hover: #0258a8;
+  --on-accent: #ffffff;
+  --success: #2e7d32;
+  --success-bg: #e6f4ea;
+  --danger: #c72e0f;
+  --danger-bg: #fdecea;
+  --warning: #895503;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-side: var(--bg-side);
+  --color-bar: var(--bg-bar);
+  --color-hover: var(--bg-hover);
+  --color-active: var(--bg-active);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-bg-hover: var(--accent-bg-hover);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tiny animations only (≤ 200 ms), and none for people who ask for less motion. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+/* Rendered README text in the task panel. */
+.prose-task h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.prose-task h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 16px 0 6px;
+}
+.prose-task p,
+.prose-task ul {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+.prose-task ul {
+  padding-left: 18px;
+  list-style: disc;
+}
+.prose-task code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-hover);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
