@@ -57,7 +57,7 @@ The `id` is the mode plus the folder name.
 npm run validate -- challenges/debug/006-short-name
 ```
 
-Run `npm run validate` with no arguments too: it also checks that your number isn't already used in that mode.
+It also checks that your number isn't already used in that mode.
 
 The validator checks:
 
