@@ -8,6 +8,11 @@ import './index.css';
 const token = readToken();
 setToken(token);
 
+// Pasting the terminal link into an open tab only changes the hash, which doesn't reload.
+window.addEventListener('hashchange', () => {
+  if (/(?:^#|&)token=/.test(window.location.hash)) window.location.reload();
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App hasToken={token !== null} />
