@@ -242,16 +242,23 @@ Binding to localhost is not enough: any website the user visits can send request
 
 ### M3 — UI: list + workspace (~1 day)
 
-- [ ] Vite + React + Tailwind setup, `/api` proxy to Express
-- [ ] Vite proxy needs `changeOrigin: true` (Host check) and the server started with `BUGHUNT_DEV_ORIGIN=http://localhost:5173`
-- [ ] Token: read from `#token=` on load, keep in `sessionStorage`, send as `x-bughunt-token`; call `GET /api/session` first and show a clear "reopen the link from the terminal" screen on 401
-- [ ] Autosave sends `baseMtimeMs`; on 409 offer reload
-- [ ] Web tsconfig: `"jsx": "react-jsx"`, `types: ["vite/client"]`; ESLint React hooks plugin
-- [ ] `vitest.config.ts` → `test.projects` (web: happy-dom, server: node)
-- [ ] Challenge list page
-- [ ] Workspace: task panel, file tree, Monaco with autosave, test panel, Run / Reset
+- [x] Vite + React + Tailwind setup, `/api` proxy to Express
+- [x] Vite proxy needs `changeOrigin: true` (Host check) and the server started with `BUGHUNT_DEV_ORIGIN=http://localhost:5173`
+- [x] Token: read from `#token=` on load, keep in `sessionStorage`, send as `x-bughunt-token`; call `GET /api/session` first and show a clear "reopen the link from the terminal" screen on 401
+- [x] Autosave sends `baseMtimeMs`; on 409 offer reload
+- [x] Web tsconfig: `"jsx": "react-jsx"`, `types: ["vite/client"]`; ESLint React hooks plugin
+- [x] `vitest.config.ts` → `test.projects` (web: happy-dom, server: node)
+- [x] Challenge list page
+- [x] Workspace: task panel, file tree, Monaco with autosave, test panel, Run / Reset
 
 **Done when:** Ahmed can open challenge #1 in the browser, edit code, and see tests turn green.
+
+Deferred from the M3 review (not blocking v1):
+
+- The workspace needs ≥ 720 px; narrower windows scroll sideways (it's a desktop tool).
+- List filters reset when you come back from a challenge (could live in the URL).
+- Reset keeps the challenge "In progress" in the list, which can look odd.
+- Saving on page close uses `keepalive`, which browsers cap at 64 KB per request.
 
 ### M4 — Submit, results, timer (~half a day)
 
