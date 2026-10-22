@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Settings } from '@bughunt/shared';
 import { api, ApiRequestError } from './api/client';
 import { Button, Spinner, StatusScreen } from './components/ui';
 import { ChallengeList } from './pages/ChallengeList';
+import { SettingsPage } from './pages/SettingsPage';
 import { Workspace } from './pages/Workspace';
 import { navigate, useRoute } from './router';
+import { SettingsProvider } from './settings';
 import { ThemeProvider, useTheme } from './theme';
 
 type Session =
@@ -35,6 +37,16 @@ export function App({ hasToken }: { hasToken: boolean }) {
       );
   }, [hasToken]);
 
+  const updateSettings = useCallback(async (patch: Partial<Settings>) => {
+    const saved = await api.saveSettings(patch);
+    setSession({ state: 'ready', settings: saved });
+  }, []);
+  const settingsValue = useMemo(
+    () =>
+      session.state === 'ready' ? { settings: session.settings, update: updateSettings } : null,
+    [session, updateSettings],
+  );
+
   switch (session.state) {
     case 'loading':
       return (
@@ -63,18 +75,21 @@ export function App({ hasToken }: { hasToken: boolean }) {
       );
     case 'ready':
       return (
-        <ThemeProvider value={theme}>
-          {route.name === 'list' && <ChallengeList />}
-          {route.name === 'workspace' && <Workspace key={route.id} id={route.id} />}
-          {route.name === 'notFound' && (
-            <StatusScreen
-              title="Page not found"
-              action={<Button onClick={() => navigate('/')}>All challenges</Button>}
-            >
-              That address doesn't match anything.
-            </StatusScreen>
-          )}
-        </ThemeProvider>
+        <SettingsProvider value={settingsValue!}>
+          <ThemeProvider value={theme}>
+            {route.name === 'list' && <ChallengeList />}
+            {route.name === 'settings' && <SettingsPage />}
+            {route.name === 'workspace' && <Workspace key={route.id} id={route.id} />}
+            {route.name === 'notFound' && (
+              <StatusScreen
+                title="Page not found"
+                action={<Button onClick={() => navigate('/')}>All challenges</Button>}
+              >
+                That address doesn't match anything.
+              </StatusScreen>
+            )}
+          </ThemeProvider>
+        </SettingsProvider>
       );
   }
 }

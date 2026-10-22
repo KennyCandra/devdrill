@@ -25,6 +25,7 @@ describe('router', () => {
     ['/', { name: 'list' }],
     ['/challenge/debug-001-cart-discount', { name: 'workspace', id: 'debug-001-cart-discount' }],
     ['/challenge/a%2Fb/', { name: 'workspace', id: 'a/b' }],
+    ['/settings', { name: 'settings' }],
     ['/nope', { name: 'notFound' }],
   ])('parses %s', (path, route) => {
     expect(parseRoute(path)).toEqual(route);

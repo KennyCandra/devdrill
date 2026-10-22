@@ -1,8 +1,12 @@
 import { useSyncExternalStore } from 'react';
 
-// A tiny path router: the app has three screens, so a router library isn't worth it.
+// A tiny path router: the app has a handful of screens, so a router library isn't worth it.
 
-export type Route = { name: 'list' } | { name: 'workspace'; id: string } | { name: 'notFound' };
+export type Route =
+  | { name: 'list' }
+  | { name: 'settings' }
+  | { name: 'workspace'; id: string }
+  | { name: 'notFound' };
 
 const listeners = new Set<() => void>();
 
@@ -23,6 +27,7 @@ export function navigate(path: string): void {
 
 export function parseRoute(pathname: string): Route {
   if (pathname === '/' || pathname === '') return { name: 'list' };
+  if (pathname === '/settings' || pathname === '/settings/') return { name: 'settings' };
   const match = /^\/challenge\/([^/]+)\/?$/.exec(pathname);
   if (match?.[1]) return { name: 'workspace', id: decodeURIComponent(match[1]) };
   return { name: 'notFound' };
