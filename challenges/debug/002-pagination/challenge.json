@@ -1,0 +1,13 @@
+{
+  "id": "debug-002-pagination",
+  "mode": "debug",
+  "title": "Pagination skips an item",
+  "difficulty": "easy",
+  "estimatedMinutes": 10,
+  "tags": ["arrays", "off-by-one"],
+  "hints": [
+    "Count the products on page 1 by hand. Which one is missing?",
+    "Check what slice(start, end) returns. Does it include the item at index end?",
+    "slice stops before end, so end shouldn't be adjusted by one."
+  ]
+}
