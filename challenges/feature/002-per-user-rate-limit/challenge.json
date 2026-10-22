@@ -1,0 +1,13 @@
+{
+  "id": "feature-002-per-user-rate-limit",
+  "mode": "feature",
+  "title": "Rate limit each user separately",
+  "difficulty": "medium",
+  "estimatedMinutes": 25,
+  "tags": ["closures", "maps", "time"],
+  "hints": [
+    "Leave the global counter alone and add a Map from userId to that user's { windowStart, count }.",
+    "The window logic is the same for everyone. Move it into a small helper used by the global bucket and by each user's bucket.",
+    "A user's window starts at their first request, so create their bucket the first time you see them."
+  ]
+}
