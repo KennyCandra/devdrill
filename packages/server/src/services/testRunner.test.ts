@@ -46,6 +46,41 @@ describe('runTests', () => {
     expect(result.tests[1]?.message).not.toContain('node_modules');
   });
 
+  it('captures console output under the test that printed it', async () => {
+    const dir = await project({
+      'src/double.js': `export function double(x) { console.log('double got', x); return x * 2; }
+console.log('module loaded');`,
+      'tests/double.test.js': `import { double } from '../src/double.js';
+        describe('double', () => {
+          it('works', () => { console.log('checking'); expect(double(2)).toBe(4); });
+          it('complains', () => { console.error('uh oh'); expect(double(1)).toBe(3); });
+        });`,
+    });
+
+    const result = await runTests(dir);
+
+    const works = result.tests.find((t) => t.name === 'double > works');
+    expect(works?.logs).toEqual([{ stream: 'stdout', text: 'checking\ndouble got 2' }]);
+    const complains = result.tests.find((t) => t.name === 'double > complains');
+    expect(complains?.logs).toEqual([
+      { stream: 'stdout', text: 'double got 1' },
+      { stream: 'stderr', text: 'uh oh' },
+    ]);
+    // Printed while the file loaded, outside any test.
+    expect(result.logs).toEqual([
+      { stream: 'stdout', text: 'module loaded', file: 'tests/double.test.js' },
+    ]);
+  });
+
+  it('limits how much console output it keeps', async () => {
+    const dir = await project({
+      'spam.test.js': `it('spams', () => { for (let i = 0; i < 1000; i++) console.log('line', i); });`,
+    });
+    const result = await runTests(dir);
+    const shown = (result.tests[0]?.logs?.length ?? 0) + (result.logs?.length ?? 0);
+    expect(shown).toBeLessThanOrEqual(301);
+  });
+
   it('passes when every test passes', async () => {
     const dir = await project({ 'a.test.js': `it('ok', () => { expect(true).toBe(true); });` });
     const result = await runTests(dir);

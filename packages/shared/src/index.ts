@@ -20,6 +20,12 @@ export interface ChallengeMeta {
 
 export type TestCaseStatus = 'passed' | 'failed' | 'skipped';
 
+/** One console.log / console.error call during a test run. */
+export interface ConsoleLine {
+  stream: 'stdout' | 'stderr';
+  text: string;
+}
+
 export interface TestCaseResult {
   /** Test file path relative to the run folder, always with `/` separators. */
   file: string;
@@ -30,6 +36,8 @@ export interface TestCaseResult {
   hidden: boolean;
   /** A failing hidden test whose message is withheld until the challenge is solved. */
   detailsHidden?: boolean;
+  /** What the test and the code it called printed, in order. */
+  logs?: ConsoleLine[];
   /** First failure message, without terminal colors. */
   message?: string;
   durationMs: number;
@@ -58,6 +66,8 @@ export interface TestRunResult {
   fileErrors: TestFileError[];
   /** Why the run did not pass when no single test explains it (timeout, crash, all skipped). */
   errorMessage?: string;
+  /** Output printed outside any test, e.g. while a file loads, or before a timeout. */
+  logs?: (ConsoleLine & { file?: string })[];
   durationMs: number;
 }
 

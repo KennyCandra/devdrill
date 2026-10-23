@@ -19,6 +19,8 @@ export interface AppPaths {
   challenges: string;
   /** The Vitest config every challenge run uses. */
   vitestConfig: string;
+  /** The Vitest reporter that saves console output from a run. */
+  consoleReporter: string;
   /** The built web UI, or null when it isn't built (in development, Vite serves it). */
   ui: string | null;
   version: string;
@@ -45,6 +47,7 @@ export function appPaths(): AppPaths {
   cached = {
     challenges: published ? path.join(root, 'challenges') : path.resolve(root, '../../challenges'),
     vitestConfig: path.join(root, 'assets', 'vitest.config.mjs'),
+    consoleReporter: path.join(root, 'assets', 'console-reporter.mjs'),
     ui: existsSync(path.join(uiDir, 'index.html')) ? uiDir : null,
     version: pkg.version ?? '0.0.0',
   };

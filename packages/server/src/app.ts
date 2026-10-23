@@ -148,9 +148,18 @@ export function createApp(options: AppOptions) {
     const elapsedMs = parseElapsed((req.body as SubmitRequest | undefined)?.elapsedMs);
     const fullRun = await workspaces.submit(challenge);
     const solved = fullRun.status === 'passed';
-    // Until it's solved, a failing hidden test shows only its name: its expected values
-    // would give the answer away.
-    const run = solved ? fullRun : { ...fullRun, tests: fullRun.tests.map(withholdHiddenDetails) };
+    // Until it's solved, hidden tests give nothing away: a failing one shows only its name
+    // (its expected values would be the answer), and no hidden test shows console output
+    // (a console.log in your code would print the hidden inputs).
+    const run = solved
+      ? fullRun
+      : {
+          ...fullRun,
+          tests: fullRun.tests.map(withholdHiddenDetails),
+          ...(fullRun.logs
+            ? { logs: fullRun.logs.filter((l) => !l.file?.endsWith('.hidden.test.js')) }
+            : {}),
+        };
 
     const updated = await progress.update((p) => {
       const entry = p.challenges[challenge.meta.id] ?? emptyProgress();
@@ -230,9 +239,9 @@ export function createApp(options: AppOptions) {
 }
 
 function withholdHiddenDetails(test: TestCaseResult): TestCaseResult {
-  if (!test.hidden || test.status !== 'failed') return test;
-  const { message: _message, ...rest } = test;
-  return { ...rest, detailsHidden: true };
+  if (!test.hidden) return test;
+  const { message: _message, logs: _logs, ...rest } = test;
+  return test.status === 'failed' ? { ...rest, detailsHidden: true } : rest;
 }
 
 function queryPath(req: Request): string | undefined {

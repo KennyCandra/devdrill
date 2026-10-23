@@ -1,5 +1,5 @@
 import { Check, Circle, EyeOff, X } from 'lucide-react';
-import type { TestCaseResult, TestRunResult } from '@devdrill/shared';
+import type { ConsoleLine, TestCaseResult, TestRunResult } from '@devdrill/shared';
 import { Kbd, modKey, Spinner } from './ui';
 
 export function TestPanel({
@@ -47,6 +47,12 @@ export function TestResultList({ result }: { result: TestRunResult }) {
     <>
       {result.errorMessage && (
         <pre className="mb-2 whitespace-pre-wrap text-danger">{result.errorMessage}</pre>
+      )}
+      {result.logs && result.logs.length > 0 && (
+        <div className="mb-2">
+          <p className="font-sans text-[11px] text-muted">Printed outside a test</p>
+          <ConsoleOutput lines={result.logs} />
+        </div>
       )}
       {result.fileErrors.map((fe) => (
         <div key={fe.file} className="animate-fade-in mb-2">
@@ -104,6 +110,11 @@ function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
           </span>
         )}
       </div>
+      {test.logs && test.logs.length > 0 && (
+        <div className="ml-5">
+          <ConsoleOutput lines={test.logs} />
+        </div>
+      )}
       {test.message && (
         <pre className="mt-1 mb-1 ml-5 whitespace-pre-wrap text-danger">{test.message}</pre>
       )}
@@ -113,5 +124,21 @@ function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
         </p>
       )}
     </li>
+  );
+}
+
+/** console.log / console.error output, like a terminal. */
+function ConsoleOutput({ lines }: { lines: ConsoleLine[] }) {
+  return (
+    <pre
+      aria-label="Console output"
+      className="my-1 max-h-48 overflow-auto rounded-sm border-l-2 border-line-strong bg-side px-2 py-1 whitespace-pre-wrap"
+    >
+      {lines.map((line, i) => (
+        <span key={i} className={`block ${line.stream === 'stderr' ? 'text-warning' : 'text-fg'}`}>
+          {line.text}
+        </span>
+      ))}
+    </pre>
   );
 }

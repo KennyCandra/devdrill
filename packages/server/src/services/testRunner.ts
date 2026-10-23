@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import type {
+  ConsoleLine,
   TestCaseResult,
   TestCaseStatus,
   TestFileError,
@@ -17,6 +18,10 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** Keep only the end of the runner's console output; tests can print a lot. */
 const MAX_OUTPUT_CHARS = 64 * 1024;
+
+/** Limits on console.log output shown to the user, so a log in a loop can't flood the UI. */
+const MAX_LOG_ENTRIES = 300;
+const MAX_LOG_ENTRY_CHARS = 2000;
 
 export interface RunTestsOptions {
   timeoutMs?: number;
@@ -79,14 +84,20 @@ export async function runTests(dir: string, options: RunTestsOptions = {}): Prom
 
   return withTempDir('report', async (reportDir) => {
     const reportFile = path.join(reportDir, 'report.json');
-    const outcome = await spawnVitest(dir, reportFile, timeoutMs);
+    const consoleFile = path.join(reportDir, 'console.jsonl');
+    const outcome = await spawnVitest(dir, reportFile, consoleFile, timeoutMs);
     const durationMs = Date.now() - started;
+    // Vitest reports real paths; resolve symlinks (e.g. macOS /var -> /private/var)
+    // so file paths come out relative to the run folder.
+    const realDir = await realpath(dir);
+    const logs = await readConsoleLogs(consoleFile, realDir);
 
     if (outcome.timedOut) {
       return emptyResult(
         'timeout',
         durationMs,
         `Tests timed out after ${timeoutMs / 1000}s (infinite loop?)`,
+        logs,
       );
     }
 
@@ -98,16 +109,20 @@ export async function runTests(dir: string, options: RunTestsOptions = {}): Prom
         'error',
         durationMs,
         outputTail(outcome.output) || 'The test runner produced no results.',
+        logs,
       );
     }
 
-    // Vitest reports real paths; resolve symlinks (e.g. macOS /var -> /private/var)
-    // so file paths come out relative to the run folder.
-    return toRunResult(report, outcome, await realpath(dir), durationMs);
+    return toRunResult(report, outcome, realDir, durationMs, logs);
   });
 }
 
-function spawnVitest(dir: string, reportFile: string, timeoutMs: number): Promise<SpawnOutcome> {
+function spawnVitest(
+  dir: string,
+  reportFile: string,
+  consoleFile: string,
+  timeoutMs: number,
+): Promise<SpawnOutcome> {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
@@ -121,14 +136,21 @@ function spawnVitest(dir: string, reportFile: string, timeoutMs: number): Promis
         appPaths().vitestConfig,
         '--globals',
         '--reporter=json',
-        `--outputFile=${reportFile}`,
+        `--reporter=${appPaths().consoleReporter}`,
+        `--outputFile.json=${reportFile}`,
         // Caches would create node_modules/ inside the user's workspace.
         '--no-cache',
         '--no-fsModuleCache',
       ],
       {
         cwd: dir,
-        env: { ...process.env, CI: '1', NO_COLOR: '1', FORCE_COLOR: '0' },
+        env: {
+          ...process.env,
+          CI: '1',
+          NO_COLOR: '1',
+          FORCE_COLOR: '0',
+          DEVDRILL_CONSOLE_FILE: consoleFile,
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
         // Own process group on POSIX so a timeout can kill Vitest's workers too.
         detached: process.platform !== 'win32',
@@ -185,6 +207,7 @@ function toRunResult(
   outcome: SpawnOutcome,
   dir: string,
   durationMs: number,
+  logs: LogEntry[],
 ): TestRunResult {
   const tests: TestCaseResult[] = [];
   const fileErrors: TestFileError[] = [];
@@ -211,6 +234,15 @@ function toRunResult(
     }
   }
 
+  // Each log goes under the test that printed it; the rest (e.g. printed while a file
+  // loads) are listed for the whole run.
+  const runLogs: (ConsoleLine & { file?: string })[] = [];
+  for (const { file, test, ...line } of logs) {
+    const owner = test ? tests.find((t) => t.file === file && t.name === test) : undefined;
+    if (owner) (owner.logs ??= []).push(line);
+    else runLogs.push({ ...line, ...(file ? { file } : {}) });
+  }
+
   const passed = tests.filter((t) => t.status === 'passed').length;
   const failed = tests.filter((t) => t.status === 'failed').length;
 
@@ -234,8 +266,50 @@ function toRunResult(
     tests,
     fileErrors,
     ...(errorMessage ? { errorMessage } : {}),
+    ...(runLogs.length > 0 ? { logs: runLogs } : {}),
     durationMs,
   };
+}
+
+interface LogEntry extends ConsoleLine {
+  /** Test file relative to the run folder, if known. */
+  file?: string;
+  /** "describe > test" name, for logs printed inside a test. */
+  test?: string;
+}
+
+/** Reads what console-reporter.mjs saved, with paths made relative and size limits applied. */
+async function readConsoleLogs(consoleFile: string, dir: string): Promise<LogEntry[]> {
+  let text: string;
+  try {
+    text = await readFile(consoleFile, 'utf8');
+  } catch {
+    return []; // nothing was logged
+  }
+  const entries: LogEntry[] = [];
+  const lines = text.split('\n').filter(Boolean);
+  for (const raw of lines.slice(0, MAX_LOG_ENTRIES)) {
+    try {
+      const e = JSON.parse(raw) as { stream?: string; text?: string; file?: string; test?: string };
+      let body = clean(e.text).replace(/\n$/, '');
+      if (body.length > MAX_LOG_ENTRY_CHARS) body = `${body.slice(0, MAX_LOG_ENTRY_CHARS)}…`;
+      entries.push({
+        stream: e.stream === 'stderr' ? 'stderr' : 'stdout',
+        text: body,
+        ...(e.file ? { file: path.relative(dir, e.file).split(path.sep).join('/') } : {}),
+        ...(e.test ? { test: e.test } : {}),
+      });
+    } catch {
+      // A line cut off when the run was killed; skip it.
+    }
+  }
+  if (lines.length > MAX_LOG_ENTRIES) {
+    entries.push({
+      stream: 'stderr',
+      text: `… ${lines.length - MAX_LOG_ENTRIES} more console messages not shown`,
+    });
+  }
+  return entries;
 }
 
 function toCaseStatus(status: string): TestCaseStatus {
@@ -274,6 +348,7 @@ function emptyResult(
   status: 'timeout' | 'error',
   durationMs: number,
   errorMessage: string,
+  logs: LogEntry[],
 ): TestRunResult {
   return {
     status,
@@ -283,6 +358,7 @@ function emptyResult(
     tests: [],
     fileErrors: [],
     errorMessage,
+    ...(logs.length > 0 ? { logs: logs.map(({ test: _test, ...line }) => line) } : {}),
     durationMs,
   };
 }
