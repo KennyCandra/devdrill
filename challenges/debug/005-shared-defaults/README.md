@@ -54,5 +54,5 @@ getDefaults().notifications;       // { email: true, sms: false, weeklyDigest: t
 
 ## Files
 
-- `src/preferences.js`: default preferences and changing them
-- `tests/preferences.test.js`: the existing tests
+- `src/preferences`: default preferences and changing them
+- `tests/preferences.test`: the existing tests

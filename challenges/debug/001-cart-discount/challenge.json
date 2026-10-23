@@ -11,7 +11,7 @@
   "hints": [
     "Add a console.log of the coupon inside calculateDiscount and run the tests.",
     "Which branch of calculateDiscount does a SAVE10 coupon reach?",
-    "Compare how a percent coupon is defined in coupons.js with how discount.js checks for it."
+    "Compare how a percent coupon is defined in src/coupons with how src/discount checks for it."
   ],
   "hiddenTestRules": {
     "coupons > rounds the percent discount once on the whole cart, not per item": "Percent coupons take that percent off the whole cart, rounded to the nearest cent.",

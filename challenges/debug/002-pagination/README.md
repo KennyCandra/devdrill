@@ -48,6 +48,6 @@ Find out why products go missing and fix it. All tests must pass.
 
 ## Files
 
-- `src/paginate.js`: splits a list into pages (pages start at 1)
-- `src/catalog.js`: builds the "Showing 11–20 of 45" label under the list
-- `tests/paginate.test.js`: the existing tests
+- `src/paginate`: splits a list into pages (pages start at 1)
+- `src/catalog`: builds the "Showing 11–20 of 45" label under the list
+- `tests/paginate.test`: the existing tests

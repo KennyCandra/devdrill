@@ -43,5 +43,5 @@ The existing tests pass now and must keep passing.
 
 ## Files
 
-- `src/rateLimiter.js`: the limiter (`now` can be passed in so tests control time)
-- `tests/rateLimiter.test.js`: the existing tests
+- `src/rateLimiter`: the limiter (`now` can be passed in so tests control time)
+- `tests/rateLimiter.test`: the existing tests

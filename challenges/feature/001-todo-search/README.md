@@ -46,5 +46,5 @@ The existing tests pass now and must keep passing.
 
 ## Files
 
-- `src/todos.js`: the todo list
-- `tests/todos.test.js`: the existing tests
+- `src/todos`: the todo list
+- `tests/todos.test`: the existing tests

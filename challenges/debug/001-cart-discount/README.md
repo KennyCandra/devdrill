@@ -65,9 +65,9 @@ applyCoupon(cart, 'NOPE');   // false, and the total doesn't change
 
 ## Files
 
-- `src/cart.js`: the cart (items, subtotal, total)
-- `src/discount.js`: works out how much a coupon takes off
-- `src/coupons.js`: the coupons the store offers
-- `tests/cart.test.js`: the existing tests
+- `src/cart`: the cart (items, subtotal, total)
+- `src/discount`: works out how much a coupon takes off
+- `src/coupons`: the coupons the store offers
+- `tests/cart.test`: the existing tests
 
 Prices are stored in **cents** (`1999` = $19.99) to avoid floating-point rounding errors.

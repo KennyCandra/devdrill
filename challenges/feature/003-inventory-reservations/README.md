@@ -67,5 +67,5 @@ The existing tests pass now and must keep passing. Pass `now` to `createInventor
 
 ## Files
 
-- `src/inventory.js`: the inventory
-- `tests/inventory.test.js`: the existing tests
+- `src/inventory`: the inventory
+- `tests/inventory.test`: the existing tests

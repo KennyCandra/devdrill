@@ -79,6 +79,15 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
     errors.push('README.md needs a "## Data" section describing every object and function.');
   }
 
+  // README and hints are shared by every language, so they name files without an extension.
+  const prose = [(readme ?? '').replace(/```[\s\S]*?```/g, ''), ...(meta?.hints ?? [])];
+  const named = prose.join('\n').match(/[\w/-]+\.(?:js|ts|mjs|mts)\b/g);
+  if (named) {
+    errors.push(
+      `README.md and hints are shared by all languages: drop the extension from ${[...new Set(named)].join(', ')}.`,
+    );
+  }
+
   for (const layer of LAYERS) {
     if (await isDir(path.join(dir, layer))) {
       errors.push(`${layer}/ must be inside a language folder (js/ or ts/).`);

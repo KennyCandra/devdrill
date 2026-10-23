@@ -55,5 +55,5 @@ Find out why the order is wrong and fix it. All tests must pass.
 
 ## Files
 
-- `src/leaderboard.js`: ranks the players
-- `tests/leaderboard.test.js`: the existing tests
+- `src/leaderboard`: ranks the players
+- `tests/leaderboard.test`: the existing tests

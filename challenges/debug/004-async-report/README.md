@@ -64,6 +64,6 @@ await buildDailyReport(['north', 'east'], '2026-10-21');
 
 ## Files
 
-- `src/report.js`: builds the daily report
-- `src/orders.js`: the orders service (pretend it's a real database; you shouldn't need to change it)
-- `tests/report.test.js`: the existing tests
+- `src/report`: builds the daily report
+- `src/orders`: the orders service (pretend it's a real database; you shouldn't need to change it)
+- `tests/report.test`: the existing tests
