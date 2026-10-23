@@ -250,7 +250,13 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
     return (
       <StatusScreen
         title="Couldn't open this challenge"
-        action={<Button onClick={() => navigate('/')}>All challenges</Button>}
+        action={
+          // E.g. the challenge isn't in this language: switching is the way out.
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <LanguageSwitch />
+            <Button onClick={() => navigate('/')}>All challenges</Button>
+          </div>
+        }
       >
         {loadError}
       </StatusScreen>

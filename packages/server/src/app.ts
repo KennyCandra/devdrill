@@ -195,7 +195,7 @@ export function createApp(options: AppOptions) {
           ...fullRun,
           tests: fullRun.tests.map(withholdHiddenDetails),
           ...(fullRun.logs
-            ? { logs: fullRun.logs.filter((l) => !/\.hidden\.test\.[jt]s$/.test(l.file ?? '')) }
+            ? { logs: fullRun.logs.filter((l) => !/\.hidden\.test\.m?[jt]s$/.test(l.file ?? '')) }
             : {}),
         };
 

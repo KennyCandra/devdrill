@@ -36,6 +36,13 @@ export async function loadChallenges(challengesDir: string): Promise<Map<string,
         if (!parsed.ok) throw new Error(parsed.errors.join(' '));
         const readme = await readFile(path.join(dir, 'README.md'), 'utf8');
         const languages = LANGUAGES.filter((lang) => existsSync(path.join(dir, lang, 'starter')));
+        for (const lang of LANGUAGES) {
+          if (existsSync(path.join(dir, lang)) && !languages.includes(lang)) {
+            console.warn(
+              `Challenge ${mode.name}/${entry.name}: ${lang}/ has no starter/, skipping it.`,
+            );
+          }
+        }
         if (languages.length === 0) throw new Error('no js/ or ts/ folder');
         challenges.set(parsed.meta.id, { meta: parsed.meta, readme, dir, languages });
       } catch (err) {
