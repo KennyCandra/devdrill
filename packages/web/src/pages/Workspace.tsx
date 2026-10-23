@@ -17,7 +17,7 @@ import {
 import type { ChallengeDetail, TestRunResult } from '@devdrill/shared';
 import { api, currentLanguage } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { LANGUAGE_LABELS } from '../components/LanguageSwitch';
+import { LanguageSwitch } from '../components/LanguageSwitch';
 import { FileTree } from '../components/FileTree';
 import { TaskPanel } from '../components/TaskPanel';
 import { TestPanel } from '../components/TestPanel';
@@ -284,9 +284,9 @@ export function Workspace({ id }: { id: string }) {
         <h1 className="min-w-0 truncate">{challenge.title}</h1>
         <DifficultyBadge difficulty={challenge.difficulty} />
         <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
-        <span className="shrink-0 rounded border border-line px-1.5 font-mono text-[11px] text-muted">
-          {LANGUAGE_LABELS[currentLanguage()]}
-        </span>
+        {/* Switching saves your code (the workspace flushes on leave) and reopens this
+            challenge in the other language. */}
+        <LanguageSwitch available={challenge.languages} />
         {challenge.progress.attempts > 0 && (
           <button
             type="button"
