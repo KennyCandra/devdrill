@@ -14,7 +14,7 @@ import {
   MAX_REVIEW_COMMENTS,
   REVIEW_CATEGORIES,
 } from '@devdrill/shared/review';
-import { Button } from '../components/ui';
+import { Button, modKey } from '../components/ui';
 import { lineLabel } from './DiffView';
 
 /** A comment being written: a new one on some lines, or an existing one being changed. */
@@ -76,14 +76,16 @@ export function ReviewPanel({
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="flex items-center px-3 pt-2 pb-2 text-[11px] font-semibold tracking-wide text-muted uppercase">
           <span className="mr-auto">Your review</span>
-          <span aria-label={`${comments.length} of ${MAX_REVIEW_COMMENTS} comments used`}>
+          <span>
             {comments.length}/{MAX_REVIEW_COMMENTS}
+            <span className="sr-only"> comments used</span>
           </span>
         </div>
 
         <div className="px-3 pb-3">
           {editing ? (
             <CommentForm
+              key={editing.id ?? 'new'}
               edit={editing}
               issueTypes={issueTypes}
               disabled={disabled}
@@ -106,7 +108,13 @@ export function ReviewPanel({
                   A comment covers at most {MAX_COMMENT_LINES} lines. Select fewer.
                 </p>
               ) : (
-                <Button variant="primary" className="self-start" onClick={onStartComment}>
+                <Button
+                  variant="primary"
+                  className="self-start"
+                  onClick={onStartComment}
+                  disabled={disabled}
+                  aria-keyshortcuts="Control+Enter Meta+Enter"
+                >
                   <MessageSquarePlus size={14} aria-hidden="true" /> Comment on{' '}
                   {lineLabel(selection)}
                 </Button>
@@ -115,8 +123,9 @@ export function ReviewPanel({
           ) : (
             <p className="leading-relaxed text-muted">
               Select lines in the new code to comment on them: click a line number, shift-click
-              another to select more. Up to {MAX_REVIEW_COMMENTS} comments, whatever the pull
-              request. A good pull request deserves an approval and no comments.
+              another to select more (or Shift + arrow keys in the editor, then {modKey} Enter). Up
+              to {MAX_REVIEW_COMMENTS} comments, whatever the pull request. A good pull request
+              deserves an approval and no comments.
             </p>
           )}
         </div>
@@ -288,6 +297,8 @@ function CommentForm({
       </label>
       <select
         id={typeId}
+        // The form opens because the user asked to comment: start where they type.
+        autoFocus
         value={edit.type}
         onChange={(e) => onChange({ ...edit, type: e.target.value })}
         className="h-7 rounded border border-line-strong bg-bg px-1.5 focus-visible:outline-2 focus-visible:outline-accent"

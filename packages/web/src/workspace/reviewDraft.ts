@@ -69,7 +69,8 @@ export class ReviewDraftStore {
 
   /** Saves now if anything is waiting; rejects if the save fails. */
   async flush(): Promise<void> {
-    if (this.timer) {
+    if (this.timer || this.snapshot.state === 'error') {
+      // A failed save is tried again: the draft is still waiting to reach the server.
       this.cancelTimer();
       this.startSave();
     }

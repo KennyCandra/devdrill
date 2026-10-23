@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { IssueType, Language, LineRange, ReviewComment, ReviewFile } from '@devdrill/shared';
+import type { IssueType, LineRange, ReviewComment, ReviewFile } from '@devdrill/shared';
 import { CATEGORY_LABELS } from '@devdrill/shared/review';
 import { languageFor, monaco } from '../editor/monacoSetup';
 import type { ResolvedTheme } from '../theme';
+import { holdsFunction } from './functionText';
 
 interface FileModels {
   original: monaco.editor.ITextModel;
@@ -25,6 +26,8 @@ export function DiffView({
   theme,
   onSelect,
   onCommentClick,
+  clearSelection,
+  onCommentShortcut,
   onModels,
 }: {
   /** Unique per challenge and language, for model URIs. */
@@ -39,6 +42,10 @@ export function DiffView({
   theme: ResolvedTheme;
   onSelect: (lines: LineRange | null) => void;
   onCommentClick: (id: string) => void;
+  /** Changes when the parent wants the selection cleared (e.g. after commenting). */
+  clearSelection?: number;
+  /** Ctrl/Cmd+Enter in the new code: comment on the selection, without the mouse. */
+  onCommentShortcut?: () => void;
   /** The new-code model of each file, for "whole function". */
   onModels?: (models: Map<string, monaco.editor.ITextModel>) => void;
 }) {
@@ -52,9 +59,9 @@ export function DiffView({
   const editorDisposed = useRef(false);
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 
-  const callbacks = useRef({ onSelect, onCommentClick });
+  const callbacks = useRef({ onSelect, onCommentClick, onCommentShortcut });
   useLayoutEffect(() => {
-    callbacks.current = { onSelect, onCommentClick };
+    callbacks.current = { onSelect, onCommentClick, onCommentShortcut };
   });
 
   // The editor, once.
@@ -90,6 +97,9 @@ export function DiffView({
           : s.endLineNumber;
       callbacks.current.onSelect([s.startLineNumber, end]);
     });
+    modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () =>
+      callbacks.current.onCommentShortcut?.(),
+    );
     editorDisposed.current = false;
     setEditor(diff);
     return () => {
@@ -182,6 +192,13 @@ export function DiffView({
     });
   }, [editor, files, activePath, comments, issueTypes, pending, focusedId]);
 
+  useEffect(() => {
+    if (!editor || clearSelection === undefined || clearSelection === 0) return;
+    const modified = editor.getModifiedEditor();
+    const at = modified.getSelection()?.getStartPosition();
+    if (at) modified.setSelection(monaco.Selection.fromPositions(at, at));
+  }, [editor, clearSelection]);
+
   // Bring a focused comment into view.
   useEffect(() => {
     const comment = comments.find((c) => c.id === focusedId);
@@ -251,11 +268,14 @@ interface NavigationTree {
  */
 export async function functionAround(
   model: monaco.editor.ITextModel,
-  lang: Language,
   lines: LineRange,
 ): Promise<LineRange | null> {
+  const language = model.getLanguageId();
+  if (language !== 'typescript' && language !== 'javascript') return null;
   const getWorker =
-    lang === 'ts' ? monaco.typescript.getTypeScriptWorker : monaco.typescript.getJavaScriptWorker;
+    language === 'typescript'
+      ? monaco.typescript.getTypeScriptWorker
+      : monaco.typescript.getJavaScriptWorker;
   const worker = await (await getWorker())(model.uri);
   const tree = (await worker.getNavigationTree(model.uri.toString())) as NavigationTree | undefined;
   if (!tree || model.isDisposed()) return null;
@@ -268,7 +288,7 @@ export async function functionAround(
       const isFunction =
         FUNCTION_KINDS.has(node.kind) ||
         (HOLDER_KINDS.has(node.kind) &&
-          /=>|\bfunction\b/.test(
+          holdsFunction(
             model.getValueInRange(
               monaco.Range.fromPositions(
                 model.getPositionAt(span.start),

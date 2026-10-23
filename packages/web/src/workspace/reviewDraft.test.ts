@@ -63,4 +63,18 @@ describe('ReviewDraftStore', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(store.getSnapshot().state).toBe('saving');
   });
+
+  it('tries a failed save again on the next flush', async () => {
+    let fail = true;
+    const save = vi.fn((d: ReviewDraft) =>
+      fail ? Promise.reject(new Error('offline')) : Promise.resolve(d),
+    );
+    const store = new ReviewDraftStore(save, 400);
+    store.addComment(comment('a'));
+    await expect(store.flush()).rejects.toThrow('offline');
+    fail = false;
+    await store.flush();
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(store.getSnapshot().state).toBe('saved');
+  });
 });

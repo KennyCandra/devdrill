@@ -8,7 +8,7 @@ import type {
   ReviewComment,
   ReviewPullRequest,
 } from '@devdrill/shared';
-import { MAX_COMMENT_LINES } from '@devdrill/shared/review';
+import { MAX_COMMENT_LINES, MAX_REVIEW_COMMENTS } from '@devdrill/shared/review';
 import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LanguageSwitch } from '../components/LanguageSwitch';
@@ -61,6 +61,10 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const busy = submitting || resetting;
+  /** Bumped to clear the selection in the diff, e.g. after a comment is added. */
+  const [clearSelection, setClearSelection] = useState(0);
   const models = useRef(new Map<string, monaco.editor.ITextModel>());
 
   useEffect(() => {
@@ -111,22 +115,24 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   }, []);
 
   const startComment = () => {
-    if (!selection) return;
+    if (!selection || busy || draft.comments.length >= MAX_REVIEW_COMMENTS) return;
     setEditing({ file: activePath, lines: selection, type: '', why: '' });
   };
 
   /** Widens the comment to the function around it; returns why it couldn't, or null. */
   const wholeFunction = async (): Promise<string | null> => {
     if (!editing) return null;
-    const model = models.current.get(editing.file);
+    const { file, id: commentId } = editing;
+    const model = models.current.get(file);
     if (!model) return null;
     try {
-      const range = await functionAround(model, lang, editing.lines);
+      const range = await functionAround(model, editing.lines);
       if (!range) return "These lines aren't inside a function.";
       if (range[1] - range[0] + 1 > MAX_COMMENT_LINES) {
         return `That function is longer than ${MAX_COMMENT_LINES} lines; comment on the lines that matter.`;
       }
-      setEditing((e) => (e ? { ...e, lines: range } : e));
+      // The form may have closed or moved to another comment while the lookup ran.
+      setEditing((e) => (e && e.file === file && e.id === commentId ? { ...e, lines: range } : e));
       return null;
     } catch {
       return "Couldn't find the function. Select its lines instead.";
@@ -146,6 +152,8 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
     else store.addComment(comment);
     setFocusedId(comment.id);
     setEditing(null);
+    setSelection(null);
+    setClearSelection((n) => n + 1);
   };
 
   const focusComment = (comment: ReviewComment) => {
@@ -181,6 +189,9 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
 
   const reset = async () => {
     setConfirmReset(false);
+    if (busy) return;
+    // Nothing can change while the reset runs, or a save could bring old comments back.
+    setResetting(true);
     try {
       await store.flush().catch(() => undefined);
       await api.reset(id, lang);
@@ -191,6 +202,8 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
       setMessage(null);
     } catch (err) {
       setMessage((err as Error).message);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -265,8 +278,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
         <ResizeHandle />
         <Panel id="diff" minSize={320}>
           <div className="flex h-full flex-col">
-            <div
-              role="tablist"
+            <nav
               aria-label="Changed files"
               className="flex shrink-0 overflow-x-auto border-b border-line bg-bar"
             >
@@ -274,8 +286,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                 <button
                   key={f.path}
                   type="button"
-                  role="tab"
-                  aria-selected={f.path === activePath}
+                  aria-current={f.path === activePath ? 'page' : undefined}
                   onClick={() => setActivePath(f.path)}
                   className={`flex h-9 shrink-0 items-center gap-1.5 border-r border-line px-3 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent ${
                     f.path === activePath ? 'bg-bg text-fg' : 'text-muted hover:bg-hover'
@@ -292,7 +303,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                   )}
                 </button>
               ))}
-            </div>
+            </nav>
             <div className="min-h-0 flex-1">
               <DiffView
                 reviewId={`${lang}/${id}`}
@@ -300,7 +311,9 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                 activePath={activePath}
                 comments={draft.comments}
                 issueTypes={pr.issueTypes}
-                pending={editing?.lines ?? null}
+                pending={editing && editing.file === activePath ? editing.lines : null}
+                clearSelection={clearSelection}
+                onCommentShortcut={startComment}
                 focusedId={focusedId}
                 theme={theme}
                 onSelect={setSelection}
@@ -320,7 +333,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
             verdict={draft.verdict}
             editing={editing}
             focusedId={focusedId}
-            disabled={submitting}
+            disabled={busy}
             onStartComment={startComment}
             onWholeFunction={wholeFunction}
             onEditChange={setEditing}
@@ -332,6 +345,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
             }}
             onDeleteComment={(commentId) => {
               store.removeComment(commentId);
+              if (editing?.id === commentId) setEditing(null);
               if (focusedId === commentId) setFocusedId(null);
             }}
             onFocusComment={focusComment}
@@ -341,7 +355,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
       </Group>
 
       <footer className="flex h-11 shrink-0 items-center gap-2 border-t border-line bg-bar px-3">
-        <Button variant="ghost" onClick={() => setConfirmReset(true)} disabled={submitting}>
+        <Button variant="ghost" onClick={() => setConfirmReset(true)} disabled={busy}>
           <RotateCcw size={14} aria-hidden="true" /> Reset
         </Button>
         {message && (
@@ -354,12 +368,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
             Writing a comment on {lineLabel(editing.lines)}…
           </span>
         )}
-        <Button
-          variant="primary"
-          className="ml-auto"
-          onClick={() => void submit()}
-          disabled={submitting}
-        >
+        <Button variant="primary" className="ml-auto" onClick={() => void submit()} disabled={busy}>
           {submitting ? <Spinner /> : <Send size={14} aria-hidden="true" />}
           {submitting ? 'Submitting…' : 'Submit review'}
         </Button>
