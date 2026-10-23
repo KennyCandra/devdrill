@@ -1,9 +1,11 @@
 import { existsSync } from 'node:fs';
-import { cp, lstat, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { init as initLexer, parse as parseImports } from 'es-module-lexer';
 import { transform } from 'esbuild';
+import ts from 'typescript';
+import { TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
 import type { ChallengeMeta, Language, TestRunResult } from '@devdrill/shared';
 import { parseChallengeMeta } from '../../packages/server/src/services/challengeMeta.js';
 import { IGNORED_FILES } from '../../packages/server/src/services/files.js';
@@ -157,6 +159,20 @@ async function validateLanguage(
     }
   }
   if (errors.length > 0) return flush();
+
+  // TypeScript: the starter (what players see) and the full solution must type-check,
+  // so bugs are runtime bugs, not ones the editor underlines. (Hidden feature tests call
+  // the API players haven't built yet, so they're only checked against the solution.)
+  if (lang === 'ts') {
+    for (const [label, layers] of [
+      ['starter', [roots.starter]],
+      ['solution', [roots.starter, roots.solution, roots['hidden-tests']]],
+    ] as const) {
+      for (const message of await typeCheck(layers))
+        errors.push(`type error on ${label}: ${message}`);
+    }
+    if (errors.length > 0) return flush();
+  }
 
   // Debug / feature behaviour: run the tests.
   const onStarter = await runLayers([roots.starter, roots['hidden-tests']]);
@@ -359,6 +375,37 @@ function checkBehaviour(
         notPassing.map((t) => `${t.name} (${firstLine(t.message ?? t.status)})`).join('; ') +
         (onSolution.errorMessage ? ` ${firstLine(onSolution.errorMessage)}` : ''),
     );
+  }
+}
+
+/** Type-checks the folders layered on top of each other, the way the editor will. */
+async function typeCheck(layers: readonly string[]): Promise<string[]> {
+  const work = await mkdtemp(path.join(tmpdir(), 'devdrill-typecheck-'));
+  try {
+    for (const layer of layers) await cp(layer, work, { recursive: true, force: true });
+    const globals = path.join(work, '__test-globals.d.ts');
+    await writeFile(globals, TEST_GLOBALS_DTS);
+    const files = (await readdir(work, { recursive: true }))
+      .map((f) => path.join(work, f))
+      .filter((f) => f.endsWith('.ts'));
+    const program = ts.createProgram(files, {
+      strict: true,
+      noEmit: true,
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      lib: ['lib.es2023.d.ts', 'lib.dom.d.ts'],
+      types: [],
+      skipLibCheck: true,
+    });
+    return ts.getPreEmitDiagnostics(program).map((d) => {
+      const where = d.file
+        ? `${path.relative(work, d.file.fileName)}:${d.file.getLineAndCharacterOfPosition(d.start ?? 0).line + 1} `
+        : '';
+      return where + ts.flattenDiagnosticMessageText(d.messageText, ' ');
+    });
+  } finally {
+    await rm(work, { recursive: true, force: true });
   }
 }
 

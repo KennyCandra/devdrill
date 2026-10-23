@@ -59,13 +59,16 @@ console.log('module loaded');`,
 
     const result = await runTests(dir);
 
-    const works = result.tests.find((t) => t.name === 'double > works');
-    expect(works?.logs).toEqual([{ stream: 'stdout', text: 'checking\ndouble got 2' }]);
-    const complains = result.tests.find((t) => t.name === 'double > complains');
-    expect(complains?.logs).toEqual([
-      { stream: 'stdout', text: 'double got 1' },
-      { stream: 'stderr', text: 'uh oh' },
-    ]);
+    // Vitest may batch lines into fewer messages under load, so compare the text per stream.
+    const text = (name: string, stream: 'stdout' | 'stderr') =>
+      result.tests
+        .find((t) => t.name === name)
+        ?.logs?.filter((l) => l.stream === stream)
+        .map((l) => l.text)
+        .join('\n');
+    expect(text('double > works', 'stdout')).toBe('checking\ndouble got 2');
+    expect(text('double > complains', 'stdout')).toBe('double got 1');
+    expect(text('double > complains', 'stderr')).toBe('uh oh');
     // Printed while the file loaded, outside any test.
     expect(result.logs).toEqual([
       { stream: 'stdout', text: 'module loaded', file: 'tests/double.test.js' },

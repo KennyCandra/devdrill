@@ -145,6 +145,18 @@ describe('validateChallenge', () => {
     expect(errors).toContain("isn't in README.md");
   });
 
+  it('rejects TypeScript that does not type-check', async () => {
+    const dir = await variant('ts-type-error', async (d) => {
+      const file = path.join(d, 'ts/starter/src/cart.ts');
+      await writeFile(
+        file,
+        (await readFile(file, 'utf8')) + '\nexport const broken: number = "text";\n',
+      );
+    });
+    const result = await validateChallenge(dir);
+    expect(result.errors.join('\n')).toContain('ts/type error on starter: src/cart.ts');
+  });
+
   it('requires a Data section in the README', async () => {
     const dir = await variant('no-data', async (d) => {
       const file = path.join(d, 'README.md');

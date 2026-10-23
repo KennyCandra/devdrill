@@ -8,6 +8,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./testGlobals": {
+      "types": "./src/testGlobals.ts",
+      "default": "./src/testGlobals.ts"
     }
   },
   "scripts": {
