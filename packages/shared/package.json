@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Types shared by the DevDrill server and web UI.",
+  "description": "Types and small shared constants for the DevDrill server and web UI.",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -12,6 +12,10 @@
     "./testGlobals": {
       "types": "./src/testGlobals.ts",
       "default": "./src/testGlobals.ts"
+    },
+    "./review": {
+      "types": "./src/review.ts",
+      "default": "./src/review.ts"
     }
   },
   "scripts": {

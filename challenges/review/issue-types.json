@@ -1,0 +1,139 @@
+{
+  "shared": [
+    {
+      "id": "off-by-one",
+      "label": "Off-by-one",
+      "category": "bug",
+      "description": "A loop, index or boundary is one too many or one too few."
+    },
+    {
+      "id": "wrong-condition",
+      "label": "Wrong condition",
+      "category": "bug",
+      "description": "A comparison or check is wrong: the wrong operator, a missing case, inverted logic."
+    },
+    {
+      "id": "missing-await",
+      "label": "Missing await",
+      "category": "bug",
+      "description": "A promise is used before it resolves, or its errors are never caught."
+    },
+    {
+      "id": "mutates-shared-state",
+      "label": "Mutates shared state",
+      "category": "bug",
+      "description": "Changes an input, a default or a module-level value that other code relies on."
+    },
+    {
+      "id": "missing-null-check",
+      "label": "Missing null/empty check",
+      "category": "bug",
+      "description": "Breaks when a value is null, undefined, missing or empty."
+    },
+    {
+      "id": "wrong-error-handling",
+      "label": "Wrong error handling",
+      "category": "bug",
+      "description": "An error is swallowed, reported as success, or thrown where the caller can't handle it."
+    },
+    {
+      "id": "race-condition",
+      "label": "Race condition",
+      "category": "bug",
+      "description": "The result depends on which of two async operations finishes first."
+    },
+    {
+      "id": "unvalidated-input",
+      "label": "Unvalidated input",
+      "category": "security",
+      "description": "Data from a user or request is trusted without checking it."
+    },
+    {
+      "id": "injection",
+      "label": "Injection",
+      "category": "security",
+      "description": "User data is put into a query, command, path or HTML without escaping."
+    },
+    {
+      "id": "data-exposure",
+      "label": "Sensitive data exposed",
+      "category": "security",
+      "description": "A secret, password, token or private field is logged, returned or stored in the open."
+    },
+    {
+      "id": "missing-authorization",
+      "label": "Missing permission check",
+      "category": "security",
+      "description": "Anyone can do something only some users should be allowed to."
+    },
+    {
+      "id": "repeated-work",
+      "label": "Repeated work",
+      "category": "performance",
+      "description": "The same expensive work runs again and again, e.g. a lookup or query inside a loop."
+    },
+    {
+      "id": "sequential-awaits",
+      "label": "Sequential awaits",
+      "category": "performance",
+      "description": "Independent async calls wait for each other instead of running together."
+    },
+    {
+      "id": "unbounded-growth",
+      "label": "Unbounded growth",
+      "category": "performance",
+      "description": "A cache, list or listener set grows forever."
+    },
+    {
+      "id": "unclear-name",
+      "label": "Unclear name",
+      "category": "readability",
+      "description": "A name doesn't say what the thing is or does, or says something wrong."
+    },
+    {
+      "id": "does-too-much",
+      "label": "Does too much",
+      "category": "readability",
+      "description": "A function mixes several jobs and should be split."
+    },
+    {
+      "id": "duplicated-code",
+      "label": "Duplicated code",
+      "category": "readability",
+      "description": "The same logic is copied instead of shared."
+    },
+    {
+      "id": "dead-code",
+      "label": "Dead code",
+      "category": "readability",
+      "description": "Code that can never run, or a leftover that isn't used."
+    },
+    {
+      "id": "magic-value",
+      "label": "Magic value",
+      "category": "readability",
+      "description": "An unexplained number or string that should be a named constant."
+    },
+    {
+      "id": "missing-test",
+      "label": "Missing test",
+      "category": "tests",
+      "description": "New or changed behaviour has no test."
+    },
+    {
+      "id": "weak-test",
+      "label": "Test checks too little",
+      "category": "tests",
+      "description": "A test runs the code but would still pass if it were wrong."
+    }
+  ],
+  "js": [],
+  "ts": [
+    {
+      "id": "unsafe-type-assertion",
+      "label": "Unsafe type assertion / any",
+      "category": "bug",
+      "description": "`as`, `!` or `any` tells the compiler to trust a value that may not be that type."
+    }
+  ]
+}

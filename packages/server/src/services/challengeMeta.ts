@@ -1,6 +1,6 @@
 import type { ChallengeMeta, ChallengeMode, Difficulty } from '@devdrill/shared';
 
-const MODES: readonly ChallengeMode[] = ['debug', 'feature'];
+const MODES: readonly ChallengeMode[] = ['debug', 'feature', 'review'];
 const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard'];
 
 /** Folder names look like `001-cart-discount`. */
@@ -72,6 +72,10 @@ export function parseChallengeMeta(
       !Object.values(rules).every((v) => typeof v === 'string' && v.trim() !== ''))
   ) {
     errors.push('"hiddenTestRules" must map hidden test names to non-empty strings.');
+  }
+
+  if (rules !== undefined && data.mode === 'review') {
+    errors.push('"hiddenTestRules" is for debug and feature challenges; review has issues.json.');
   }
 
   if (errors.length > 0) return { ok: false, errors };

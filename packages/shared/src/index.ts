@@ -1,7 +1,7 @@
 // Types only: this package is never imported at runtime.
 // Always use `import type` from it.
 
-export type ChallengeMode = 'debug' | 'feature';
+export type ChallengeMode = 'debug' | 'feature' | 'review';
 
 /** The languages a challenge can come in; each is a folder in the challenge. */
 export type Language = 'js' | 'ts';
@@ -171,4 +171,93 @@ export interface Settings {
 export interface SessionInfo {
   ok: true;
   appName: string;
+}
+
+// ---- Review mode ----
+
+export type ReviewCategory = 'bug' | 'security' | 'performance' | 'readability' | 'tests';
+
+/** `must` blocks merging, `should` is worth a comment, `nit` is an optional style point. */
+export type ReviewSeverity = 'must' | 'should' | 'nit';
+
+/** One kind of problem a review comment can name, e.g. "Missing await". */
+export interface IssueType {
+  id: string;
+  label: string;
+  category: ReviewCategory;
+  /** One line on what it means, shown in the picker. */
+  description: string;
+}
+
+/** A first and last line, both 1-based and inclusive, in the new (head) version of a file. */
+export type LineRange = [number, number];
+
+/** One planted issue in a review challenge's answer key (`issues.json`). */
+export interface ReviewIssue {
+  id: string;
+  file: string;
+  lines: LineRange;
+  /** Set when the issue is the whole function: then `lines` is that function. */
+  function?: string;
+  /** An `IssueType` id. */
+  type: string;
+  severity: ReviewSeverity;
+  title: string;
+  explanation: string;
+}
+
+/** One file the pull request changes. */
+export interface ReviewFile {
+  path: string;
+  /** Null when the pull request adds the file. */
+  base: string | null;
+  head: string;
+}
+
+export type ReviewVerdict = 'approve' | 'request_changes';
+
+/** A structured review comment: where, what kind of issue, and why. */
+export interface ReviewComment {
+  id: string;
+  file: string;
+  lines: LineRange;
+  /** An `IssueType` id. */
+  type: string;
+  /** In the player's words. Not graded here; the AI module will. */
+  why: string;
+}
+
+/** The review being written, autosaved in the workspace. */
+export interface ReviewDraft {
+  comments: ReviewComment[];
+  verdict: ReviewVerdict | null;
+}
+
+export interface IssueOutcome {
+  id: string;
+  severity: ReviewSeverity;
+  category: ReviewCategory;
+  found: boolean;
+  /** The comment that found it. */
+  commentId?: string;
+  /**
+   * Where and what: given for found issues, and for every issue once the challenge is solved.
+   * A missed issue of an unsolved review shows only its severity and category.
+   */
+  details?: Omit<ReviewIssue, 'id' | 'severity'>;
+}
+
+export interface ReviewResult {
+  solved: boolean;
+  verdict: { given: ReviewVerdict; correct: boolean };
+  issues: IssueOutcome[];
+  /** Ids of comments that match no issue. */
+  falseAlarms: string[];
+  /** The comments that were graded, so the results screen can show them later. */
+  comments: ReviewComment[];
+  progress: ProgressEntry;
+}
+
+export interface ReviewSubmitRequest {
+  elapsedMs?: number;
 }

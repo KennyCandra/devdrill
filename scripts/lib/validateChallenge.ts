@@ -10,6 +10,7 @@ import type { ChallengeMeta, Language, TestRunResult } from '@devdrill/shared';
 import { parseChallengeMeta } from '../../packages/server/src/services/challengeMeta.js';
 import { IGNORED_FILES } from '../../packages/server/src/services/files.js';
 import { runTests } from '../../packages/server/src/services/testRunner.js';
+import { validateReview } from './validateReview.js';
 
 export interface ValidationResult {
   dir: string;
@@ -28,7 +29,7 @@ interface LanguageRules {
   testExample: string;
 }
 
-const LANGUAGES: Record<Language, LanguageRules> = {
+export const LANGUAGES: Record<Language, LanguageRules> = {
   js: {
     name: 'JavaScript',
     source: /\.m?js$/,
@@ -46,17 +47,19 @@ const LANGUAGES: Record<Language, LanguageRules> = {
 };
 
 /** Anything Vitest would pick up as a test file by default. */
-const TEST_LIKE_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
+export const TEST_LIKE_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 /** Config files could change which tests run, so challenges can't have them. */
-const CONFIG_FILE = /(?:^|\/)(?:vitest|vite)\.(?:config|workspace)\.[cm]?[jt]s$/;
+export const CONFIG_FILE = /(?:^|\/)(?:vitest|vite)\.(?:config|workspace)\.[cm]?[jt]s$/;
 /** Tests that are skipped or focused would let a challenge pass without running everything. */
-const SKIP_OR_FOCUS = /\b(?:describe|suite|it|test)\s*\.\s*(?:skip|only|todo|skipIf|runIf)\b/;
+export const SKIP_OR_FOCUS =
+  /\b(?:describe|suite|it|test)\s*\.\s*(?:skip|only|todo|skipIf|runIf)\b/;
 
 type Layer = 'starter' | 'hidden-tests' | 'solution';
 const LAYERS: Layer[] = ['starter', 'hidden-tests', 'solution'];
+const REVIEW_LAYERS = ['base', 'head'] as const;
 
-const TS_ESCAPE = /@ts-(?:ignore|expect-error|nocheck)\b/;
-const EXPLICIT_ANY = /(?::|\bas|<|\|)\s*any\b(?!\w)/;
+export const TS_ESCAPE = /@ts-(?:ignore|expect-error|nocheck)\b/;
+export const EXPLICIT_ANY = /(?::|\bas|<|\|)\s*any\b(?!\w)/;
 
 /**
  * Checks one challenge folder against the rules listed in CONTRIBUTING.md ("Validate").
@@ -68,16 +71,20 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   const errors: string[] = [];
   const done = (): ValidationResult => ({ dir, ok: errors.length === 0, errors });
 
+  // A review challenge is a pull request to read, not code to fix: its README is the PR
+  // description, and the code itself shows the data.
+  const isReview = path.basename(path.dirname(dir)) === 'review';
+
   // Metadata and README.
   const meta = await readMeta(dir, errors);
   const readme = await readText(path.join(dir, 'README.md'));
   if (!readme?.trim()) {
     errors.push('README.md is missing or empty.');
-  } else if (!/```(?:js|javascript|ts|typescript)\n/.test(readme)) {
+  } else if (!isReview && !/```(?:js|javascript|ts|typescript)\n/.test(readme)) {
     // Playtesting showed rules written only in prose get missed; an example doesn't.
     errors.push('README.md needs an example of the exact result in a ```js code block.');
   }
-  if (readme?.trim() && !/^## Data$/m.test(readme)) {
+  if (!isReview && readme?.trim() && !/^## Data$/m.test(readme)) {
     // Plain JS has no types; the README is where players learn each object's shape.
     errors.push('README.md needs a "## Data" section describing every object and function.');
   }
@@ -91,7 +98,7 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
     );
   }
 
-  for (const layer of LAYERS) {
+  for (const layer of isReview ? REVIEW_LAYERS : LAYERS) {
     if (await isDir(path.join(dir, layer))) {
       errors.push(`${layer}/ must be inside a language folder (js/ or ts/).`);
     }
@@ -103,6 +110,10 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   if (errors.length > 0 || !meta) return done();
 
   await initLexer();
+  if (isReview) {
+    await validateReview(dir, languages, errors);
+    return done();
+  }
   const testNames = new Map<Language, string[]>();
   for (const lang of languages) {
     const names = await validateLanguage(path.join(dir, lang), lang, meta, readme ?? '', errors);
@@ -249,15 +260,19 @@ async function readMeta(dir: string, errors: string[]): Promise<ChallengeMeta | 
   return result.meta;
 }
 
-async function checkPackageJson(starter: string, errors: string[]): Promise<void> {
+export async function checkPackageJson(
+  starter: string,
+  errors: string[],
+  label = 'starter',
+): Promise<void> {
   const text = await readText(path.join(starter, 'package.json'));
   if (text === null) {
-    errors.push('starter/package.json is missing (it needs "type": "module").');
+    errors.push(`${label}/package.json is missing (it needs "type": "module").`);
     return;
   }
   try {
     const pkg = JSON.parse(text) as Record<string, unknown>;
-    if (pkg.type !== 'module') errors.push('starter/package.json must set "type": "module".');
+    if (pkg.type !== 'module') errors.push(`${label}/package.json must set "type": "module".`);
     for (const key of [
       'dependencies',
       'devDependencies',
@@ -265,15 +280,15 @@ async function checkPackageJson(starter: string, errors: string[]): Promise<void
       'optionalDependencies',
     ]) {
       if (key in pkg) {
-        errors.push(`starter/package.json must not have "${key}" (zero dependencies).`);
+        errors.push(`${label}/package.json must not have "${key}" (zero dependencies).`);
       }
     }
   } catch {
-    errors.push('starter/package.json is not valid JSON.');
+    errors.push(`${label}/package.json is not valid JSON.`);
   }
 }
 
-async function checkImports(
+export async function checkImports(
   label: string,
   lang: Language,
   source: string,
@@ -350,7 +365,7 @@ function checkHiddenTestRules(
 }
 
 /** Source code without its line and block comments (a rough cut, enough to skip prose). */
-function withoutComments(source: string): string {
+export function withoutComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
 }
 
@@ -426,7 +441,7 @@ function checkBehaviour(
 }
 
 /** Type-checks the folders layered on top of each other, the way the editor will. */
-async function typeCheck(layers: readonly string[]): Promise<string[]> {
+export async function typeCheck(layers: readonly string[]): Promise<string[]> {
   const work = await mkdtemp(path.join(tmpdir(), 'devdrill-typecheck-'));
   try {
     for (const layer of layers) await cp(layer, work, { recursive: true, force: true });
@@ -460,7 +475,7 @@ async function typeCheck(layers: readonly string[]): Promise<string[]> {
 }
 
 /** Copies each folder on top of the previous one into a temp folder, then runs the tests. */
-async function runLayers(layers: string[]): Promise<TestRunResult> {
+export async function runLayers(layers: string[]): Promise<TestRunResult> {
   const work = await mkdtemp(path.join(tmpdir(), 'devdrill-validate-'));
   try {
     for (const layer of layers) {
@@ -481,7 +496,11 @@ async function runLayers(layers: string[]): Promise<TestRunResult> {
  * Returns null (and records an error) if the folder is missing or holds
  * anything other than files and folders, such as symlinks.
  */
-async function listFiles(root: string, layer: Layer, errors: string[]): Promise<string[] | null> {
+export async function listFiles(
+  root: string,
+  layer: string,
+  errors: string[],
+): Promise<string[] | null> {
   try {
     if (!(await lstat(root)).isDirectory()) throw new Error('not a folder');
   } catch {
@@ -518,7 +537,7 @@ async function isDir(p: string): Promise<boolean> {
   }
 }
 
-async function readText(file: string): Promise<string | null> {
+export async function readText(file: string): Promise<string | null> {
   try {
     return await readFile(file, 'utf8');
   } catch {
@@ -526,6 +545,6 @@ async function readText(file: string): Promise<string | null> {
   }
 }
 
-function firstLine(text: string): string {
+export function firstLine(text: string): string {
   return text.split('\n')[0] ?? '';
 }
