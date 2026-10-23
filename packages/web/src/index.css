@@ -289,3 +289,46 @@ body {
     margin-top: 2px;
   }
 }
+
+/* ---- Review mode: comments inside the diff editor ---- */
+
+.review-range {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.review-range-focused {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.review-range-gutter {
+  border-left: 3px solid var(--accent);
+  margin-left: 3px;
+}
+.review-range-pending {
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+}
+.review-zone {
+  margin: 2px 12px 2px 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg-side);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: hidden;
+  cursor: pointer;
+}
+.review-zone-focused {
+  border-color: var(--accent);
+}
+.review-zone-head {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.review-zone-why {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

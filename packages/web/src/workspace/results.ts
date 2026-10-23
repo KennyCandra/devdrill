@@ -1,4 +1,4 @@
-import type { ChallengeSummary, Language, SubmitResult } from '@devdrill/shared';
+import type { ChallengeSummary, Language, ReviewResult, SubmitResult } from '@devdrill/shared';
 
 export interface StoredResult {
   submit: SubmitResult;
@@ -34,6 +34,7 @@ export function loadResult(id: string, lang: Language): StoredResult | null {
 
 export function clearResult(id: string, lang: Language): void {
   memory.delete(resultKey(id, lang));
+  reviewMemory.delete(resultKey(id, lang));
   try {
     sessionStorage.removeItem(resultKey(id, lang));
   } catch {
@@ -44,6 +45,7 @@ export function clearResult(id: string, lang: Language): void {
 /** Forgets every stored result (after "Reset all progress"). */
 export function clearAllResults(): void {
   memory.clear();
+  reviewMemory.clear();
   try {
     for (const key of Object.keys(sessionStorage)) {
       if (key.startsWith('devdrill-result-')) sessionStorage.removeItem(key);
@@ -51,6 +53,37 @@ export function clearAllResults(): void {
   } catch {
     // Nothing stored.
   }
+}
+
+export interface StoredReviewResult {
+  review: ReviewResult;
+  elapsedMs: number;
+}
+
+// Reviews share the key scheme (ids never clash: they start with "review-"), so
+// clearResult() and clearAllResults() cover them too.
+const reviewMemory = new Map<string, StoredReviewResult>();
+
+export function saveReviewResult(id: string, lang: Language, result: StoredReviewResult): void {
+  reviewMemory.set(resultKey(id, lang), result);
+  try {
+    sessionStorage.setItem(resultKey(id, lang), JSON.stringify(result));
+  } catch {
+    // The in-memory copy is enough for this visit.
+  }
+}
+
+export function loadReviewResult(id: string, lang: Language): StoredReviewResult | null {
+  try {
+    const raw = sessionStorage.getItem(resultKey(id, lang));
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<StoredReviewResult>;
+      if (parsed.review) return parsed as StoredReviewResult;
+    }
+  } catch {
+    // Fall through to memory.
+  }
+  return reviewMemory.get(resultKey(id, lang)) ?? null;
 }
 
 /**

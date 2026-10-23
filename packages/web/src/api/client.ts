@@ -4,6 +4,11 @@ import type {
   ChallengeSummary,
   FileContent,
   Language,
+  ReviewDraft,
+  ReviewIssue,
+  ReviewPullRequest,
+  ReviewResult,
+  ReviewSubmitRequest,
   SavedFile,
   SaveFileRequest,
   SessionInfo,
@@ -148,6 +153,27 @@ export const api = {
       keepalive: true,
       headers: { 'Content-Type': 'application/json', ...(token ? { [TOKEN_HEADER]: token } : {}) },
       body: JSON.stringify(body),
+    }).catch(() => undefined);
+  },
+
+  reviewPullRequest: (id: string, lang?: Language) =>
+    request<ReviewPullRequest>('GET', `/challenges/${enc(id)}/review`, undefined, lang),
+  answerKey: (id: string, lang?: Language) =>
+    request<ReviewIssue[]>('GET', `/challenges/${enc(id)}/answer-key`, undefined, lang),
+  reviewDraft: (id: string, lang?: Language) =>
+    request<ReviewDraft>('GET', `/workspaces/${enc(id)}/review`, undefined, lang),
+  saveReview: (id: string, draft: ReviewDraft, lang?: Language) =>
+    request<ReviewDraft>('PUT', `/workspaces/${enc(id)}/review`, draft, lang),
+  submitReview: (id: string, body: ReviewSubmitRequest, lang?: Language) =>
+    request<ReviewResult>('POST', `/workspaces/${enc(id)}/review/submit`, body, lang),
+
+  /** The review draft's last-chance save while the page closes (see saveFileOnUnload). */
+  saveReviewOnUnload: (id: string, draft: ReviewDraft, lang?: Language) => {
+    void fetch(`/api${withLanguage(`/workspaces/${enc(id)}/review`, lang)}`, {
+      method: 'PUT',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json', ...(token ? { [TOKEN_HEADER]: token } : {}) },
+      body: JSON.stringify(draft),
     }).catch(() => undefined);
   },
 

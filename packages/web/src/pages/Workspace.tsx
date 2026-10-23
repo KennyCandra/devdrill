@@ -35,7 +35,7 @@ import { TimerDisplay } from '../workspace/TimerDisplay';
 import { PRODUCT_NAME } from '../brand';
 
 /** Panel sizes are a per-browser convenience; storage may be blocked (private mode). */
-const layoutStorage: LayoutStorage = {
+export const layoutStorage: LayoutStorage = {
   getItem: (key) => {
     try {
       return localStorage.getItem(key);

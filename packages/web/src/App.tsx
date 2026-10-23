@@ -6,6 +6,7 @@ import { ChallengeList } from './pages/ChallengeList';
 import { Results } from './pages/Results';
 import { SettingsPage } from './pages/SettingsPage';
 import { Workspace } from './pages/Workspace';
+import { ReviewWorkspace } from './pages/ReviewWorkspace';
 import { navigate, useRoute } from './router';
 import { SettingsProvider } from './settings';
 import { ThemeProvider, useTheme } from './theme';
@@ -93,7 +94,14 @@ export function App({ hasToken }: { hasToken: boolean }) {
                 lang={session.settings.language}
               />
             )}
-            {route.name === 'workspace' && (
+            {route.name === 'workspace' && route.id.startsWith('review-') && (
+              <ReviewWorkspace
+                key={`${session.settings.language}:${route.id}`}
+                id={route.id}
+                lang={session.settings.language}
+              />
+            )}
+            {route.name === 'workspace' && !route.id.startsWith('review-') && (
               <Workspace
                 key={`${session.settings.language}:${route.id}`}
                 id={route.id}

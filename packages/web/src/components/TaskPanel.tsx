@@ -1,4 +1,4 @@
-import { Bug, Lightbulb, Sparkles } from 'lucide-react';
+import { Bug, GitPullRequest, Lightbulb, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -80,15 +80,21 @@ export function TaskPanel({ challenge }: { challenge: ChallengeDetail }) {
   );
 }
 
-/** What "done" means in each mode, since the two work differently. */
+/** What "done" means in each mode, since they work differently. */
 function ModeNote({ mode }: { mode: ChallengeDetail['mode'] }) {
   const debug = mode === 'debug';
-  const Icon = debug ? Bug : Sparkles;
+  const Icon = debug ? Bug : mode === 'review' ? GitPullRequest : Sparkles;
   return (
     <p className="mx-3 mb-3 flex gap-2 rounded border border-line p-2 leading-relaxed">
       <Icon size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
       <span>
-        {debug ? (
+        {mode === 'review' ? (
+          <>
+            <strong className="font-semibold">Review a pull request.</strong> Comment on what's
+            wrong, then approve it or request changes. Comments that point at nothing real count
+            against you.
+          </>
+        ) : debug ? (
           <>
             <strong className="font-semibold">Debug.</strong> Something is broken. Find the cause
             and fix it so every test passes.
