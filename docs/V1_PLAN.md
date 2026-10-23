@@ -318,6 +318,13 @@ Deferred from the M3 review (not blocking v1):
 3. **Playtest** the 8 challenges (M5) and adjust README, hints and estimates.
 4. **Publish:** `npm run build:release && npm publish ./release` (after 1–3).
 
+## 13b. Added after the v1 build (from Ahmed's playtest, 2026-10-23)
+
+- console.log output shown under each test.
+- Every README: a "What it should return" example and a language-neutral "Data" section (validator-enforced).
+- Each hidden test names the README rule it checks (`hiddenTestRules`, validator-enforced); a failing hidden test shows that rule; hidden test code unlocks after solving.
+- **TypeScript:** every challenge in `js/` and `ts/`; language dropdown on the list, in Settings and inside a challenge; progress, workspaces and results per language; type errors shown in the editor but tests still run.
+
 ## 14. Later (not v1)
 
 - Review mode (v1.1) and AI hints (v1.2), as in section 2.

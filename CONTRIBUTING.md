@@ -15,14 +15,16 @@ Keep it small: a few files and under ~150 lines. Someone should finish it in 10�
 
 ```
 challenges/<debug|feature>/<NNN-short-name>/
-├── challenge.json
-├── README.md            # the task, shown in the app
-├── starter/             # what the player gets: code + visible tests
-│   ├── package.json     # { "type": "module" } and no dependencies
-│   ├── src/...
-│   └── tests/*.test.js
-├── hidden-tests/        # same layout as starter; files named *.hidden.test.js
-└── solution/            # ONLY the files that change, copied over starter/
+├── challenge.json       # shared by every language
+├── README.md            # the task, shown in the app; shared, so describe data in plain words
+├── js/                  # the JavaScript version
+│   ├── starter/         # what the player gets: code + visible tests
+│   │   ├── package.json # { "type": "module" } and no dependencies
+│   │   ├── src/...
+│   │   └── tests/*.test.js
+│   ├── hidden-tests/    # same layout as starter; files named *.hidden.test.js
+│   └── solution/        # ONLY the files that change, copied over starter/
+└── ts/                  # the TypeScript version: the same, with .ts files
 ```
 
 Name the folder `NNN-short-name` with the next free number in that mode (look at the existing folders; numbers are per mode). Copy an existing challenge as a template.
@@ -47,6 +49,17 @@ Name the folder `NNN-short-name` with the next free number in that mode (look at
 The `id` is the mode plus the folder name.
 
 `hiddenTestRules` maps every hidden test (its `"describe > test"` name) to the README sentence it checks, copied word for word. When a player's Submit fails that test, the app shows them that sentence so they know which rule they missed.
+
+### Languages
+
+Write the JavaScript version first, then the TypeScript one (or the other way round). Both share the README, hints and `hiddenTestRules`, so **test names must be the same** in both.
+
+For TypeScript:
+
+- Import without extensions: `import { total } from './cart'`.
+- Give everything real types, but **never a type that gives the bug away**. If a union type would make the bug a type error (like `'percent' | 'fixed'` against a `'percentage'` typo), use the type real code would have at that boundary (e.g. `string`, because the value comes from JSON).
+- `describe`, `it` and `expect` are globals; don't import them.
+- The validator type-checks in strict mode: the starter (with its visible tests) and the full solution must have no type errors.
 
 ### 3. Write it so it's fair
 
@@ -75,6 +88,7 @@ The validator checks:
 6. **Feature:** all visible tests pass on `starter/`; at least one hidden test fails; everything passes on `solution/`.
 7. **Same tests:** the solution run runs exactly the same tests as the starter run.
 8. **Every hidden test has a rule:** each hidden test is in `hiddenTestRules`, and its sentence appears in the README (bold and code ticks are ignored when comparing).
+9. **TypeScript type-checks:** in `ts/`, the starter and the full solution have no type errors (strict mode).
 
 ### 5. Playtest
 

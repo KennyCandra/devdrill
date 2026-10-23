@@ -4,7 +4,7 @@
 
 AI writes a lot of code now. What's left for you, and what interviews increasingly test, is **working with code you didn't write**: finding why it's broken, and changing it without breaking what already works.
 
-DevDrill gives you small, realistic JavaScript projects to practice exactly that, in a VS Code-style editor in your browser. Everything runs on your own machine.
+DevDrill gives you small, realistic projects to practice exactly that, in **JavaScript or TypeScript**, in a VS Code-style editor in your browser. Everything runs on your own machine.
 
 ```bash
 npx devdrill
@@ -28,6 +28,8 @@ Each challenge has a short task description, a few files, and tests.
 3. **Results** tell you what passed and failed. Hidden tests show only their names until you solve the challenge. After solving, you can compare your code with the reference solution.
 
 Hints come one at a time, from "where to look" to "almost the answer". A timer runs while you work, like in a timed interview; you can turn it off in Settings.
+
+**Languages:** every challenge comes in JavaScript and TypeScript. Pick one on the challenge list, in Settings, or inside a challenge. Your code and progress are kept separately per language. In TypeScript, type errors are underlined like in VS Code, but they don't stop the tests from running.
 
 **Honor system:** the hidden tests and solutions ship with the app, and you can read them if you go looking. It's practice; the only person you'd be fooling is yourself.
 
