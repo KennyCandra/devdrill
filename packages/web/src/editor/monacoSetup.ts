@@ -20,8 +20,8 @@ monaco.typescript.javascriptDefaults.setDiagnosticsOptions({
 });
 
 // TypeScript challenges get real type checking, like in VS Code: errors are underlined
-// but never stop the tests (they run with types stripped). Same settings as the
-// challenge validator's check, so a valid starter shows no errors.
+// but never stop the tests (they run with types stripped). Keep these in sync with
+// typeCheck() in scripts/lib/validateChallenge.ts, so a valid starter shows no errors.
 monaco.typescript.typescriptDefaults.setCompilerOptions({
   strict: true,
   target: monaco.typescript.ScriptTarget.ESNext,

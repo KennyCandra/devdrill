@@ -33,7 +33,7 @@ export function createPreferences(choices: Choices = {}): Preferences {
 // Turns one notification channel on or off, e.g. setNotification(prefs, 'email', false).
 // `channel` comes straight from the settings form, so it's checked here.
 export function setNotification(prefs: Preferences, channel: string, enabled: boolean): Preferences {
-  if (!(channel in prefs.notifications)) {
+  if (!Object.hasOwn(prefs.notifications, channel)) {
     throw new Error(`Unknown notification channel: ${channel}`);
   }
   prefs.notifications[channel as keyof Notifications] = enabled;

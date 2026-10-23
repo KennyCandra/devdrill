@@ -55,6 +55,9 @@ const SKIP_OR_FOCUS = /\b(?:describe|suite|it|test)\s*\.\s*(?:skip|only|todo|ski
 type Layer = 'starter' | 'hidden-tests' | 'solution';
 const LAYERS: Layer[] = ['starter', 'hidden-tests', 'solution'];
 
+const TS_ESCAPE = /@ts-(?:ignore|expect-error|nocheck)\b/;
+const EXPLICIT_ANY = /(?::|\bas|<|\|)\s*any\b(?!\w)/;
+
 /**
  * Checks one challenge folder against the rules listed in CONTRIBUTING.md ("Validate").
  * Each language folder (js/, ts/) is checked on its own; the metadata, README and
@@ -100,24 +103,42 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   if (errors.length > 0 || !meta) return done();
 
   await initLexer();
+  const testNames = new Map<Language, string[]>();
   for (const lang of languages) {
-    await validateLanguage(path.join(dir, lang), lang, meta, readme ?? '', errors);
+    const names = await validateLanguage(path.join(dir, lang), lang, meta, readme ?? '', errors);
+    if (names) testNames.set(lang, names);
+  }
+  // Each language is the same challenge: the same tests, so progress means the same.
+  const [[firstLang, firstNames] = ['js', [] as string[]], ...others] = [...testNames];
+  for (const [lang, names] of others) {
+    const missing = firstNames.filter((n) => !names.includes(n));
+    const extra = names.filter((n) => !firstNames.includes(n));
+    if (missing.length > 0 || extra.length > 0) {
+      errors.push(
+        `${lang}/ must have the same tests as ${firstLang}/. ` +
+          [...missing.map((n) => `missing: ${n}`), ...extra.map((n) => `extra: ${n}`)].join('; '),
+      );
+    }
   }
   return done();
 }
 
-/** Checks one language folder; error messages start with that folder's name. */
+/**
+ * Checks one language folder; error messages start with that folder's name.
+ * Returns the names of all its tests (visible and hidden) once they've run.
+ */
 async function validateLanguage(
   langDir: string,
   lang: Language,
   meta: ChallengeMeta,
   readme: string,
   allErrors: string[],
-): Promise<void> {
+): Promise<string[] | null> {
   const rules = LANGUAGES[lang];
   const errors: string[] = [];
-  const flush = (): void => {
+  const flush = (): null => {
     allErrors.push(...errors.map((e) => `${lang}/${e}`));
+    return null;
   };
 
   const roots = Object.fromEntries(
@@ -143,6 +164,17 @@ async function validateLanguage(
       await checkImports(label, lang, source, errors);
       if (TEST_LIKE_FILE.test(file) && SKIP_OR_FOCUS.test(source)) {
         errors.push(`${label}: remove .skip/.only/.todo; every test must run.`);
+      }
+      if (lang === 'ts' && TS_ESCAPE.test(source)) {
+        errors.push(`${label}: @ts-ignore, @ts-expect-error and @ts-nocheck are not allowed.`);
+      }
+      if (
+        lang === 'ts' &&
+        !TEST_LIKE_FILE.test(file) &&
+        EXPLICIT_ANY.test(withoutComments(source))
+      ) {
+        // Types are how TS players learn the data; an any hides it.
+        errors.push(`${label}: use a real type instead of any.`);
       }
     }
   }
@@ -190,6 +222,7 @@ async function validateLanguage(
   checkBehaviour(meta, onStarter, onSolution, hiddenFiles, errors);
   checkHiddenTestRules(meta, readme, onStarter, hiddenFiles, errors);
   flush();
+  return errors.length === 0 ? onStarter.tests.map((t) => t.name).sort() : null;
 }
 
 async function readMeta(dir: string, errors: string[]): Promise<ChallengeMeta | null> {
@@ -316,6 +349,11 @@ function checkHiddenTestRules(
   }
 }
 
+/** Source code without its line and block comments (a rough cut, enough to skip prose). */
+function withoutComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+}
+
 /** README text without Markdown emphasis or code ticks, with whitespace collapsed. */
 function plainText(markdown: string): string {
   return markdown
@@ -400,10 +438,13 @@ async function typeCheck(layers: readonly string[]): Promise<string[]> {
     const program = ts.createProgram(files, {
       strict: true,
       noEmit: true,
-      target: ts.ScriptTarget.ES2022,
+      // Same as the editor (packages/web/src/editor/monacoSetup.ts), so a starter that
+      // passes here shows no errors there.
+      target: ts.ScriptTarget.ESNext,
       module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-      lib: ['lib.es2023.d.ts', 'lib.dom.d.ts'],
+      moduleResolution: ts.ModuleResolutionKind.Node10,
+      ignoreDeprecations: '6.0',
+      lib: ['lib.esnext.d.ts', 'lib.dom.d.ts'],
       types: [],
       skipLibCheck: true,
     });
