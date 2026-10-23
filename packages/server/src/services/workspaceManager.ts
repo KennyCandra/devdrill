@@ -16,7 +16,6 @@ export interface Target {
   lang: Language;
 }
 
-const LANGUAGE_DIRS = new Set<string>(['js', 'ts']);
 import {
   copyDir,
   fsErrorToHttp,
@@ -27,6 +26,9 @@ import {
 } from './files.js';
 import { withTempDir } from './tempDirs.js';
 import { runTests } from './testRunner.js';
+
+/** Workspace folders from before languages were named by challenge id, like this. */
+const OLD_WORKSPACE_NAME = /^(?:debug|feature)-\d{3}-[a-z0-9-]+$/;
 
 /** Editor files bigger than this are almost certainly a mistake (e.g. a pasted log). */
 export const MAX_FILE_BYTES = 512 * 1024;
@@ -65,6 +67,8 @@ export class WorkspaceManager {
    * Move those to `root/js/<challenge id>` once, so nobody loses their code.
    */
   private migrateOldLayout(): Promise<void> {
+    // Never rejects: a folder that can't be moved is skipped, not a reason to break
+    // every workspace. Runs once per server.
     this.migrated ??= (async () => {
       let entries;
       try {
@@ -72,11 +76,22 @@ export class WorkspaceManager {
       } catch {
         return; // no workspaces yet
       }
-      const old = entries.filter((e) => e.isDirectory() && !LANGUAGE_DIRS.has(e.name));
-      if (old.length === 0) return;
-      await mkdir(path.join(this.root, 'js'), { recursive: true });
+      const old = entries.filter((e) => e.isDirectory() && OLD_WORKSPACE_NAME.test(e.name));
       for (const entry of old) {
-        await rename(path.join(this.root, entry.name), path.join(this.root, 'js', entry.name));
+        const from = path.join(this.root, entry.name);
+        const to = path.join(this.root, 'js', entry.name);
+        try {
+          if (await pathExists(to)) {
+            // Both exist (e.g. an older version ran again): keep the newer layout, leave
+            // the old folder alone so nothing is deleted.
+            console.warn(`Not moving ${from}: ${to} already exists.`);
+            continue;
+          }
+          await mkdir(path.dirname(to), { recursive: true });
+          await rename(from, to);
+        } catch (err) {
+          console.warn(`Couldn't move ${from} to ${to}: ${(err as Error).message}`);
+        }
       }
     })();
     return this.migrated;
@@ -285,5 +300,14 @@ export class WorkspaceManager {
 
   private timeoutOptions() {
     return this.testTimeoutMs === undefined ? {} : { timeoutMs: this.testTimeoutMs };
+  }
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await stat(p);
+    return true;
+  } catch {
+    return false;
   }
 }

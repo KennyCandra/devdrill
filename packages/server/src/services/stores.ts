@@ -40,24 +40,29 @@ function parseProgressFile(raw: unknown): ProgressFile {
   const source = (raw as { challenges?: unknown } | null)?.challenges;
   if (typeof source !== 'object' || source === null) throw new Error('bad progress file');
 
-  const entries: [string, ProgressEntry][] = [];
+  const fromThisVersion: [string, ProgressEntry][] = [];
+  const fromBeforeLanguages: [string, ProgressEntry][] = [];
   for (const [id, value] of Object.entries(source)) {
     const e = value as Partial<ProgressEntry>;
     if (!STATUSES.includes(e.status as ChallengeStatus) || typeof e.attempts !== 'number') continue;
+    const entry: ProgressEntry = {
+      status: e.status as ChallengeStatus,
+      attempts: e.attempts,
+      ...(typeof e.startedAt === 'string' ? { startedAt: e.startedAt } : {}),
+      ...(typeof e.bestTimeMs === 'number' ? { bestTimeMs: e.bestTimeMs } : {}),
+      ...(typeof e.solvedAt === 'string' ? { solvedAt: e.solvedAt } : {}),
+    };
     // Before languages, keys were bare challenge ids, all JavaScript.
-    entries.push([
-      id.includes(':') ? id : progressKey('js', id),
-      {
-        status: e.status as ChallengeStatus,
-        attempts: e.attempts,
-        ...(typeof e.startedAt === 'string' ? { startedAt: e.startedAt } : {}),
-        ...(typeof e.bestTimeMs === 'number' ? { bestTimeMs: e.bestTimeMs } : {}),
-        ...(typeof e.solvedAt === 'string' ? { solvedAt: e.solvedAt } : {}),
-      },
-    ]);
+    if (id.includes(':')) fromThisVersion.push([id, entry]);
+    else fromBeforeLanguages.push([progressKey('js', id), entry]);
+  }
+  // A key written by this version wins over an old one for the same challenge.
+  const challenges = Object.fromEntries(fromThisVersion);
+  for (const [key, entry] of fromBeforeLanguages) {
+    if (!Object.hasOwn(challenges, key)) challenges[key] = entry;
   }
   // fromEntries defines own properties, so a "__proto__" id can't change the prototype.
-  return { challenges: Object.fromEntries(entries) };
+  return { challenges };
 }
 
 /**

@@ -523,6 +523,48 @@ describe('languages', () => {
     expect(cart?.languages).toContain('js');
   });
 
+  it('survives an old and a new workspace for the same challenge, keeping both', async () => {
+    const home = await mkdtemp(path.join(tmpdir(), 'devdrill-collide-test-'));
+    try {
+      await mkdir(path.join(home, 'workspaces', ID), { recursive: true });
+      await writeFile(path.join(home, 'workspaces', ID, 'old.js'), 'old');
+      await mkdir(path.join(home, 'workspaces', 'js', ID), { recursive: true });
+      await writeFile(path.join(home, 'workspaces', 'js', ID, 'new.js'), 'new');
+      await writeFile(
+        path.join(home, 'progress.json'),
+        JSON.stringify({
+          challenges: {
+            [`js:${ID}`]: { status: 'solved', attempts: 3 },
+            [ID]: { status: 'in_progress', attempts: 1 },
+          },
+        }),
+      );
+      const app = createApp({
+        challenges: await loadChallenges(appPaths().challenges),
+        dataDir: home,
+        token: TOKEN,
+      });
+      const srv = app.listen(0, '127.0.0.1');
+      await new Promise((resolve) => srv.once('listening', resolve));
+      const host2 = `127.0.0.1:${(srv.address() as AddressInfo).port}`;
+      const get = (url: string) =>
+        request(srv).get(`/api${url}`).set('Host', host2).set(TOKEN_HEADER, TOKEN);
+
+      const ws = await get(`/workspaces/${ID}?lang=js`).expect(200);
+      expect((ws.body as WorkspaceInfo).files).toEqual(['new.js']);
+      // Other challenges keep working too.
+      await get('/challenges').expect(200);
+      // The newer progress entry wins, wherever it is in the file.
+      const detail = await get(`/challenges/${ID}?lang=js`).expect(200);
+      expect((detail.body as ChallengeDetail).progress).toMatchObject({ attempts: 3 });
+      // Nothing was deleted.
+      expect(await readFile(path.join(home, 'workspaces', ID, 'old.js'), 'utf8')).toBe('old');
+      srv.close();
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
   it('moves workspaces and progress from before languages into JavaScript', async () => {
     const oldHome = await mkdtemp(path.join(tmpdir(), 'devdrill-migrate-test-'));
     try {
