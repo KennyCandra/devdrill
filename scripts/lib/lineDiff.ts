@@ -7,8 +7,9 @@ import type { LineRange } from '@devdrill/shared';
  * Challenge files are small, so the O(n·m) table is fine.
  */
 export function changedLines(base: string | null, head: string): Set<number> {
-  const a = base === null ? [] : base.split('\n');
-  const b = head.split('\n');
+  const lines = (text: string) => text.replace(/\r\n/g, '\n').split('\n');
+  const a = base === null ? [] : lines(base);
+  const b = lines(head);
   const n = a.length;
   const m = b.length;
   // lcs[i][j]: length of the common subsequence of a[i..] and b[j..].
@@ -40,7 +41,8 @@ export function changedLines(base: string | null, head: string): Set<number> {
 
 /**
  * Where each named function in a file starts and ends (1-based lines): function
- * declarations, methods, and functions assigned to a variable or property.
+ * declarations, methods, accessors, constructors, and functions assigned to a variable,
+ * property or class field.
  * A name can appear more than once (e.g. methods of two classes).
  */
 export function functionSpans(fileName: string, source: string): Map<string, LineRange[]> {
@@ -54,17 +56,34 @@ export function functionSpans(fileName: string, source: string): Map<string, Lin
   const isFunction = (node: ts.Node | undefined) =>
     node !== undefined && (ts.isArrowFunction(node) || ts.isFunctionExpression(node));
 
+  // `foo`, `'foo'` and `"foo"` are all the function foo.
+  const nameOf = (name: ts.Node) =>
+    ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isPrivateIdentifier(name)
+      ? name.text
+      : name.getText(file);
+
   const visit = (node: ts.Node) => {
-    if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) && node.name) {
-      add(node.name.getText(file), node);
+    if (
+      (ts.isFunctionDeclaration(node) ||
+        ts.isMethodDeclaration(node) ||
+        ts.isGetAccessorDeclaration(node) ||
+        ts.isSetAccessorDeclaration(node)) &&
+      node.name
+    ) {
+      add(nameOf(node.name), node);
+    } else if (ts.isConstructorDeclaration(node)) {
+      add('constructor', node);
     } else if (ts.isVariableStatement(node)) {
       // `export const total = (...) => {...}`: the whole statement is the function.
       const [only, ...rest] = node.declarationList.declarations;
       if (only && rest.length === 0 && isFunction(only.initializer)) {
-        add(only.name.getText(file), node);
+        add(nameOf(only.name), node);
       }
-    } else if (ts.isPropertyAssignment(node) && isFunction(node.initializer)) {
-      add(node.name.getText(file), node);
+    } else if (
+      (ts.isPropertyAssignment(node) || ts.isPropertyDeclaration(node)) &&
+      isFunction(node.initializer)
+    ) {
+      add(nameOf(node.name), node);
     }
     ts.forEachChild(node, visit);
   };

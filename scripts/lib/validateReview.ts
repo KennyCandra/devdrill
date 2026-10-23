@@ -1,6 +1,7 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Language, ReviewIssue } from '@devdrill/shared';
+import { lineCount, MAX_COMMENT_LINES } from '@devdrill/shared/review';
 import {
   parseIssues,
   parseIssueTypes,
@@ -67,6 +68,10 @@ export async function validateReview(
         errors.push(
           `${lang}/issues.json: "${issue.id}" must have the same severity as in ${firstLang}/.`,
         );
+      } else if ((other.function === undefined) !== (issue.function === undefined)) {
+        errors.push(
+          `${lang}/issues.json: "${issue.id}" must be a whole function in both languages, or in neither.`,
+        );
       } else if (category(lang, other.type) !== category(firstLang, issue.type)) {
         errors.push(
           `${lang}/issues.json: "${issue.id}" must be in the same category as in ${firstLang}/.`,
@@ -92,6 +97,12 @@ async function validateReviewLanguage(
     allErrors.push(...errors.map((e) => `${lang}/${e}`));
     return null;
   };
+
+  for (const entry of await readdir(langDir)) {
+    if (!['base', 'head', 'issues.json'].includes(entry)) {
+      errors.push(`${entry}: a review language folder has only base/, head/ and issues.json.`);
+    }
+  }
 
   const base = path.join(langDir, 'base');
   const head = path.join(langDir, 'head');
@@ -142,7 +153,11 @@ async function validateReviewLanguage(
     const after = await readFile(path.join(head, file), 'utf8');
     const before = baseFiles.includes(file) ? await readFile(path.join(base, file), 'utf8') : null;
     headText.set(file, after);
-    if (before !== after) changed.set(file, changedLines(before, after));
+    if (before === after) {
+      errors.push(`head/${file} is the same as base/${file}; leave it out of head/.`);
+    } else {
+      changed.set(file, changedLines(before, after));
+    }
   }
   if (changed.size === 0) errors.push('head/ must change at least one file.');
 
@@ -193,13 +208,19 @@ async function validateReviewLanguage(
       continue;
     }
     const [first, last] = issue.lines;
-    if (last > text.split('\n').length) {
+    if (last > lineCount(text)) {
       errors.push(`${where}: lines ${first}-${last} go past the end of ${issue.file}.`);
       continue;
     }
     if (![...lines].some((n) => n >= first && n <= last)) {
       errors.push(
         `${where}: lines ${first}-${last} don't include a line the pull request changed.`,
+      );
+    }
+    if (issue.function === undefined && last - first + 1 > MAX_COMMENT_LINES) {
+      // A reviewer's comment can't be wider than this, so it could never cover the issue.
+      errors.push(
+        `${where}: lines ${first}-${last} span more than ${MAX_COMMENT_LINES} lines; use "function" for a whole function.`,
       );
     }
     if (issue.function !== undefined) {

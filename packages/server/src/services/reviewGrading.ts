@@ -27,6 +27,8 @@ export function gradeReview(
   comments: ReviewComment[],
   verdict: ReviewVerdict,
   issueTypes: IssueType[],
+  /** Show every issue even if this review isn't solved (solved before: nothing to hide). */
+  revealAll = false,
 ): Omit<ReviewResult, 'progress'> {
   const matches = (c: ReviewComment, i: ReviewIssue) =>
     c.file === i.file &&
@@ -65,19 +67,25 @@ export function gradeReview(
     verdict === expected &&
     falseAlarms.length <= MAX_FALSE_ALARMS;
 
-  const categoryOf = (type: string) => issueTypes.find((t) => t.id === type)?.category ?? 'bug';
-  const outcomes = issues.map((issue): IssueOutcome => {
+  const categoryOf = (type: string) => {
+    const found = issueTypes.find((t) => t.id === type);
+    if (!found) throw new Error(`Unknown issue type "${type}" in the answer key.`);
+    return found.category;
+  };
+  // A missed issue only says how serious and what kind until the review is solved: its id,
+  // where and what would be the answer, and so would its place in the answer key.
+  let missed = 0;
+  const outcomes = bySeverity.map((issue): IssueOutcome => {
     const comment = commentOf.get(issue);
     const { id, severity, ...details } = issue;
+    const reveal = comment !== undefined || solved || revealAll;
     return {
-      id,
+      id: reveal ? id : `missed-${++missed}`,
       severity,
       category: categoryOf(issue.type),
       found: comment !== undefined,
       ...(comment ? { commentId: comment.id } : {}),
-      // A missed issue only says how serious and what kind until the review is solved;
-      // where and what would be the answer.
-      ...(comment || solved ? { details } : {}),
+      ...(reveal ? { details } : {}),
     };
   });
 

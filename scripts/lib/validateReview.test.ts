@@ -90,4 +90,25 @@ describe('validateChallenge (review)', () => {
     });
     expect(await errorsOf(dir)).toContain('head/ must change at least one file');
   });
+
+  it('rejects a head file that is the same as base, and stray folders', async () => {
+    const dir = await variant('same-and-stray', async (d) => {
+      await cp(path.join(d, 'js/base/package.json'), path.join(d, 'js/head/package.json'));
+      await cp(path.join(d, 'js/base'), path.join(d, 'js/starter'), { recursive: true });
+    });
+    const errors = await errorsOf(dir);
+    expect(errors).toContain('starter: a review language folder has only');
+    expect(errors).toContain('head/package.json');
+  });
+
+  it('needs the PR description section in the README', async () => {
+    const dir = await variant('no-intent', async (d) => {
+      const readme = await readFile(path.join(d, 'README.md'), 'utf8');
+      await writeFile(
+        path.join(d, 'README.md'),
+        readme.replace('## What this PR does', '## Changes'),
+      );
+    });
+    expect(await errorsOf(dir)).toContain('"## What this PR does"');
+  });
 });

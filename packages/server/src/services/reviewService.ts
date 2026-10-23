@@ -8,7 +8,12 @@ import type {
   ReviewIssue,
   ReviewVerdict,
 } from '@devdrill/shared';
-import { MAX_COMMENT_CHARS, MAX_COMMENT_LINES, MAX_REVIEW_COMMENTS } from '@devdrill/shared/review';
+import {
+  lineCount,
+  MAX_COMMENT_CHARS,
+  MAX_COMMENT_LINES,
+  MAX_REVIEW_COMMENTS,
+} from '@devdrill/shared/review';
 import { HttpError } from '../httpError.js';
 import { listFiles } from './files.js';
 import { JsonStore } from './jsonStore.js';
@@ -26,11 +31,25 @@ export function emptyDraft(): ReviewDraft {
 export class ReviewService {
   /** One store per workspace, so saves to the same draft queue up instead of racing. */
   private readonly drafts = new Map<string, JsonStore<ReviewDraft>>();
+  /** Challenge files don't change while the server runs, so each diff is read once. */
+  private readonly diffs = new Map<string, Promise<ReviewFile[]>>();
 
   constructor(private readonly workspaces: WorkspaceManager) {}
 
   /** The files the pull request changes: head/ layered on base/, compared with base/. */
-  async files(t: Target): Promise<ReviewFile[]> {
+  files(t: Target): Promise<ReviewFile[]> {
+    requireReview(t);
+    const key = `${t.lang}:${t.challenge.meta.id}`;
+    let files = this.diffs.get(key);
+    if (!files) {
+      files = this.readFiles(t);
+      this.diffs.set(key, files);
+      files.catch(() => this.diffs.delete(key));
+    }
+    return files;
+  }
+
+  private async readFiles(t: Target): Promise<ReviewFile[]> {
     const base = path.join(t.challenge.dir, t.lang, 'base');
     const head = path.join(t.challenge.dir, t.lang, 'head');
     const files: ReviewFile[] = [];
@@ -50,14 +69,28 @@ export class ReviewService {
     return requireReview(t).issues[t.lang] ?? [];
   }
 
+  /**
+   * The saved draft, checked again like a new one: review.json is a plain file that could
+   * have been edited by hand. One that doesn't pass starts over rather than break grading.
+   */
   async draft(t: Target): Promise<ReviewDraft> {
-    return (await this.store(t)).get();
+    const stored = await (await this.store(t)).get();
+    try {
+      return parseDraft(stored, await this.files(t), this.issueTypes(t));
+    } catch (err) {
+      if (!(err instanceof HttpError)) throw err;
+      console.warn(`Ignoring the saved review for ${t.challenge.meta.id}: ${err.message}`);
+      return emptyDraft();
+    }
   }
 
-  /** Checks a draft from the UI against the pull request and the limits, then saves it. */
+  /**
+   * Checks a draft from the UI against the pull request and the limits, then saves it.
+   * Holds the workspace while saving, so a reset can't run in between and be undone.
+   */
   async saveDraft(t: Target, raw: unknown): Promise<ReviewDraft> {
     const draft = parseDraft(raw, await this.files(t), this.issueTypes(t));
-    return (await this.store(t)).update(() => draft);
+    return this.workspaces.exclusive(t, async () => (await this.store(t)).update(() => draft));
   }
 
   private async store(t: Target): Promise<JsonStore<ReviewDraft>> {
@@ -112,7 +145,7 @@ export function parseDraft(raw: unknown, files: ReviewFile[], types: IssueType[]
     throw new HttpError(400, `A review can have at most ${MAX_REVIEW_COMMENTS} comments.`);
   }
 
-  const lineCounts = new Map(files.map((f) => [f.path, f.head.split('\n').length]));
+  const lineCounts = new Map(files.map((f) => [f.path, lineCount(f.head)]));
   const typeIds = new Set(types.map((t) => t.id));
   const ids = new Set<string>();
   const parsed = comments.map((c: unknown, i): ReviewComment => {

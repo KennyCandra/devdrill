@@ -62,4 +62,15 @@ describe('parseIssues', () => {
     expect(text).toContain('"lines" must be');
     expect(text).toContain('used twice');
   });
+
+  it('rejects alsoAccept with the issue’s own type or another category', () => {
+    const mixed = [
+      type('missing-await'),
+      { ...type('unclear-name'), category: 'readability' as const },
+    ];
+    const own = parseIssues([{ ...issue, alsoAccept: ['missing-await'] }], mixed);
+    const other = parseIssues([{ ...issue, alsoAccept: ['unclear-name'] }], mixed);
+    expect(own.ok).toBe(false);
+    expect(other.ok).toBe(false);
+  });
 });

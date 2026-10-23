@@ -680,17 +680,16 @@ describe('review challenges', () => {
   });
 
   it('keeps where and what of missed issues hidden until solved', async () => {
-    await saveDraft({ comments: [], verdict: 'approve' }).expect(200);
-    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`)
-      .send({})
-      .expect(404); // not started in TypeScript
-    expect(res.body).toMatchObject({ error: 'Start the challenge first.' });
-
-    const js = await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({});
-    const result = js.body as ReviewResult;
+    await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`).send({}).expect(404); // not started
+    // TypeScript is unsolved here (JavaScript was solved above, which reveals everything).
+    await api('post', `/challenges/${REVIEW}/start?lang=ts`).expect(200);
+    await saveDraft({ comments: [], verdict: 'approve' }, 'ts').expect(200);
+    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`).send({});
+    const result = res.body as ReviewResult;
     expect(result.solved).toBe(false);
     expect(result.verdict.correct).toBe(false);
     expect(result.issues.map((i) => i.details)).toEqual([undefined, undefined, undefined]);
+    expect(JSON.stringify(result)).not.toContain('coupon');
   });
 
   it('serves the answer key', async () => {
@@ -703,5 +702,73 @@ describe('review challenges', () => {
     await api('post', `/workspaces/${REVIEW}/reset?lang=js`).expect(200);
     const res = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
     expect(res.body).toEqual({ comments: [], verdict: null });
+  });
+
+  it('refuses the review routes for a debug challenge', async () => {
+    await api('get', `/challenges/${ID}/review?lang=js`).expect(400);
+    await api('get', `/challenges/${ID}/answer-key?lang=js`).expect(400);
+  });
+
+  it('checks every part of a comment', async () => {
+    const bad: Partial<ReviewComment>[] = [
+      { lines: [1, 41] },
+      { lines: [0, 1] },
+      { why: 'x'.repeat(1001) },
+      { id: 'has spaces' },
+    ];
+    for (const change of bad) {
+      await saveDraft({ comments: [{ ...MUST, ...change }], verdict: null }).expect(400);
+    }
+    await saveDraft({ comments: [MUST, MUST], verdict: null }).expect(400); // same id
+    await api('put', `/workspaces/${REVIEW}/review?lang=js`)
+      .send({ comments: [], verdict: 'merge' })
+      .expect(400);
+  });
+
+  it('starts over when the saved review was edited into something invalid', async () => {
+    await saveDraft({ comments: [MUST], verdict: 'approve' }).expect(200);
+    const file = path.join(dataDir, 'workspaces', 'js', REVIEW, 'review.json');
+    await writeFile(
+      file,
+      JSON.stringify({ comments: [{ ...MUST, lines: [1, 900] }], verdict: null }),
+    );
+    // A new server reads the file again (this one has it cached).
+    const app = createApp({
+      challenges: await loadChallenges(appPaths().challenges),
+      dataDir,
+      token: TOKEN,
+    });
+    const other = app.listen(0, '127.0.0.1');
+    await new Promise((resolve) => other.once('listening', resolve));
+    const otherHost = `127.0.0.1:${(other.address() as AddressInfo).port}`;
+    const res = await request(other)
+      .get(`/api/workspaces/${REVIEW}/review?lang=js`)
+      .set('Host', otherHost)
+      .set(TOKEN_HEADER, TOKEN)
+      .expect(200);
+    other.close();
+    expect(res.body).toEqual({ comments: [], verdict: null });
+  });
+
+  it('counts attempts and keeps the solved status', async () => {
+    const before = (await api('get', `/challenges/${REVIEW}?lang=js`)).body as ChallengeDetail;
+    await saveDraft({ comments: [], verdict: 'approve' }).expect(200);
+    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({});
+    const result = res.body as ReviewResult;
+    expect(result.progress.attempts).toBe(before.progress.attempts + 1);
+    expect(result.progress.status).not.toBe('not_started');
+  });
+
+  it('forgets drafts on "Reset progress"', async () => {
+    await saveDraft({ comments: [MUST], verdict: 'approve' }).expect(200);
+    await api('delete', '/progress').expect(200);
+    await api('post', `/challenges/${REVIEW}/start?lang=js`).expect(200);
+    const res = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
+    expect(res.body).toEqual({ comments: [], verdict: null });
+  });
+
+  it('shows no files in a review workspace', async () => {
+    const res = await api('get', `/workspaces/${REVIEW}?lang=js`).expect(200);
+    expect((res.body as WorkspaceInfo).files).toEqual([]);
   });
 });

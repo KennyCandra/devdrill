@@ -40,4 +40,30 @@ describe('functionSpans', () => {
     expect(spans.get('add')).toEqual([[8, 10]]);
     expect(spans.get('load')).toEqual([[12, 12]]);
   });
+
+  it('finds class fields, accessors, constructors and quoted names', () => {
+    const cls = [
+      'class Cart {', // 1
+      '  constructor() {', // 2
+      '    this.items = [];', // 3
+      '  }', // 4
+      '  get size() {', // 5
+      '    return this.items.length;', // 6
+      '  }', // 7
+      '  clear = () => {', // 8
+      '    this.items = [];', // 9
+      '  };', // 10
+      "  'add item'(item) {}", // 11
+      '}', // 12
+    ].join('\n');
+    const spans = functionSpans('cart.js', cls);
+    expect(spans.get('constructor')).toEqual([[2, 4]]);
+    expect(spans.get('size')).toEqual([[5, 7]]);
+    expect(spans.get('clear')).toEqual([[8, 10]]);
+    expect(spans.get('add item')).toEqual([[11, 11]]);
+  });
+
+  it('treats Windows line endings like Unix ones', () => {
+    expect(changedLines('a\r\nb\r\n', 'a\nb\n').size).toBe(0);
+  });
 });

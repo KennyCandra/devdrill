@@ -84,6 +84,10 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
     // Playtesting showed rules written only in prose get missed; an example doesn't.
     errors.push('README.md needs an example of the exact result in a ```js code block.');
   }
+  if (isReview && readme?.trim() && !/^## What this PR does$/m.test(readme)) {
+    // The reviewer checks the code against what the PR promises, so it must say.
+    errors.push('README.md needs a "## What this PR does" section (the PR description).');
+  }
   if (!isReview && readme?.trim() && !/^## Data$/m.test(readme)) {
     // Plain JS has no types; the README is where players learn each object's shape.
     errors.push('README.md needs a "## Data" section describing every object and function.');

@@ -293,10 +293,14 @@ export class WorkspaceManager {
     return this.dirFor(t);
   }
 
-  private async exclusive<T>(t: Target, task: () => Promise<T>): Promise<T> {
+  /** Runs `task` with this workspace to itself: nothing else runs, resets or deletes it. */
+  async exclusive<T>(t: Target, task: () => Promise<T>): Promise<T> {
     const key = this.key(t);
     if (this.busy.has(key)) {
-      throw new HttpError(409, 'Tests or a reset are already running. Wait for them to finish.');
+      throw new HttpError(
+        409,
+        'Something else is running on this challenge (tests, a reset or a save). Try again in a moment.',
+      );
     }
     this.busy.add(key);
     try {

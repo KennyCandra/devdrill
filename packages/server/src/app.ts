@@ -169,7 +169,7 @@ export function createApp(options: AppOptions) {
     const target = targetOf(req);
     const files = await workspaces.start(target);
     await markStarted(target);
-    res.json({ challengeId: target.challenge.meta.id, files });
+    res.json({ challengeId: target.challenge.meta.id, files: visibleFiles(target, files) });
   });
 
   api.get('/challenges/:id/solution', async (req, res: Response<SolutionFile[]>) => {
@@ -189,7 +189,10 @@ export function createApp(options: AppOptions) {
 
   api.get('/workspaces/:id', async (req, res: Response<WorkspaceInfo>) => {
     const target = targetOf(req);
-    res.json({ challengeId: target.challenge.meta.id, files: await workspaces.files(target) });
+    res.json({
+      challengeId: target.challenge.meta.id,
+      files: visibleFiles(target, await workspaces.files(target)),
+    });
   });
 
   api.get('/workspaces/:id/files', async (req, res: Response<FileContent>) => {
@@ -212,7 +215,7 @@ export function createApp(options: AppOptions) {
     const target = targetOf(req);
     const files = await workspaces.reset(target);
     reviews.forget(target);
-    res.json({ challengeId: target.challenge.meta.id, files });
+    res.json({ challengeId: target.challenge.meta.id, files: visibleFiles(target, files) });
   });
 
   api.post('/workspaces/:id/run', async (req, res: Response<TestRunResult>) => {
@@ -282,6 +285,7 @@ export function createApp(options: AppOptions) {
       draft.comments,
       draft.verdict,
       reviews.issueTypes(target),
+      (await progressOf(target)).status === 'solved',
     );
     res.json({ ...graded, progress: await recordAttempt(target, graded.solved, elapsedMs) });
   });
@@ -340,6 +344,11 @@ export function createApp(options: AppOptions) {
   }
 
   return app;
+}
+
+/** A review's workspace only holds its draft, which isn't a file to edit. */
+function visibleFiles({ challenge }: Target, files: string[]): string[] {
+  return challenge.meta.mode === 'review' ? [] : files;
 }
 
 function withholdHiddenDetails(test: TestCaseResult): TestCaseResult {

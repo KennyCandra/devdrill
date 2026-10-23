@@ -116,4 +116,32 @@ describe('gradeReview', () => {
     expect(gradeReview([], [], 'approve', TYPES).solved).toBe(true);
     expect(gradeReview([], [], 'request_changes', TYPES).solved).toBe(false);
   });
+
+  it('moves a must to its other comment when a lesser issue needs the first one', () => {
+    // c1 fits the must and the should; c2 fits only the must. Both issues can be found.
+    const should = issue({
+      id: 'also-here',
+      lines: [20, 20],
+      type: 'magic-value',
+      severity: 'should',
+    });
+    const must = issue({ alsoAccept: ['magic-value'] });
+    const c1 = comment({ lines: [20, 20], type: 'magic-value' });
+    const c2 = comment({ lines: [19, 19] });
+    const result = gradeReview([should, must], [c1, c2], 'request_changes', TYPES);
+    expect(result.issues.every((i) => i.found)).toBe(true);
+  });
+
+  it('gives missed issues opaque ids, in severity order, until solved', () => {
+    const result = gradeReview(KEY, [], 'request_changes', TYPES);
+    expect(result.issues.map((i) => i.id)).toEqual(['missed-1', 'missed-2', 'missed-3']);
+    expect(result.issues.map((i) => i.severity)).toEqual(['must', 'should', 'nit']);
+    expect(JSON.stringify(result)).not.toContain('mutation');
+  });
+
+  it('shows everything to someone who solved it before', () => {
+    const result = gradeReview(KEY, [], 'approve', TYPES, true);
+    expect(result.solved).toBe(false);
+    expect(result.issues.every((i) => i.details)).toBe(true);
+  });
 });

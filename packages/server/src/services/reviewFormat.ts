@@ -91,12 +91,25 @@ export function parseIssues(raw: unknown, types: IssueType[]): Parsed<ReviewIssu
     if (typeof issue.type !== 'string' || !typeIds.has(issue.type)) {
       errors.push(`${where}: "type" must be one of this language's issue types.`);
     }
-    if (
-      issue.alsoAccept !== undefined &&
-      (!Array.isArray(issue.alsoAccept) ||
-        !issue.alsoAccept.every((t) => typeof t === 'string' && typeIds.has(t)))
-    ) {
-      errors.push(`${where}: "alsoAccept" must list this language's issue types.`);
+    if (issue.alsoAccept !== undefined) {
+      // Extra labels for the same problem: other types, once each, in the same category
+      // (a missed issue is announced by its category, e.g. "1 missed bug").
+      const category = types.find((t) => t.id === issue.type)?.category;
+      const extra = issue.alsoAccept;
+      if (
+        !Array.isArray(extra) ||
+        new Set(extra).size !== extra.length ||
+        !extra.every(
+          (t) =>
+            typeof t === 'string' &&
+            t !== issue.type &&
+            types.find((type) => type.id === t)?.category === category,
+        )
+      ) {
+        errors.push(
+          `${where}: "alsoAccept" must list other issue types of the same category, once each.`,
+        );
+      }
     }
     if (!SEVERITIES.includes(issue.severity as ReviewSeverity)) {
       errors.push(`${where}: "severity" must be one of ${SEVERITIES.join(', ')}.`);

@@ -19,6 +19,12 @@ export const MAX_COMMENT_CHARS = 1000;
 /** A comment covers at most this many lines (about one function). */
 export const MAX_COMMENT_LINES = 40;
 
+/** Lines in a file as an editor numbers them: a final newline doesn't start another line. */
+export function lineCount(text: string): number {
+  const lines = text.split('\n');
+  return text.endsWith('\n') ? lines.length - 1 : lines.length;
+}
+
 export const REVIEW_CATEGORIES: readonly ReviewCategory[] = [
   'bug',
   'security',
