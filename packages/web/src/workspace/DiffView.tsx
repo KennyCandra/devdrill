@@ -48,6 +48,8 @@ export function DiffView({
   // effects run in order, so they always see the models made for the current files.
   const models = useRef<Map<string, FileModels>>(new Map());
   const zoneIds = useRef<string[]>([]);
+  /** Cleanups run in either order on unmount; a disposed editor must not be touched. */
+  const editorDisposed = useRef(false);
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 
   const callbacks = useRef({ onSelect, onCommentClick });
@@ -88,10 +90,13 @@ export function DiffView({
           : s.endLineNumber;
       callbacks.current.onSelect([s.startLineNumber, end]);
     });
+    editorDisposed.current = false;
     setEditor(diff);
     return () => {
       selection.dispose();
+      diff.setModel(null);
       diff.dispose();
+      editorDisposed.current = true;
     };
   }, []);
 
@@ -111,7 +116,11 @@ export function DiffView({
     onModels?.(new Map([...next].map(([path, m]) => [path, m.modified])));
     return () => {
       // Detach before disposing: an editor must never show a disposed model.
-      if (editor && [...next.values()].some((m) => m.modified === editor.getModel()?.modified)) {
+      if (
+        editor &&
+        !editorDisposed.current &&
+        [...next.values()].some((m) => m.modified === editor.getModel()?.modified)
+      ) {
         editor.setModel(null);
       }
       for (const m of next.values()) {

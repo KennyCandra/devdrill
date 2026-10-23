@@ -359,7 +359,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
           className="ml-auto"
           onClick={() => void submit()}
           disabled={submitting}
-          title="Grade your comments and verdict"
         >
           {submitting ? <Spinner /> : <Send size={14} aria-hidden="true" />}
           {submitting ? 'Submitting…' : 'Submit review'}

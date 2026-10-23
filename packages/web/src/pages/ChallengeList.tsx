@@ -31,6 +31,7 @@ const MODE_TABS: { value: ModeFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'debug', label: 'Debug' },
   { value: 'feature', label: 'Feature' },
+  { value: 'review', label: 'Review' },
 ];
 
 const DIFFICULTY_OPTIONS: { value: Difficulty | 'all'; label: string }[] = [
@@ -101,7 +102,8 @@ export function ChallengeList() {
               In the era of AI, practice the skills you actually need.
             </h1>
             <p className="mt-1 text-muted">
-              Debug code you didn't write. Add features without breaking what works.
+              Debug code you didn't write. Add features without breaking what works. Review pull
+              requests like a teammate.
             </p>
           </div>
           <LanguageSwitch />

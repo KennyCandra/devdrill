@@ -6,6 +6,7 @@ import { ChallengeList } from './pages/ChallengeList';
 import { Results } from './pages/Results';
 import { SettingsPage } from './pages/SettingsPage';
 import { Workspace } from './pages/Workspace';
+import { ReviewResults } from './pages/ReviewResults';
 import { ReviewWorkspace } from './pages/ReviewWorkspace';
 import { navigate, useRoute } from './router';
 import { SettingsProvider } from './settings';
@@ -87,7 +88,14 @@ export function App({ hasToken }: { hasToken: boolean }) {
             {route.name === 'list' && <ChallengeList key={session.settings.language} />}
             {route.name === 'settings' && <SettingsPage />}
             {/* Keyed by language too: switching languages loads a different workspace. */}
-            {route.name === 'results' && (
+            {route.name === 'results' && route.id.startsWith('review-') && (
+              <ReviewResults
+                key={`${session.settings.language}:${route.id}`}
+                id={route.id}
+                lang={session.settings.language}
+              />
+            )}
+            {route.name === 'results' && !route.id.startsWith('review-') && (
               <Results
                 key={`${session.settings.language}:${route.id}`}
                 id={route.id}
