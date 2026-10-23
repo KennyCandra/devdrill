@@ -37,7 +37,12 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   // Metadata and README.
   const meta = await readMeta(dir, errors);
   const readme = await readText(path.join(dir, 'README.md'));
-  if (!readme?.trim()) errors.push('README.md is missing or empty.');
+  if (!readme?.trim()) {
+    errors.push('README.md is missing or empty.');
+  } else if (!/```(?:js|javascript)\n/.test(readme)) {
+    // Playtesting showed rules written only in prose get missed; an example doesn't.
+    errors.push('README.md needs an example of the exact result in a ```js code block.');
+  }
 
   const roots: Record<Layer, string> = {
     starter: path.join(dir, 'starter'),

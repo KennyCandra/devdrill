@@ -127,6 +127,15 @@ describe('validateChallenge', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('requires a code example in the README', async () => {
+    const dir = await variant('no-example', (d) =>
+      writeFile(path.join(d, 'README.md'), '# Title\n\nFix the bug.\n'),
+    );
+    const result = await validateChallenge(dir);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join('\n')).toContain('needs an example of the exact result');
+  });
+
   it('rejects an id that does not match the folder', async () => {
     const dir = await variant('bad-id', async (d) => {
       const file = path.join(d, 'challenge.json');

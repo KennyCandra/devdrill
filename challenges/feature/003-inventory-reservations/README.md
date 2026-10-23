@@ -19,6 +19,27 @@ And keep the stock counts right:
 - `onHand(sku)` still counts held units (they're still on the shelf).
 - `sell(sku, qty)` can't sell units someone else is holding.
 
+### Example
+
+```js
+let time = 0;
+const inv = createInventory({ now: () => time });
+inv.addStock('sneakers', 3);
+
+const id = inv.reserve('sneakers', 2, { ttlMs: 60_000 }); // e.g. 'r1'
+inv.available('sneakers'); // 1: two are held
+inv.onHand('sneakers');    // 3: still on the shelf
+
+inv.confirm(id);
+inv.available('sneakers'); // 1
+inv.onHand('sneakers');    // 1: sold
+
+const late = inv.reserve('sneakers', 1, { ttlMs: 1000 });
+time += 1000;              // exactly ttlMs later: expired
+inv.available('sneakers'); // 1 again
+inv.confirm(late);         // throws: no active reservation
+```
+
 The existing tests pass now and must keep passing. Pass `now` to `createInventory` in tests to control time.
 
 ## Files
