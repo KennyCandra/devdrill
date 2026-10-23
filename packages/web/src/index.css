@@ -176,3 +176,116 @@ body {
   padding: 1px 4px;
   border-radius: 3px;
 }
+
+.prose-task strong {
+  font-weight: 600;
+}
+.prose-task h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+/* Wide content scrolls on its own instead of squeezing to the panel width. */
+.prose-scroll {
+  margin: 0 0 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.prose-task table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.prose-task th,
+.prose-task td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.prose-task th {
+  background: var(--bg-hover);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.prose-task tr:last-child td {
+  border-bottom: 0;
+}
+/* The last column ("Meaning", "Returns") wraps to fill the space left. */
+.prose-task td:last-child {
+  white-space: normal;
+  min-width: 160px;
+}
+.prose-task td code,
+.prose-task th code {
+  white-space: nowrap;
+}
+
+.prose-task pre {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+}
+.prose-task pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/*
+ * In a narrow task panel, each table row becomes a small card (name, type, meaning)
+ * instead of a table you'd have to scroll sideways. One clean switch at 420px,
+ * rather than columns squeezing as the panel is resized.
+ */
+.prose-task {
+  container-type: inline-size;
+}
+@container (max-width: 420px) {
+  .prose-scroll {
+    overflow: visible;
+    border: 0;
+  }
+  .prose-task table,
+  .prose-task tbody,
+  .prose-task tr,
+  .prose-task td {
+    display: block;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+  .prose-task thead {
+    display: none;
+  }
+  .prose-task tr {
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .prose-task td,
+  .prose-task td:last-child {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  .prose-task td:first-child {
+    font-weight: 600;
+  }
+  .prose-task td:nth-child(2) {
+    color: var(--text-muted);
+  }
+  .prose-task td + td {
+    margin-top: 2px;
+  }
+}

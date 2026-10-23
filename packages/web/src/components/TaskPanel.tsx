@@ -1,13 +1,24 @@
 import { Bug, Lightbulb, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import Markdown, { type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChallengeDetail } from '@devdrill/shared';
 import { Button } from './ui';
 
 // Links leave the app in a new tab, so leaving never drops unsaved work.
 const markdownComponents: Components = {
   a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  // Tables and code keep their shape and scroll sideways in a narrow panel,
+  // instead of squeezing and reflowing as the panel is resized.
+  table: ({ node: _node, ...props }) => (
+    <div className="prose-scroll">
+      <table {...props} />
+    </div>
+  ),
 };
+
+// GitHub-flavored Markdown: the "Data" sections are tables.
+const remarkPlugins = [remarkGfm];
 
 const hintsKey = (id: string) => `devdrill-hints-${id}`;
 
@@ -42,7 +53,9 @@ export function TaskPanel({ challenge }: { challenge: ChallengeDetail }) {
         </div>
         <ModeNote mode={challenge.mode} />
         <div className="prose-task px-3 pb-4">
-          <Markdown components={markdownComponents}>{challenge.readme}</Markdown>
+          <Markdown remarkPlugins={remarkPlugins} components={markdownComponents}>
+            {challenge.readme}
+          </Markdown>
         </div>
       </div>
 
