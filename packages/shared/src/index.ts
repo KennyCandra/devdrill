@@ -216,6 +216,12 @@ export interface ReviewFile {
   head: string;
 }
 
+/** What the review screen needs: the diff and the issue types to pick from. */
+export interface ReviewPullRequest {
+  files: ReviewFile[];
+  issueTypes: IssueType[];
+}
+
 export type ReviewVerdict = 'approve' | 'request_changes';
 
 /** A structured review comment: where, what kind of issue, and why. */

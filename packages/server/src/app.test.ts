@@ -7,6 +7,12 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type {
   ChallengeDetail,
+  ChallengeSummary,
+  ReviewComment,
+  ReviewDraft,
+  ReviewIssue,
+  ReviewPullRequest,
+  ReviewResult,
   FileContent,
   SavedFile,
   SolutionFile,
@@ -593,5 +599,109 @@ describe('languages', () => {
     } finally {
       await rm(oldHome, { recursive: true, force: true });
     }
+  });
+});
+
+describe('review challenges', () => {
+  const REVIEW = 'review-001-order-coupons';
+  const MUST: ReviewComment = {
+    id: 'c1',
+    file: 'src/orders.js',
+    lines: [20, 20],
+    type: 'mutates-shared-state',
+    why: 'It changes the prices of the order the cart still shows.',
+  };
+  const saveDraft = (draft: ReviewDraft, lang = 'js') =>
+    api('put', `/workspaces/${REVIEW}/review?lang=${lang}`).send(draft);
+
+  beforeEach(async () => {
+    await api('post', `/challenges/${REVIEW}/start?lang=js`).expect(200);
+    await api('post', `/workspaces/${REVIEW}/reset?lang=js`).expect(200);
+  });
+
+  it('is listed as a review', async () => {
+    const res = await api('get', '/challenges').expect(200);
+    const review = (res.body as ChallengeSummary[]).find((c) => c.id === REVIEW);
+    expect(review).toMatchObject({ mode: 'review', languages: ['js', 'ts'] });
+  });
+
+  it('serves the pull request: changed files, before and after, and the issue types', async () => {
+    const res = await api('get', `/challenges/${REVIEW}/review?lang=ts`).expect(200);
+    const pr = res.body as ReviewPullRequest;
+    expect(pr.files.map((f) => f.path)).toEqual(['src/orders.ts', 'tests/orders.test.ts']);
+    expect(pr.files[0]?.base).toContain('export function orderTotal');
+    expect(pr.files[0]?.head).toContain('export function applyCoupon');
+    expect(pr.issueTypes.map((t) => t.id)).toContain('unsafe-type-assertion');
+  });
+
+  it("doesn't put the answer key in the challenge details", async () => {
+    const res = await api('get', `/challenges/${REVIEW}?lang=js`).expect(200);
+    expect(JSON.stringify(res.body)).not.toContain('coupon-mutates-order');
+  });
+
+  it('has no code to edit or tests to run', async () => {
+    await api('post', `/workspaces/${REVIEW}/run?lang=js`).expect(400);
+    await api('post', `/workspaces/${REVIEW}/submit?lang=js`).expect(400);
+    await api('get', `/workspaces/${REVIEW}/files?lang=js&path=review.json`).expect(400);
+    await api('get', `/challenges/${REVIEW}/solution?lang=js`).expect(400);
+  });
+
+  it('starts with an empty draft and saves one', async () => {
+    const empty = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
+    expect(empty.body).toEqual({ comments: [], verdict: null });
+    await saveDraft({ comments: [MUST], verdict: 'request_changes' }).expect(200);
+    const saved = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
+    expect((saved.body as ReviewDraft).comments).toHaveLength(1);
+  });
+
+  it('rejects comments outside the pull request, and more than 7', async () => {
+    await saveDraft({ comments: [{ ...MUST, file: 'src/other.js' }], verdict: null }).expect(400);
+    await saveDraft({ comments: [{ ...MUST, lines: [20, 999] }], verdict: null }).expect(400);
+    await saveDraft({ comments: [{ ...MUST, type: 'made-up' }], verdict: null }).expect(400);
+    await saveDraft({ comments: [{ ...MUST, why: '  ' }], verdict: null }).expect(400);
+    const eight = Array.from({ length: 8 }, (_, i) => ({ ...MUST, id: `c${i}` }));
+    await saveDraft({ comments: eight, verdict: null }).expect(400);
+  });
+
+  it('needs a verdict to submit', async () => {
+    await saveDraft({ comments: [MUST], verdict: null }).expect(200);
+    await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({}).expect(400);
+  });
+
+  it('solves the review when the must is found and changes are requested', async () => {
+    await saveDraft({ comments: [MUST], verdict: 'request_changes' }).expect(200);
+    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`)
+      .send({ elapsedMs: 60_000 })
+      .expect(200);
+    const result = res.body as ReviewResult;
+    expect(result.solved).toBe(true);
+    expect(result.progress).toMatchObject({ status: 'solved', bestTimeMs: 60_000 });
+    expect(result.issues.every((i) => i.details)).toBe(true);
+  });
+
+  it('keeps where and what of missed issues hidden until solved', async () => {
+    await saveDraft({ comments: [], verdict: 'approve' }).expect(200);
+    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`)
+      .send({})
+      .expect(404); // not started in TypeScript
+    expect(res.body).toMatchObject({ error: 'Start the challenge first.' });
+
+    const js = await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({});
+    const result = js.body as ReviewResult;
+    expect(result.solved).toBe(false);
+    expect(result.verdict.correct).toBe(false);
+    expect(result.issues.map((i) => i.details)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it('serves the answer key', async () => {
+    const res = await api('get', `/challenges/${REVIEW}/answer-key?lang=js`).expect(200);
+    expect((res.body as ReviewIssue[]).map((i) => i.id)).toContain('coupon-mutates-order');
+  });
+
+  it('clears the draft on reset', async () => {
+    await saveDraft({ comments: [MUST], verdict: 'approve' }).expect(200);
+    await api('post', `/workspaces/${REVIEW}/reset?lang=js`).expect(200);
+    const res = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
+    expect(res.body).toEqual({ comments: [], verdict: null });
   });
 });

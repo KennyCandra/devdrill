@@ -30,6 +30,9 @@ import { runTests } from './testRunner.js';
 /** Workspace folders from before languages were named by challenge id, like this. */
 const OLD_WORKSPACE_NAME = /^(?:debug|feature)-\d{3}-[a-z0-9-]+$/;
 
+/** A review challenge's workspace holds only the review being written. */
+export const REVIEW_DRAFT_FILE = 'review.json';
+
 /** Editor files bigger than this are almost certainly a mistake (e.g. a pasted log). */
 export const MAX_FILE_BYTES = 512 * 1024;
 
@@ -274,6 +277,11 @@ export class WorkspaceManager {
   }
 
   private async copyStarter(t: Target): Promise<void> {
+    if (t.challenge.meta.mode === 'review') {
+      // Nothing to edit: the draft is created on the first save.
+      await mkdir(this.dirFor(t), { recursive: true });
+      return;
+    }
     await mkdir(path.dirname(this.dirFor(t)), { recursive: true });
     await copyDir(this.layer(t, 'starter'), this.dirFor(t));
   }

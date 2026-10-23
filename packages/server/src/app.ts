@@ -7,6 +7,11 @@ import type {
   FileContent,
   Language,
   ProgressEntry,
+  ReviewDraft,
+  ReviewIssue,
+  ReviewPullRequest,
+  ReviewResult,
+  ReviewSubmitRequest,
   SavedFile,
   SaveFileRequest,
   SessionInfo,
@@ -29,6 +34,8 @@ import {
   parseSettingsPatch,
   progressKey,
 } from './services/stores.js';
+import { gradeReview } from './services/reviewGrading.js';
+import { ReviewService } from './services/reviewService.js';
 import { MAX_FILE_BYTES, WorkspaceManager, type Target } from './services/workspaceManager.js';
 
 export interface AppOptions {
@@ -47,6 +54,7 @@ export function createApp(options: AppOptions) {
   const workspaces = new WorkspaceManager(path.join(dataDir, 'workspaces'), options.testTimeoutMs);
   const progress = createProgressStore(dataDir);
   const settings = createSettingsStore(dataDir);
+  const reviews = new ReviewService(workspaces);
 
   const app = express();
   app.disable('x-powered-by');
@@ -72,6 +80,15 @@ export function createApp(options: AppOptions) {
     return { challenge, lang };
   };
 
+  /** Debug and feature challenges: there's code to edit and tests to run. */
+  const codeTargetOf = (req: Request): Target => {
+    const target = targetOf(req);
+    if (target.challenge.meta.mode === 'review') {
+      throw new HttpError(400, 'A review challenge has no code to edit or tests to run.');
+    }
+    return target;
+  };
+
   const progressOf = async ({ challenge, lang }: Target): Promise<ProgressEntry> =>
     (await progress.get()).challenges[progressKey(lang, challenge.meta.id)] ?? emptyProgress();
 
@@ -84,6 +101,34 @@ export function createApp(options: AppOptions) {
       p.challenges[key] = entry;
       return p;
     });
+
+  /** Counts a submit; a solved one also records when and the best time. */
+  const recordAttempt = async (
+    { challenge, lang }: Target,
+    solved: boolean,
+    elapsedMs?: number,
+  ) => {
+    const key = progressKey(lang, challenge.meta.id);
+    const updated = await progress.update((p) => {
+      const entry = p.challenges[key] ?? emptyProgress();
+      entry.attempts += 1;
+      if (solved) {
+        entry.status = 'solved';
+        entry.solvedAt ??= new Date().toISOString();
+        if (
+          elapsedMs !== undefined &&
+          (entry.bestTimeMs === undefined || elapsedMs < entry.bestTimeMs)
+        ) {
+          entry.bestTimeMs = elapsedMs;
+        }
+      } else if (entry.status === 'not_started') {
+        entry.status = 'in_progress';
+      }
+      p.challenges[key] = entry;
+      return p;
+    });
+    return updated.challenges[key] ?? emptyProgress();
+  };
 
   // ---- Session ----
 
@@ -128,12 +173,12 @@ export function createApp(options: AppOptions) {
   });
 
   api.get('/challenges/:id/solution', async (req, res: Response<SolutionFile[]>) => {
-    res.json(await workspaces.solution(targetOf(req)));
+    res.json(await workspaces.solution(codeTargetOf(req)));
   });
 
   // The hidden tests unlock once you've solved the challenge, like their failure details.
   api.get('/challenges/:id/hidden-tests', async (req, res: Response<FileContent[]>) => {
-    const target = targetOf(req);
+    const target = codeTargetOf(req);
     if ((await progressOf(target)).status !== 'solved') {
       throw new HttpError(403, 'Solve the challenge to see its hidden tests.');
     }
@@ -148,32 +193,34 @@ export function createApp(options: AppOptions) {
   });
 
   api.get('/workspaces/:id/files', async (req, res: Response<FileContent>) => {
-    res.json(await workspaces.readFile(targetOf(req), queryPath(req)));
+    res.json(await workspaces.readFile(codeTargetOf(req), queryPath(req)));
   });
 
   api.put('/workspaces/:id/files', async (req, res: Response<SavedFile>) => {
     const body = (req.body ?? {}) as Partial<Record<keyof SaveFileRequest, unknown>>;
     res.json(
-      await workspaces.writeFile(targetOf(req), queryPath(req), body.content, body.baseMtimeMs),
+      await workspaces.writeFile(codeTargetOf(req), queryPath(req), body.content, body.baseMtimeMs),
     );
   });
 
   api.delete('/workspaces/:id/files', async (req, res: Response<{ ok: true }>) => {
-    await workspaces.deleteFile(targetOf(req), queryPath(req));
+    await workspaces.deleteFile(codeTargetOf(req), queryPath(req));
     res.json({ ok: true });
   });
 
   api.post('/workspaces/:id/reset', async (req, res: Response<WorkspaceInfo>) => {
     const target = targetOf(req);
-    res.json({ challengeId: target.challenge.meta.id, files: await workspaces.reset(target) });
+    const files = await workspaces.reset(target);
+    reviews.forget(target);
+    res.json({ challengeId: target.challenge.meta.id, files });
   });
 
   api.post('/workspaces/:id/run', async (req, res: Response<TestRunResult>) => {
-    res.json(await workspaces.run(targetOf(req)));
+    res.json(await workspaces.run(codeTargetOf(req)));
   });
 
   api.post('/workspaces/:id/submit', async (req, res: Response<SubmitResult>) => {
-    const target = targetOf(req);
+    const target = codeTargetOf(req);
     const { challenge } = target;
     const elapsedMs = parseElapsed((req.body as SubmitRequest | undefined)?.elapsedMs);
     const submitted = await workspaces.submit(target);
@@ -199,27 +246,44 @@ export function createApp(options: AppOptions) {
             : {}),
         };
 
-    const key = progressKey(target.lang, challenge.meta.id);
-    const updated = await progress.update((p) => {
-      const entry = p.challenges[key] ?? emptyProgress();
-      entry.attempts += 1;
-      if (solved) {
-        entry.status = 'solved';
-        entry.solvedAt ??= new Date().toISOString();
-        if (
-          elapsedMs !== undefined &&
-          (entry.bestTimeMs === undefined || elapsedMs < entry.bestTimeMs)
-        ) {
-          entry.bestTimeMs = elapsedMs;
-        }
-      } else if (entry.status === 'not_started') {
-        entry.status = 'in_progress';
-      }
-      p.challenges[key] = entry;
-      return p;
-    });
+    res.json({ run, solved, progress: await recordAttempt(target, solved, elapsedMs) });
+  });
 
-    res.json({ run, solved, progress: updated.challenges[key] ?? emptyProgress() });
+  // ---- Reviews ----
+
+  api.get('/challenges/:id/review', async (req, res: Response<ReviewPullRequest>) => {
+    const target = targetOf(req);
+    res.json({ files: await reviews.files(target), issueTypes: reviews.issueTypes(target) });
+  });
+
+  // The answer key, like a debug challenge's solution: the UI asks before showing it.
+  api.get('/challenges/:id/answer-key', (req, res: Response<ReviewIssue[]>) => {
+    res.json(reviews.issues(targetOf(req)));
+  });
+
+  api.get('/workspaces/:id/review', async (req, res: Response<ReviewDraft>) => {
+    res.json(await reviews.draft(targetOf(req)));
+  });
+
+  api.put('/workspaces/:id/review', async (req, res: Response<ReviewDraft>) => {
+    res.json(await reviews.saveDraft(targetOf(req), req.body));
+  });
+
+  // Grades the saved draft: the UI saves before it submits.
+  api.post('/workspaces/:id/review/submit', async (req, res: Response<ReviewResult>) => {
+    const target = targetOf(req);
+    const elapsedMs = parseElapsed((req.body as ReviewSubmitRequest | undefined)?.elapsedMs);
+    const draft = await reviews.draft(target);
+    if (draft.verdict === null) {
+      throw new HttpError(400, 'Pick a verdict (Approve or Request changes) before submitting.');
+    }
+    const graded = gradeReview(
+      reviews.issues(target),
+      draft.comments,
+      draft.verdict,
+      reviews.issueTypes(target),
+    );
+    res.json({ ...graded, progress: await recordAttempt(target, graded.solved, elapsedMs) });
   });
 
   // ---- Settings ----
@@ -236,6 +300,7 @@ export function createApp(options: AppOptions) {
   // "Reset progress" in Settings: a fresh start, including the code in every workspace.
   api.delete('/progress', async (_req, res: Response<{ ok: true }>) => {
     await workspaces.removeAll();
+    reviews.forget();
     await progress.update(() => ({ challenges: {} }));
     res.json({ ok: true });
   });
