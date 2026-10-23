@@ -20,6 +20,8 @@ import type {
 import { api } from '../api/client';
 import { TopBar } from '../components/TopBar';
 import { Dropdown } from '../components/Dropdown';
+import { LanguageSwitch } from '../components/LanguageSwitch';
+import { useSettings } from '../settings';
 import { Button, DifficultyBadge, Kbd, modKey, Spinner } from '../components/ui';
 import { challengePath, navigate } from '../router';
 
@@ -59,12 +61,15 @@ export function ChallengeList() {
   const [status, setStatus] = useState<ChallengeStatus | 'all'>('all');
   const [query, setQuery] = useState('');
 
+  const { settings } = useSettings();
+
   useEffect(() => {
     api
       .challenges()
-      .then(setChallenges)
+      // Only challenges that exist in the chosen language.
+      .then((all) => setChallenges(all.filter((c) => c.languages.includes(settings.language))))
       .catch((err: Error) => setError(err.message));
-  }, []);
+  }, [settings.language]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -90,13 +95,16 @@ export function ChallengeList() {
       <TopBar />
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 overflow-auto px-6 py-6">
-        <div className="animate-fade-in pb-2">
-          <h1 className="text-[20px] font-semibold tracking-tight">
-            In the era of AI, practice the skills you actually need.
-          </h1>
-          <p className="mt-1 text-muted">
-            Debug code you didn't write. Add features without breaking what works.
-          </p>
+        <div className="animate-fade-in flex flex-wrap items-end justify-between gap-3 pb-2">
+          <div>
+            <h1 className="text-[20px] font-semibold tracking-tight">
+              In the era of AI, practice the skills you actually need.
+            </h1>
+            <p className="mt-1 text-muted">
+              Debug code you didn't write. Add features without breaking what works.
+            </p>
+          </div>
+          <LanguageSwitch />
         </div>
 
         {challenges && challenges.length > 0 && (

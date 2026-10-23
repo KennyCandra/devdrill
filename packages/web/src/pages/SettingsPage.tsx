@@ -3,6 +3,7 @@ import type { Settings } from '@devdrill/shared';
 import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TopBar } from '../components/TopBar';
+import { LanguageSwitch } from '../components/LanguageSwitch';
 import { Button } from '../components/ui';
 import { useSettings } from '../settings';
 import { clearAllResults } from '../workspace/results';
@@ -80,6 +81,14 @@ export function SettingsPage() {
               </label>
             ))}
           </fieldset>
+        </Section>
+
+        <Section title="Language">
+          <LanguageSwitch />
+          <p className="mt-2 text-muted">
+            Every challenge comes in both. Your code, progress and results are kept separately for
+            each language, so you can practice the same challenge in both.
+          </p>
         </Section>
 
         <Section title="Practice">

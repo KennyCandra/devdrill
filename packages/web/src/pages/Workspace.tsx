@@ -15,8 +15,9 @@ import {
   type LayoutStorage,
 } from 'react-resizable-panels';
 import type { ChallengeDetail, TestRunResult } from '@devdrill/shared';
-import { api } from '../api/client';
+import { api, currentLanguage } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { LANGUAGE_LABELS } from '../components/LanguageSwitch';
 import { FileTree } from '../components/FileTree';
 import { TaskPanel } from '../components/TaskPanel';
 import { TestPanel } from '../components/TestPanel';
@@ -105,12 +106,17 @@ export function Workspace({ id }: { id: string }) {
         setFiles(ws.files);
         const first = defaultFile(ws.files);
         if (first) openFile(first);
+        // TypeScript checks imports across files, so every .ts file needs to be in the
+        // editor (not opened as a tab) for its types to be known.
+        if (currentLanguage() === 'ts') {
+          for (const file of ws.files.filter((f) => f.endsWith('.ts'))) void store.load(file);
+        }
       })
       .catch((err: Error) => !cancelled && setLoadError(err.message));
     return () => {
       cancelled = true;
     };
-  }, [id, openFile]);
+  }, [id, openFile, store]);
 
   const runTests = useCallback(async () => {
     if (busy) return;
@@ -278,6 +284,9 @@ export function Workspace({ id }: { id: string }) {
         <h1 className="min-w-0 truncate">{challenge.title}</h1>
         <DifficultyBadge difficulty={challenge.difficulty} />
         <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
+        <span className="shrink-0 rounded border border-line px-1.5 font-mono text-[11px] text-muted">
+          {LANGUAGE_LABELS[currentLanguage()]}
+        </span>
         {challenge.progress.attempts > 0 && (
           <button
             type="button"
@@ -336,7 +345,7 @@ export function Workspace({ id }: { id: string }) {
                 )}
                 <div className="min-h-0 flex-1">
                   <CodeEditor
-                    workspaceId={id}
+                    workspaceId={`${currentLanguage()}/${id}`}
                     activePath={active}
                     buffers={buffers}
                     theme={theme}

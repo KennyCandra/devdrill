@@ -1,8 +1,10 @@
+import { currentLanguage } from '../api/client';
 const TICK_MS = 1000;
 /** A longer gap means the computer slept or the tab was frozen; don't count it. */
 const MAX_TICK_GAP_MS = 5000;
 
-const timeKey = (id: string) => `devdrill-time-${id}`;
+// Time is per language, like progress.
+const timeKey = (id: string) => `devdrill-time-${currentLanguage()}-${id}`;
 
 /** "4:05", "12:30", "1:02:03". */
 export function formatDuration(ms: number): string {

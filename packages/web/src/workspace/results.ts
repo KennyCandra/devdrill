@@ -1,4 +1,5 @@
 import type { ChallengeSummary, SubmitResult } from '@devdrill/shared';
+import { currentLanguage } from '../api/client';
 
 export interface StoredResult {
   submit: SubmitResult;
@@ -6,14 +7,15 @@ export interface StoredResult {
   elapsedMs: number;
 }
 
-const resultKey = (id: string) => `devdrill-result-${id}`;
+// Results are per language: solving in JavaScript says nothing about TypeScript.
+const resultKey = (id: string) => `devdrill-result-${currentLanguage()}-${id}`;
 
 // Fallback for when sessionStorage is unavailable: the result still survives navigation.
-const memory = new Map<string, StoredResult>();
+const memory = new Map<string, StoredResult>(); // keyed like resultKey()
 
 /** Keeps the last submit so the Results page can show it, including after a reload. */
 export function saveResult(id: string, result: StoredResult): void {
-  memory.set(id, result);
+  memory.set(resultKey(id), result);
   try {
     sessionStorage.setItem(resultKey(id), JSON.stringify(result));
   } catch {
@@ -28,11 +30,11 @@ export function loadResult(id: string): StoredResult | null {
   } catch {
     // Fall through to memory.
   }
-  return memory.get(id) ?? null;
+  return memory.get(resultKey(id)) ?? null;
 }
 
 export function clearResult(id: string): void {
-  memory.delete(id);
+  memory.delete(resultKey(id));
   try {
     sessionStorage.removeItem(resultKey(id));
   } catch {

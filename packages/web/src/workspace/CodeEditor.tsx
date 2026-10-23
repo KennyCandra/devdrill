@@ -89,7 +89,8 @@ export function CodeEditor({
     for (const [path, buf] of Object.entries(buffers)) {
       const entry = models.current.get(path);
       if (!entry) {
-        const uri = monaco.Uri.from({ scheme: 'devdrill', path: `/${workspaceId}/${path}` });
+        // file:// URIs let the TypeScript worker resolve imports between open files.
+        const uri = monaco.Uri.from({ scheme: 'file', path: `/${workspaceId}/${path}` });
         const model = monaco.editor.createModel(buf.content, languageFor(path), uri);
         const listener = model.onDidChangeContent(() => {
           if (!applyingDisk.current) callbacks.current.onEdit(path, model.getValue());

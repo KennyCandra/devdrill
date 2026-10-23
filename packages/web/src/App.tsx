@@ -83,10 +83,15 @@ export function App({ hasToken }: { hasToken: boolean }) {
       return (
         <SettingsProvider value={{ settings: session.settings, update: updateSettings }}>
           <ThemeProvider value={theme}>
-            {route.name === 'list' && <ChallengeList />}
+            {route.name === 'list' && <ChallengeList key={session.settings.language} />}
             {route.name === 'settings' && <SettingsPage />}
-            {route.name === 'results' && <Results key={route.id} id={route.id} />}
-            {route.name === 'workspace' && <Workspace key={route.id} id={route.id} />}
+            {/* Keyed by language too: switching languages loads a different workspace. */}
+            {route.name === 'results' && (
+              <Results key={`${session.settings.language}:${route.id}`} id={route.id} />
+            )}
+            {route.name === 'workspace' && (
+              <Workspace key={`${session.settings.language}:${route.id}`} id={route.id} />
+            )}
             {route.name === 'notFound' && (
               <StatusScreen
                 title="Page not found"
