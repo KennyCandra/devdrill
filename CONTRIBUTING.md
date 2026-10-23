@@ -58,12 +58,13 @@ For TypeScript:
 
 - Import without extensions: `import { total } from './cart'`.
 - Give everything real types, but **never a type that gives the bug away**. If a union type would make the bug a type error (like `'percent' | 'fixed'` against a `'percentage'` typo), use the type real code would have at that boundary (e.g. `string`, because the value comes from JSON).
-- `describe`, `it` and `expect` are globals; don't import them.
-- The validator type-checks in strict mode: the starter (with its visible tests) and the full solution must have no type errors.
+- `describe`, `it`, `expect` and `vi` are globals; don't import them.
+- No `any` outside tests, and no `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`.
+- The validator type-checks in strict mode, with the same settings as the editor: the starter (with its visible tests) and the full solution must have no type errors.
 
 ### 3. Write it so it's fair
 
-- **README:** describe the symptom like a bug report, or the feature like a ticket. Every rule the hidden tests check must be in the README; a correct solution must never fail because of something unstated. Show an example of the exact result (fields, order, empty cases): playtesters miss rules written only in prose.
+- **README:** name files without an extension (`src/cart`, `tests/cart.test`): the README and hints are shown for every language. Describe the symptom like a bug report, or the feature like a ticket. Every rule the hidden tests check must be in the README; a correct solution must never fail because of something unstated. Show an example of the exact result (fields, order, empty cases): playtesters miss rules written only in prose.
 - **Data:** add a `## Data` section with a table for every object (field, type, meaning) and every function (what it takes, what it returns). Write types in plain words, like "text", "whole number", "true/false", "list of **Todo**", "**Coupon** or null", so the description works for any language. Players can't see types in plain JavaScript, so this is where they learn the shapes.
 - **Visible tests:** for debug, at least one fails at the start. For feature, all pass at the start.
 - **Hidden tests:** check the edge cases a symptom-only fix misses. Try to beat your own challenge: hardcode the visible test's values, special-case inputs, add a `sleep`. If a hack passes everything, add a test. Prefix pure regression tests with `regression:`.
@@ -80,15 +81,15 @@ It also checks that your number isn't already used in that mode.
 
 The validator checks:
 
-1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` has a `## Data` section and an example of the exact result in a ` ```js ` block.
-2. **Plain JavaScript, no dependencies:** only `.js`/`.mjs` files; `starter/package.json` has `"type": "module"` and no dependencies; only relative or `node:` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
+1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` has a `## Data` section and an example of the exact result in a ` ```js ` block. The README and hints name no `.js`/`.ts` files.
+2. **Plain code, no dependencies:** only `.js`/`.mjs` files in `js/` and `.ts` files in `ts/`; `starter/package.json` has `"type": "module"` and no dependencies; only relative or `node:` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
 3. **Every test runs:** no symlinks, no `vitest.config.*` or `vite.config.*`, no `.skip` / `.only` / `.todo` / `.skipIf` / `.runIf`.
-4. **Layout:** hidden test files are named `*.hidden.test.js` and don't share a path with a starter file; `solution/` doesn't contain tests or `package.json`.
+4. **Layout:** hidden test files are named `*.hidden.test.js` (or `.ts`) and don't share a path with a starter file; `solution/` doesn't contain tests or `package.json`.
 5. **Debug:** at least one visible and one hidden test fail on `starter/`; everything passes on `solution/`.
 6. **Feature:** all visible tests pass on `starter/`; at least one hidden test fails; everything passes on `solution/`.
-7. **Same tests:** the solution run runs exactly the same tests as the starter run.
+7. **Same tests:** the solution run runs exactly the same tests as the starter run, and `js/` and `ts/` have the same test names.
 8. **Every hidden test has a rule:** each hidden test is in `hiddenTestRules`, and its sentence appears in the README (bold and code ticks are ignored when comparing).
-9. **TypeScript type-checks:** in `ts/`, the starter and the full solution have no type errors (strict mode).
+9. **TypeScript type-checks:** in `ts/`, the starter and the full solution have no type errors (strict mode), no `any` outside tests and no `@ts-` comments that switch checks off.
 
 ### 5. Playtest
 
