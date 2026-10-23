@@ -1,0 +1,54 @@
+[
+  {
+    "id": "account-has-no-owner-check",
+    "file": "src/users.ts",
+    "lines": [
+      43,
+      48
+    ],
+    "function": "getAccount",
+    "type": "missing-authorization",
+    "severity": "must",
+    "title": "Anyone signed in can open anyone's account page",
+    "explanation": "getAccount checks that someone is signed in, but never that the account is theirs: Ada can read Linus's email by changing the id. The PR says anyone else gets 403. Add the same check updateEmail has: if (account.id !== request.user.id) return { status: 403 }."
+  },
+  {
+    "id": "account-leaks-password-hash",
+    "file": "src/users.ts",
+    "lines": [
+      47,
+      47
+    ],
+    "type": "data-exposure",
+    "severity": "must",
+    "title": "The account page sends passwordHash to the browser",
+    "explanation": "The whole user object goes into the response, passwordHash included, which breaks the rule that it never leaves the server. Build the body from the fields the page needs: { ...publicProfile(account), email: account.email }, as updateEmail does."
+  },
+  {
+    "id": "email-not-checked",
+    "file": "src/users.ts",
+    "lines": [
+      56,
+      56
+    ],
+    "type": "unvalidated-input",
+    "severity": "should",
+    "title": "The new email is saved without checking it",
+    "explanation": "Whatever arrives in the body is stored: an empty string, \"hello\", or no email at all. The PR promises 400 for anything that doesn't look like name@domain; check it before saving."
+  },
+  {
+    "id": "no-test-for-other-accounts",
+    "file": "tests/users.test.ts",
+    "lines": [
+      20,
+      28
+    ],
+    "type": "missing-test",
+    "alsoAccept": [
+      "weak-test"
+    ],
+    "severity": "should",
+    "title": "No test tries someone else's account, or a bad email",
+    "explanation": "The getAccount tests only use the owner and a signed-out user, so the missing 403 slips through, and no test sends a malformed email. Add both cases: they would have caught the two bugs above."
+  }
+]

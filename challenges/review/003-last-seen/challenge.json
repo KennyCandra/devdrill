@@ -1,0 +1,13 @@
+{
+  "id": "review-003-last-seen",
+  "mode": "review",
+  "title": "\"Last seen\" times",
+  "difficulty": "medium",
+  "estimatedMinutes": 12,
+  "tags": ["dates", "clean-pr"],
+  "hints": [
+    "Go through each rule in the description and find the line of code and the test that keep it.",
+    "Check the edges: one minute versus two, exactly a week, a time in the future.",
+    "A review that finds nothing to block is a real answer. Comments that point at working code count against you."
+  ]
+}

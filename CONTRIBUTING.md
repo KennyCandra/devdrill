@@ -95,6 +95,51 @@ The validator checks:
 
 Run `npm run dev` and solve it in the app without looking at the solution. Then ask someone else to try it. Adjust the README, hints, difficulty and estimate based on what you saw.
 
+### Review challenges
+
+A review challenge is a pull request to review instead of code to fix. It lives in `challenges/review/NNN-name/`:
+
+```
+challenges/review/001-order-coupons/
+├── challenge.json    # "mode": "review"; no hiddenTestRules
+├── README.md         # the PR description; needs a "## What this PR does" section
+├── js/
+│   ├── base/         # the code before the PR (with package.json)
+│   ├── head/         # only the files the PR changes, as they are after it
+│   └── issues.json   # the answer key ([] for a PR with nothing wrong)
+└── ts/  (same)
+```
+
+Each entry in `issues.json`:
+
+```json
+{
+  "id": "coupon-mutates-order",
+  "file": "src/orders.js",
+  "lines": [18, 23],
+  "function": "applyCoupon",
+  "type": "mutates-shared-state",
+  "alsoAccept": [],
+  "severity": "must",
+  "title": "applyCoupon changes the cart's order instead of returning a new one",
+  "explanation": "Why it's wrong, and what to do instead."
+}
+```
+
+- `type` is an id from `challenges/review/issue-types.json` (shared types, plus some per language). `alsoAccept` lists other types of the same category that describe the issue fairly, e.g. `missing-test` for a `weak-test`.
+- `severity`: `must` blocks merging (the right verdict is then "Request changes"), `should` is worth a comment, `nit` is a style point. A PR with no `must` issue should be approved.
+- `lines` are in the head version. With `function`, they must be exactly that function; without, at most 40 lines.
+- At most 5 issues: players get 7 comments, so the count never gives the answer away.
+
+Make it fair:
+
+- **The README states every rule the issues rely on** ("never send `passwordHash` to the browser", "the original order must stay unchanged"). A reviewer can't be wrong about an unstated rule.
+- **Nothing else in the PR is arguably wrong.** Read it as a picky reviewer: every point you'd comment on is either in the key, or fixed, or explained in the README ("coupons are already validated"). Otherwise careful players get false alarms.
+- **The PR's own tests pass**: the issues are what tests and the compiler missed.
+- Some reviews should be clean PRs: approving good code is part of the skill.
+
+The validator checks the layout, that the PR compiles and its tests pass, that every issue points at lines the PR changed (and at its function), and that `js/` and `ts/` have the same issues.
+
 ### Security note for reviewers
 
 Challenge code runs on players' machines. Every challenge PR is reviewed by a maintainer before merging: look for anything that reads or writes outside the project, touches the network, or spawns processes.

@@ -2,7 +2,7 @@
 
 > **In the era of AI, practice the skills you actually need.**
 
-AI writes a lot of code now. What's left for you, and what interviews increasingly test, is **working with code you didn't write**: finding why it's broken, and changing it without breaking what already works.
+AI writes a lot of code now. What's left for you, and what interviews increasingly test, is **working with code you didn't write**: finding why it's broken, changing it without breaking what already works, and reviewing someone else's change before it merges.
 
 DevDrill gives you small, realistic projects to practice exactly that, in **JavaScript or TypeScript**, in a VS Code-style editor in your browser. Everything runs on your own machine.
 
@@ -16,18 +16,26 @@ Requires [Node.js](https://nodejs.org) 22 (22.12+), 24, or 26 and newer.
 
 ## How it works
 
-There are two kinds of challenges:
+There are three kinds of challenges:
 
 - **Debug**: something is broken. Read the code, find the cause, fix it.
 - **Feature**: add a feature to working code. The existing tests pass at the start and must keep passing.
+- **Review**: read a pull request, comment on what's wrong, and decide: approve or request changes.
 
-Each challenge has a short task description, a few files, and tests.
+A debug or feature challenge has a short task description, a few files, and tests.
 
 1. **Run tests** (`⌘/Ctrl + Enter`) runs the visible tests, as often as you like.
 2. **Submit** (`⌘/Ctrl + Shift + Enter`) also runs **hidden tests** that check the edge cases. Fixing only the symptom the visible tests show usually isn't enough.
 3. **Results** tell you what passed and failed. Hidden tests show only their names until you solve the challenge. After solving, you can compare your code with the reference solution.
 
 Hints come one at a time, from "where to look" to "almost the answer". A timer runs while you work, like in a timed interview; you can turn it off in Settings.
+
+**Review challenges** show the pull request's description and its diff. Select lines in the new code (or a whole function) and leave a comment: pick the kind of issue (a bug like a missing `await`, a security problem, a missing test…) and say why. Then approve the pull request or request changes, and submit.
+
+- Grading has no AI and no guessing: a comment counts when it's in the right place **and** names the right kind of issue.
+- You have up to 7 comments, whatever the pull request; comments that point at nothing real are false alarms, and more than one fails the review.
+- Some pull requests are fine as they are: then the right review is an approval with no comments.
+- Missed issues show only their kind until you solve the review; after that, or behind a confirm, you can see the answer key.
 
 **Languages:** every challenge comes in JavaScript and TypeScript. Pick one on the challenge list, in Settings, or inside a challenge. Your code and progress are kept separately per language. In TypeScript, type errors are underlined like in VS Code, but they don't stop the tests from running.
 
@@ -45,6 +53,9 @@ Hints come one at a time, from "where to look" to "almost the answer". A timer r
 | Feature | Add search to the todo list     | Easy       |
 | Feature | Rate limit each user separately | Medium     |
 | Feature | Hold stock during checkout      | Medium     |
+| Review  | Coupons and free shipping       | Easy       |
+| Review  | Account settings endpoints      | Medium     |
+| Review  | "Last seen" times               | Medium     |
 
 New challenges are very welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -1,6 +1,6 @@
 # DevDrill — Version 1.1 Plan: Review mode
 
-> Status: agreed with Ahmed on 2026-10-23. v1 (Debug + Feature) is built; its playtest and publish are still open.
+> Status: built (R0–R5) on 2026-10-23, each milestone checked by a fresh reviewer. Waiting on Ahmed's playtest. v1's playtest and publish are still open too.
 
 ## 1. Goal
 
@@ -153,3 +153,12 @@ Each milestone: build → a fresh reviewer agent (no context) checks it → fix 
 - README, CONTRIBUTING (how to write a review challenge), this plan's status; release build + smoke test.
 
 **Done when:** you can open a review challenge from `npx devdrill`, comment on the diff, submit, and see what you found, missed and flagged wrongly.
+
+## 10. Built differently from the first draft
+
+- Routes: `GET /challenges/:id/review` (changed files + issue types), `GET /challenges/:id/answer-key`, `GET/PUT /workspaces/:id/review`, `POST /workspaces/:id/review/submit`.
+- Issues may list `alsoAccept` types (same category) for problems two labels describe fairly.
+- A comment matching an issue someone else's comment already found is a repeat, not a false alarm.
+- Missed issues come back as `missed-1`, `missed-2`… in severity order until solved, so ids and order don't leak the key.
+- "Whole function" uses the editor's TypeScript service in the browser; the validator uses the TypeScript compiler, and function issues store the function's exact lines.
+- Known trade-off: each submit says which comments are false alarms, and submits are unlimited, so trial and error could find locations. It's the honor system, like reading the hidden tests.

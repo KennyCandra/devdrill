@@ -1,0 +1,13 @@
+{
+  "id": "review-002-account-settings",
+  "mode": "review",
+  "title": "Account settings endpoints",
+  "difficulty": "medium",
+  "estimatedMinutes": 15,
+  "tags": ["security", "api"],
+  "hints": [
+    "For each endpoint, ask: who is allowed to call it, and what do they get back?",
+    "Compare what getAccount returns with what the existing profile endpoint returns.",
+    "What happens if the new email is an empty string, or not an email at all?"
+  ]
+}

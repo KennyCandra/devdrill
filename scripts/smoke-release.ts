@@ -128,6 +128,31 @@ try {
   const submit = (await api('POST', `/workspaces/${CHALLENGE}/submit`, {})) as { solved: boolean };
   check(submit.solved, 'the fixed code solves the challenge, hidden tests included');
 
+  // Review mode: the pull request, its issue types, and grading a draft.
+  const REVIEW = 'review-001-order-coupons';
+  await api('POST', `/challenges/${REVIEW}/start`);
+  const pr = (await api('GET', `/challenges/${REVIEW}/review`)) as {
+    files: unknown[];
+    issueTypes: unknown[];
+  };
+  check(pr.files.length > 0 && pr.issueTypes.length > 0, 'a review challenge loads its diff');
+  await api('PUT', `/workspaces/${REVIEW}/review`, {
+    verdict: 'request_changes',
+    comments: [
+      {
+        id: 'smoke',
+        file: 'src/orders.js',
+        lines: [20, 20],
+        type: 'mutates-shared-state',
+        why: 'It changes the cart order.',
+      },
+    ],
+  });
+  const review = (await api('POST', `/workspaces/${REVIEW}/review/submit`, {})) as {
+    solved: boolean;
+  };
+  check(review.solved, 'a review that finds the must-fix issue is solved');
+
   console.log('Smoke test passed.');
 } catch (err) {
   console.error((err as Error).message);

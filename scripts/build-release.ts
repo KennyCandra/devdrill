@@ -54,6 +54,9 @@ await esbuild({
   target: 'node22',
   // express, open and vitest are installed as dependencies of the published package.
   packages: 'external',
+  // Our own shared package isn't published: inline it (its runtime parts, like the
+  // review limits, would otherwise be an import nobody can resolve).
+  alias: { '@devdrill/shared': path.join(ROOT, 'packages/shared/src') },
   banner: { js: '#!/usr/bin/env node' },
   logLevel: 'warning',
 });
