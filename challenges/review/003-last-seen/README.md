@@ -14,7 +14,8 @@ The friends list now shows when each friend was last online, as a relative time:
 
 - Counts are whole units, rounded down: 90 minutes is `1 hour ago`.
 - One unit is singular: `1 minute ago`, not `1 minutes ago`.
-- A last-seen time slightly in the future (phones with a fast clock) counts as `just now`.
+- A last-seen time in the future (phones with a fast clock) counts as `just now`.
+- Every friend has a last-seen time: someone who never signed in isn't in the list.
 - Times are milliseconds since 1970 (`Date.now()`); dates are shown in UTC.
 
 ## How it was tested

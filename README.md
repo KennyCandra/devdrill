@@ -35,7 +35,7 @@ Hints come one at a time, from "where to look" to "almost the answer". A timer r
 - Grading has no AI and no guessing: a comment counts when it's in the right place **and** names the right kind of issue.
 - You have up to 7 comments, whatever the pull request; comments that point at nothing real are false alarms, and more than one fails the review.
 - Some pull requests are fine as they are: then the right review is an approval with no comments.
-- Missed issues show only their kind until you solve the review; after that, or behind a confirm, you can see the answer key.
+- Missed issues show only how serious they are and their category until you solve the review; after that, or behind a confirm, you can see the answer key.
 
 **Languages:** every challenge comes in JavaScript and TypeScript. Pick one on the challenge list, in Settings, or inside a challenge. Your code and progress are kept separately per language. In TypeScript, type errors are underlined like in VS Code, but they don't stop the tests from running.
 

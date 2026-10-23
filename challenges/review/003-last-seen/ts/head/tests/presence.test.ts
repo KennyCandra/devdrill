@@ -18,9 +18,11 @@ describe('isOnline', () => {
 describe('formatLastSeen', () => {
   it.each([
     [30 * 1000, 'just now'],
+    [59 * 1000, 'just now'],
     [1 * MINUTE, '1 minute ago'],
     [5 * MINUTE, '5 minutes ago'],
     [59 * MINUTE + 59 * 1000, '59 minutes ago'],
+    [1 * HOUR, '1 hour ago'],
     [90 * MINUTE, '1 hour ago'],
     [3 * HOUR, '3 hours ago'],
     [1 * DAY, '1 day ago'],

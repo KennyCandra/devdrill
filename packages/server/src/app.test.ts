@@ -771,4 +771,29 @@ describe('review challenges', () => {
     const res = await api('get', `/workspaces/${REVIEW}?lang=js`).expect(200);
     expect((res.body as WorkspaceInfo).files).toEqual([]);
   });
+
+  it('accepts "Ada can read Linus\'s account" as data exposure on getAccount', async () => {
+    const ACCOUNT = 'review-002-account-settings';
+    await api('post', `/challenges/${ACCOUNT}/start?lang=js`).expect(200);
+    const comment = (id: string, lines: [number, number], type: string): ReviewComment => ({
+      id,
+      file: 'src/users.js',
+      lines,
+      type,
+      why: 'Anyone signed in gets someone else’s private data.',
+    });
+    await api('put', `/workspaces/${ACCOUNT}/review?lang=js`)
+      .send({
+        comments: [
+          comment('owner', [25, 28], 'data-exposure'),
+          comment('hash', [29, 29], 'data-exposure'),
+        ],
+        verdict: 'request_changes',
+      })
+      .expect(200);
+    const res = await api('post', `/workspaces/${ACCOUNT}/review/submit?lang=js`).send({});
+    const result = res.body as ReviewResult;
+    expect(result.issues.filter((i) => i.severity === 'must').every((i) => i.found)).toBe(true);
+    expect(result.solved).toBe(true);
+  });
 });

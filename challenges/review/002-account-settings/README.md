@@ -12,6 +12,7 @@ Rules every endpoint follows:
 - **Never send `passwordHash` to the browser**, in any response.
 - A request is `{ user, params, body }`: `user` is the signed-in user, or `null`.
 - A response is `{ status, body }`.
+- An unknown account id gets 404; ids aren't secret.
 
 ## How it was tested
 

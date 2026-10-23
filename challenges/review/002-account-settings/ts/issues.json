@@ -10,7 +10,10 @@
     "type": "missing-authorization",
     "severity": "must",
     "title": "Anyone signed in can open anyone's account page",
-    "explanation": "getAccount checks that someone is signed in, but never that the account is theirs: Ada can read Linus's email by changing the id. The PR says anyone else gets 403. Add the same check updateEmail has: if (account.id !== request.user.id) return { status: 403 }."
+    "explanation": "getAccount checks that someone is signed in, but never that the account is theirs: Ada can read Linus's email by changing the id. The PR says anyone else gets 403. Add the same check updateEmail has: if (account.id !== request.user.id) return { status: 403 }.",
+    "alsoAccept": [
+      "data-exposure"
+    ]
   },
   {
     "id": "account-leaks-password-hash",
@@ -40,8 +43,8 @@
     "id": "no-test-for-other-accounts",
     "file": "tests/users.test.ts",
     "lines": [
-      20,
-      28
+      19,
+      46
     ],
     "type": "missing-test",
     "alsoAccept": [

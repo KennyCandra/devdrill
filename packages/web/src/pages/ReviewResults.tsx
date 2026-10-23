@@ -328,8 +328,8 @@ function IssueCard({
         </>
       ) : (
         <p className="mt-2 text-muted">
-          A {CATEGORY_LABELS[issue.category].toLowerCase()} issue you didn't catch. Solve the review
-          to see where and what it is.
+          A missed {CATEGORY_LABELS[issue.category].toLowerCase()} issue. Solve the review to see
+          where and what it is.
         </p>
       )}
       {comment && (

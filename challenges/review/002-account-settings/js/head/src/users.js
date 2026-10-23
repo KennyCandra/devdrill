@@ -26,7 +26,7 @@ export function getAccount(request) {
   if (request.user === null) return { status: 401 };
   const account = findUser(request.params.id);
   if (!account) return { status: 404 };
-  return { status: 200, body: account };
+  return { status: 200, body: { ...account } };
 }
 
 // PUT /account/:id/email: change your email.
@@ -35,6 +35,6 @@ export function updateEmail(request) {
   const account = findUser(request.params.id);
   if (!account) return { status: 404 };
   if (account.id !== request.user.id) return { status: 403 };
-  account.email = request.body.email;
+  account.email = request.body?.email ?? account.email;
   return { status: 200, body: { ...publicProfile(account), email: account.email } };
 }
