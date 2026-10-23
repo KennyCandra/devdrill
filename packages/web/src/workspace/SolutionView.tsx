@@ -56,6 +56,8 @@ export function SolutionView({ id, lang }: { id: string; lang: Language }) {
     const modified = monaco.editor.createModel(file.solution, language);
     const diff = monaco.editor.createDiffEditor(container.current, {
       readOnly: true,
+      // Shown on its own, a file can't see the rest of the project: type errors would be noise.
+      renderValidationDecorations: 'off',
       originalEditable: false,
       automaticLayout: true,
       renderSideBySide: true,
