@@ -10,6 +10,7 @@ function challenge(id: string, status: ChallengeStatus): ChallengeSummary {
     difficulty: 'easy',
     estimatedMinutes: 10,
     tags: [],
+    languages: ['js'],
     progress: { status, attempts: 0 },
   };
 }

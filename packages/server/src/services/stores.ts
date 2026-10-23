@@ -1,16 +1,23 @@
 import path from 'node:path';
-import type { ChallengeStatus, ProgressEntry, Settings } from '@devdrill/shared';
+import type { ChallengeStatus, Language, ProgressEntry, Settings } from '@devdrill/shared';
 import { HttpError } from '../httpError.js';
 import { JsonStore } from './jsonStore.js';
 
 export interface ProgressFile {
+  /** Keyed by progressKey(): progress is separate per language. */
   challenges: Record<string, ProgressEntry>;
 }
 
-export const DEFAULT_SETTINGS: Settings = { timerEnabled: true, theme: 'system' };
+/** "js:debug-001-cart-discount": solving in one language doesn't count for another. */
+export function progressKey(lang: Language, id: string): string {
+  return `${lang}:${id}`;
+}
+
+export const DEFAULT_SETTINGS: Settings = { timerEnabled: true, theme: 'system', language: 'js' };
 
 const STATUSES: readonly ChallengeStatus[] = ['not_started', 'in_progress', 'solved'];
 const THEMES: readonly Settings['theme'][] = ['system', 'light', 'dark'];
+const LANGUAGES: readonly Language[] = ['js', 'ts'];
 
 export function createProgressStore(dataDir: string): JsonStore<ProgressFile> {
   return new JsonStore(path.join(dataDir, 'progress.json'), parseProgressFile, () => ({
@@ -37,8 +44,9 @@ function parseProgressFile(raw: unknown): ProgressFile {
   for (const [id, value] of Object.entries(source)) {
     const e = value as Partial<ProgressEntry>;
     if (!STATUSES.includes(e.status as ChallengeStatus) || typeof e.attempts !== 'number') continue;
+    // Before languages, keys were bare challenge ids, all JavaScript.
     entries.push([
-      id,
+      id.includes(':') ? id : progressKey('js', id),
       {
         status: e.status as ChallengeStatus,
         attempts: e.attempts,
@@ -64,6 +72,9 @@ function parseSettingsFile(raw: unknown): Settings {
     theme: THEMES.includes(data.theme as Settings['theme'])
       ? (data.theme as Settings['theme'])
       : DEFAULT_SETTINGS.theme,
+    language: LANGUAGES.includes(data.language as Language)
+      ? (data.language as Language)
+      : DEFAULT_SETTINGS.language,
   };
 }
 
@@ -84,6 +95,12 @@ export function parseSettingsPatch(raw: unknown): Partial<Settings> {
       throw new HttpError(400, '"timerEnabled" must be true or false.');
     }
     patch.timerEnabled = data.timerEnabled;
+  }
+  if ('language' in data) {
+    if (!LANGUAGES.includes(data.language as Language)) {
+      throw new HttpError(400, `"language" must be one of: ${LANGUAGES.join(', ')}.`);
+    }
+    patch.language = data.language as Language;
   }
   if ('theme' in data) {
     if (!THEMES.includes(data.theme as Settings['theme'])) {

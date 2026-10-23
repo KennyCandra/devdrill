@@ -5,6 +5,7 @@ import type {
   ChallengeDetail,
   ChallengeSummary,
   FileContent,
+  Language,
   ProgressEntry,
   SavedFile,
   SaveFileRequest,
@@ -26,8 +27,9 @@ import {
   createSettingsStore,
   emptyProgress,
   parseSettingsPatch,
+  progressKey,
 } from './services/stores.js';
-import { MAX_FILE_BYTES, WorkspaceManager } from './services/workspaceManager.js';
+import { MAX_FILE_BYTES, WorkspaceManager, type Target } from './services/workspaceManager.js';
 
 export interface AppOptions {
   challenges: Map<string, Challenge>;
@@ -60,15 +62,26 @@ export function createApp(options: AppOptions) {
     return challenge;
   };
 
-  const progressOf = async (id: string): Promise<ProgressEntry> =>
-    (await progress.get()).challenges[id] ?? emptyProgress();
+  /** The challenge in the language the UI asked for (`?lang=js|ts`, default js). */
+  const targetOf = (req: Request): Target => {
+    const challenge = challengeById(req.params.id);
+    const lang = languageOf(req);
+    if (!challenge.languages.includes(lang)) {
+      throw new HttpError(404, `This challenge isn't available in ${LANGUAGE_NAMES[lang]} yet.`);
+    }
+    return { challenge, lang };
+  };
 
-  const markStarted = (id: string) =>
+  const progressOf = async ({ challenge, lang }: Target): Promise<ProgressEntry> =>
+    (await progress.get()).challenges[progressKey(lang, challenge.meta.id)] ?? emptyProgress();
+
+  const markStarted = ({ challenge, lang }: Target) =>
     progress.update((p) => {
-      const entry = p.challenges[id] ?? emptyProgress();
+      const key = progressKey(lang, challenge.meta.id);
+      const entry = p.challenges[key] ?? emptyProgress();
       if (entry.status === 'not_started') entry.status = 'in_progress';
       entry.startedAt ??= new Date().toISOString();
-      p.challenges[id] = entry;
+      p.challenges[key] = entry;
       return p;
     });
 
@@ -81,84 +94,89 @@ export function createApp(options: AppOptions) {
 
   // ---- Challenges ----
 
-  api.get('/challenges', async (_req, res: Response<ChallengeSummary[]>) => {
+  // Every challenge, with progress in the asked-for language (?lang=, default js).
+  api.get('/challenges', async (req, res: Response<ChallengeSummary[]>) => {
+    const lang = languageOf(req);
     const all = (await progress.get()).challenges;
     res.json(
       [...challenges.values()].map(
-        ({ meta: { hints: _hints, hiddenTestRules: _rules, ...meta } }) => ({
+        ({ languages, meta: { hints: _hints, hiddenTestRules: _rules, ...meta } }) => ({
           ...meta,
-          progress: all[meta.id] ?? emptyProgress(),
+          languages,
+          progress: all[progressKey(lang, meta.id)] ?? emptyProgress(),
         }),
       ),
     );
   });
 
   api.get('/challenges/:id', async (req, res: Response<ChallengeDetail>) => {
-    const challenge = challengeById(req.params.id);
-    const { hiddenTestRules: _rules, ...meta } = challenge.meta;
+    const target = targetOf(req);
+    const { hiddenTestRules: _rules, ...meta } = target.challenge.meta;
     res.json({
       ...meta,
-      progress: await progressOf(challenge.meta.id),
-      readme: challenge.readme,
+      languages: target.challenge.languages,
+      progress: await progressOf(target),
+      readme: target.challenge.readme,
     });
   });
 
   api.post('/challenges/:id/start', async (req, res: Response<WorkspaceInfo>) => {
-    const challenge = challengeById(req.params.id);
-    const files = await workspaces.start(challenge);
-    await markStarted(challenge.meta.id);
-    res.json({ challengeId: challenge.meta.id, files });
+    const target = targetOf(req);
+    const files = await workspaces.start(target);
+    await markStarted(target);
+    res.json({ challengeId: target.challenge.meta.id, files });
   });
 
   api.get('/challenges/:id/solution', async (req, res: Response<SolutionFile[]>) => {
-    res.json(await workspaces.solution(challengeById(req.params.id)));
+    res.json(await workspaces.solution(targetOf(req)));
   });
 
   // The hidden tests unlock once you've solved the challenge, like their failure details.
   api.get('/challenges/:id/hidden-tests', async (req, res: Response<FileContent[]>) => {
-    const challenge = challengeById(req.params.id);
-    if ((await progressOf(challenge.meta.id)).status !== 'solved') {
+    const target = targetOf(req);
+    if ((await progressOf(target)).status !== 'solved') {
       throw new HttpError(403, 'Solve the challenge to see its hidden tests.');
     }
-    res.json(await workspaces.hiddenTests(challenge));
+    res.json(await workspaces.hiddenTests(target));
   });
 
   // ---- Workspaces ----
 
   api.get('/workspaces/:id', async (req, res: Response<WorkspaceInfo>) => {
-    const challenge = challengeById(req.params.id);
-    res.json({ challengeId: challenge.meta.id, files: await workspaces.files(challenge) });
+    const target = targetOf(req);
+    res.json({ challengeId: target.challenge.meta.id, files: await workspaces.files(target) });
   });
 
   api.get('/workspaces/:id/files', async (req, res: Response<FileContent>) => {
-    const challenge = challengeById(req.params.id);
-    res.json(await workspaces.readFile(challenge, queryPath(req)));
+    res.json(await workspaces.readFile(targetOf(req), queryPath(req)));
   });
 
   api.put('/workspaces/:id/files', async (req, res: Response<SavedFile>) => {
-    const challenge = challengeById(req.params.id);
     const body = (req.body ?? {}) as Partial<Record<keyof SaveFileRequest, unknown>>;
-    res.json(await workspaces.writeFile(challenge, queryPath(req), body.content, body.baseMtimeMs));
+    res.json(
+      await workspaces.writeFile(targetOf(req), queryPath(req), body.content, body.baseMtimeMs),
+    );
   });
 
   api.delete('/workspaces/:id/files', async (req, res: Response<{ ok: true }>) => {
-    await workspaces.deleteFile(challengeById(req.params.id), queryPath(req));
+    await workspaces.deleteFile(targetOf(req), queryPath(req));
     res.json({ ok: true });
   });
 
   api.post('/workspaces/:id/reset', async (req, res: Response<WorkspaceInfo>) => {
-    const challenge = challengeById(req.params.id);
-    res.json({ challengeId: challenge.meta.id, files: await workspaces.reset(challenge) });
+    const target = targetOf(req);
+    res.json({ challengeId: target.challenge.meta.id, files: await workspaces.reset(target) });
   });
 
   api.post('/workspaces/:id/run', async (req, res: Response<TestRunResult>) => {
-    res.json(await workspaces.run(challengeById(req.params.id)));
+    res.json(await workspaces.run(targetOf(req)));
   });
 
   api.post('/workspaces/:id/submit', async (req, res: Response<SubmitResult>) => {
-    const challenge = challengeById(req.params.id);
+    const target = targetOf(req);
+    const { challenge } = target;
     const elapsedMs = parseElapsed((req.body as SubmitRequest | undefined)?.elapsedMs);
-    const submitted = await workspaces.submit(challenge);
+    const submitted = await workspaces.submit(target);
     // Each hidden test says which rule from the task it checks, solved or not.
     const rules = challenge.meta.hiddenTestRules ?? {};
     const fullRun = {
@@ -177,12 +195,13 @@ export function createApp(options: AppOptions) {
           ...fullRun,
           tests: fullRun.tests.map(withholdHiddenDetails),
           ...(fullRun.logs
-            ? { logs: fullRun.logs.filter((l) => !l.file?.endsWith('.hidden.test.js')) }
+            ? { logs: fullRun.logs.filter((l) => !/\.hidden\.test\.[jt]s$/.test(l.file ?? '')) }
             : {}),
         };
 
+    const key = progressKey(target.lang, challenge.meta.id);
     const updated = await progress.update((p) => {
-      const entry = p.challenges[challenge.meta.id] ?? emptyProgress();
+      const entry = p.challenges[key] ?? emptyProgress();
       entry.attempts += 1;
       if (solved) {
         entry.status = 'solved';
@@ -196,11 +215,11 @@ export function createApp(options: AppOptions) {
       } else if (entry.status === 'not_started') {
         entry.status = 'in_progress';
       }
-      p.challenges[challenge.meta.id] = entry;
+      p.challenges[key] = entry;
       return p;
     });
 
-    res.json({ run, solved, progress: updated.challenges[challenge.meta.id] ?? emptyProgress() });
+    res.json({ run, solved, progress: updated.challenges[key] ?? emptyProgress() });
   });
 
   // ---- Settings ----
@@ -262,6 +281,16 @@ function withholdHiddenDetails(test: TestCaseResult): TestCaseResult {
   if (!test.hidden) return test;
   const { message: _message, logs: _logs, ...rest } = test;
   return test.status === 'failed' ? { ...rest, detailsHidden: true } : rest;
+}
+
+const LANGUAGE_NAMES: Record<Language, string> = { js: 'JavaScript', ts: 'TypeScript' };
+
+/** `?lang=` on a request; JavaScript when it's missing. */
+function languageOf(req: Request): Language {
+  const lang = req.query.lang;
+  if (lang === undefined) return 'js';
+  if (lang === 'js' || lang === 'ts') return lang;
+  throw new HttpError(400, '"lang" must be js or ts.');
 }
 
 function queryPath(req: Request): string | undefined {

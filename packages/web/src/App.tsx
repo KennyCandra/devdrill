@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings } from '@devdrill/shared';
-import { api, ApiRequestError } from './api/client';
+import { api, ApiRequestError, setLanguage } from './api/client';
 import { Button, Spinner, StatusScreen } from './components/ui';
 import { ChallengeList } from './pages/ChallengeList';
 import { Results } from './pages/Results';
@@ -31,7 +31,10 @@ export function App({ hasToken }: { hasToken: boolean }) {
     api
       .session()
       .then(() => api.settings())
-      .then((settings) => setSession({ state: 'ready', settings }))
+      .then((settings) => {
+        setLanguage(settings.language);
+        setSession({ state: 'ready', settings });
+      })
       .catch((err: unknown) =>
         setSession({
           state: err instanceof ApiRequestError && err.status === 401 ? 'badToken' : 'offline',
@@ -44,7 +47,10 @@ export function App({ hasToken }: { hasToken: boolean }) {
   const updateSettings = useCallback(async (patch: Partial<Settings>) => {
     const request = ++latestUpdate.current;
     const saved = await api.saveSettings(patch);
-    if (request === latestUpdate.current) setSession({ state: 'ready', settings: saved });
+    if (request === latestUpdate.current) {
+      setLanguage(saved.language);
+      setSession({ state: 'ready', settings: saved });
+    }
   }, []);
 
   switch (session.state) {

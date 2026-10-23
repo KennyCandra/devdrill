@@ -1,6 +1,7 @@
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ChallengeMeta } from '@devdrill/shared';
+import type { ChallengeMeta, Language } from '@devdrill/shared';
 import { parseChallengeMeta } from './challengeMeta.js';
 
 export interface Challenge {
@@ -8,7 +9,11 @@ export interface Challenge {
   readme: string;
   /** Absolute path to the challenge folder. */
   dir: string;
+  /** The language folders it has (js/, ts/). */
+  languages: Language[];
 }
+
+const LANGUAGES: Language[] = ['js', 'ts'];
 
 /**
  * Loads every challenge under `challengesDir/<mode>/<NNN-name>/`, sorted by mode then number.
@@ -30,7 +35,9 @@ export async function loadChallenges(challengesDir: string): Promise<Map<string,
         const parsed = parseChallengeMeta(raw, { mode: mode.name, dirName: entry.name });
         if (!parsed.ok) throw new Error(parsed.errors.join(' '));
         const readme = await readFile(path.join(dir, 'README.md'), 'utf8');
-        challenges.set(parsed.meta.id, { meta: parsed.meta, readme, dir });
+        const languages = LANGUAGES.filter((lang) => existsSync(path.join(dir, lang, 'starter')));
+        if (languages.length === 0) throw new Error('no js/ or ts/ folder');
+        challenges.set(parsed.meta.id, { meta: parsed.meta, readme, dir, languages });
       } catch (err) {
         console.warn(`Skipping challenge ${mode.name}/${entry.name}: ${(err as Error).message}`);
       }

@@ -3,6 +3,7 @@ import type {
   ChallengeDetail,
   ChallengeSummary,
   FileContent,
+  Language,
   SavedFile,
   SaveFileRequest,
   SessionInfo,
@@ -57,12 +58,29 @@ export function setToken(value: string | null): void {
   token = value;
 }
 
+let language: Language = 'js';
+
+/** The language challenge and workspace requests are for (from Settings). */
+export function setLanguage(value: Language): void {
+  language = value;
+}
+
+export function currentLanguage(): Language {
+  return language;
+}
+
+/** Challenge and workspace routes are per language; the server reads `?lang=`. */
+function withLanguage(path: string): string {
+  if (!path.startsWith('/challenges') && !path.startsWith('/workspaces')) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}lang=${language}`;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (token) headers[TOKEN_HEADER] = token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`/api${withLanguage(path)}`, {
     method,
     headers,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -107,7 +125,7 @@ export const api = {
    * Browsers cap keepalive bodies at 64 KB, so very large files can't be saved this way.
    */
   saveFileOnUnload: (id: string, path: string, body: SaveFileRequest) => {
-    void fetch(`/api${fileUrl(id, path)}`, {
+    void fetch(`/api${withLanguage(fileUrl(id, path))}`, {
       method: 'PUT',
       keepalive: true,
       headers: { 'Content-Type': 'application/json', ...(token ? { [TOKEN_HEADER]: token } : {}) },

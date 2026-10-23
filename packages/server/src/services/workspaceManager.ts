@@ -1,8 +1,22 @@
-import { mkdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { FileContent, SavedFile, SolutionFile, TestRunResult } from '@devdrill/shared';
+import type {
+  FileContent,
+  Language,
+  SavedFile,
+  SolutionFile,
+  TestRunResult,
+} from '@devdrill/shared';
 import { HttpError } from '../httpError.js';
 import type { Challenge } from './challengeLoader.js';
+
+/** One challenge in one language: that's what a workspace belongs to. */
+export interface Target {
+  challenge: Challenge;
+  lang: Language;
+}
+
+const LANGUAGE_DIRS = new Set<string>(['js', 'ts']);
 import {
   copyDir,
   fsErrorToHttp,
@@ -18,7 +32,7 @@ import { runTests } from './testRunner.js';
 export const MAX_FILE_BYTES = 512 * 1024;
 
 /**
- * The user's working copies, one folder per challenge under `root`.
+ * The user's working copies: `root/<lang>/<challenge id>`.
  * Runs, submits and resets of the same workspace never overlap; a second one gets a 409.
  */
 export class WorkspaceManager {
@@ -26,46 +40,80 @@ export class WorkspaceManager {
   /** In-flight first-time copies, so concurrent starts share one instead of racing. */
   private readonly starting = new Map<string, Promise<void>>();
 
+  private migrated: Promise<void> | undefined;
+
   constructor(
     private readonly root: string,
     private readonly testTimeoutMs?: number,
   ) {}
 
-  dirFor(challenge: Challenge): string {
-    return path.join(this.root, challenge.meta.id);
+  dirFor(t: Target): string {
+    return path.join(this.root, t.lang, t.challenge.meta.id);
   }
 
-  async exists(challenge: Challenge): Promise<boolean> {
+  async exists(t: Target): Promise<boolean> {
+    await this.migrateOldLayout();
     try {
-      return (await stat(this.dirFor(challenge))).isDirectory();
+      return (await stat(this.dirFor(t))).isDirectory();
     } catch {
       return false;
     }
   }
 
-  /** Creates the workspace from `starter/` if it doesn't exist yet. Returns its files. */
-  async start(challenge: Challenge): Promise<string[]> {
-    const id = challenge.meta.id;
+  /**
+   * Before languages, workspaces lived at `root/<challenge id>` and were all JavaScript.
+   * Move those to `root/js/<challenge id>` once, so nobody loses their code.
+   */
+  private migrateOldLayout(): Promise<void> {
+    this.migrated ??= (async () => {
+      let entries;
+      try {
+        entries = await readdir(this.root, { withFileTypes: true });
+      } catch {
+        return; // no workspaces yet
+      }
+      const old = entries.filter((e) => e.isDirectory() && !LANGUAGE_DIRS.has(e.name));
+      if (old.length === 0) return;
+      await mkdir(path.join(this.root, 'js'), { recursive: true });
+      for (const entry of old) {
+        await rename(path.join(this.root, entry.name), path.join(this.root, 'js', entry.name));
+      }
+    })();
+    return this.migrated;
+  }
+
+  /** A folder of the challenge in this language: starter, hidden-tests or solution. */
+  private layer(t: Target, name: 'starter' | 'hidden-tests' | 'solution'): string {
+    return path.join(t.challenge.dir, t.lang, name);
+  }
+
+  private key(t: Target): string {
+    return `${t.lang}:${t.challenge.meta.id}`;
+  }
+
+  /** Creates the workspace from the starter files if it doesn't exist yet. Returns its files. */
+  async start(t: Target): Promise<string[]> {
+    const id = this.key(t);
     let pending = this.starting.get(id);
-    if (!pending && !(await this.exists(challenge))) {
+    if (!pending && !(await this.exists(t))) {
       pending =
         this.starting.get(id) ??
-        this.exclusive(challenge, async () => {
+        this.exclusive(t, async () => {
           // Another start may have finished while this one waited.
-          if (!(await this.exists(challenge))) await this.copyStarter(challenge);
+          if (!(await this.exists(t))) await this.copyStarter(t);
         }).finally(() => this.starting.delete(id));
       this.starting.set(id, pending);
     }
     await pending;
-    return listFiles(this.dirFor(challenge));
+    return listFiles(this.dirFor(t));
   }
 
-  /** Throws away the user's changes and copies `starter/` again. */
-  async reset(challenge: Challenge): Promise<string[]> {
-    return this.exclusive(challenge, async () => {
-      await rm(this.dirFor(challenge), { recursive: true, force: true });
-      await this.copyStarter(challenge);
-      return listFiles(this.dirFor(challenge));
+  /** Throws away the user's changes and copies the starter files again. */
+  async reset(t: Target): Promise<string[]> {
+    return this.exclusive(t, async () => {
+      await rm(this.dirFor(t), { recursive: true, force: true });
+      await this.copyStarter(t);
+      return listFiles(this.dirFor(t));
     });
   }
 
@@ -77,12 +125,12 @@ export class WorkspaceManager {
     await rm(this.root, { recursive: true, force: true });
   }
 
-  async files(challenge: Challenge): Promise<string[]> {
-    return listFiles(await this.requireDir(challenge));
+  async files(t: Target): Promise<string[]> {
+    return listFiles(await this.requireDir(t));
   }
 
-  async readFile(challenge: Challenge, relPath: unknown): Promise<FileContent> {
-    const file = await resolveInside(await this.requireDir(challenge), relPath);
+  async readFile(t: Target, relPath: unknown): Promise<FileContent> {
+    const file = await resolveInside(await this.requireDir(t), relPath);
     const shown = String(relPath);
     try {
       const info = await stat(file);
@@ -92,7 +140,7 @@ export class WorkspaceManager {
       const bytes = await readFile(file);
       if (bytes.includes(0)) throw new HttpError(415, `${shown} is a binary file.`);
       return {
-        path: this.relative(challenge, file),
+        path: this.relative(t, file),
         content: bytes.toString('utf8'),
         mtimeMs: info.mtimeMs,
       };
@@ -103,7 +151,7 @@ export class WorkspaceManager {
   }
 
   async writeFile(
-    challenge: Challenge,
+    t: Target,
     relPath: unknown,
     content: unknown,
     baseMtimeMs?: unknown,
@@ -115,7 +163,7 @@ export class WorkspaceManager {
     if (Buffer.byteLength(content) > MAX_FILE_BYTES) {
       throw new HttpError(413, `Files can be at most ${MAX_FILE_BYTES / 1024} KB.`);
     }
-    const dir = await this.requireDir(challenge);
+    const dir = await this.requireDir(t);
     const file = await resolveInside(dir, relPath);
     if (isInSkippedDir(path.relative(dir, file))) {
       throw new HttpError(400, 'Writing into node_modules or .git is not allowed.');
@@ -132,15 +180,15 @@ export class WorkspaceManager {
       await mkdir(path.dirname(file), { recursive: true });
       await writeFile(file, content);
       const info = await stat(file);
-      return { path: this.relative(challenge, file), size: info.size, mtimeMs: info.mtimeMs };
+      return { path: this.relative(t, file), size: info.size, mtimeMs: info.mtimeMs };
     } catch (err) {
       if (err instanceof HttpError) throw err;
       throw fsErrorToHttp(err, shown);
     }
   }
 
-  async deleteFile(challenge: Challenge, relPath: unknown): Promise<void> {
-    const file = await resolveInside(await this.requireDir(challenge), relPath);
+  async deleteFile(t: Target, relPath: unknown): Promise<void> {
+    const file = await resolveInside(await this.requireDir(t), relPath);
     try {
       await unlink(file);
     } catch (err) {
@@ -149,21 +197,21 @@ export class WorkspaceManager {
   }
 
   /** Runs the visible tests in the workspace. */
-  async run(challenge: Challenge): Promise<TestRunResult> {
-    const dir = await this.requireDir(challenge);
-    return this.exclusive(challenge, () => runTests(dir, this.timeoutOptions()));
+  async run(t: Target): Promise<TestRunResult> {
+    const dir = await this.requireDir(t);
+    return this.exclusive(t, () => runTests(dir, this.timeoutOptions()));
   }
 
   /**
    * Runs visible + hidden tests on a temporary copy, so hidden tests never
    * land in the user's workspace.
    */
-  async submit(challenge: Challenge): Promise<TestRunResult> {
-    const dir = await this.requireDir(challenge);
-    const hiddenDir = path.join(challenge.dir, 'hidden-tests');
+  async submit(t: Target): Promise<TestRunResult> {
+    const dir = await this.requireDir(t);
+    const hiddenDir = this.layer(t, 'hidden-tests');
     const hiddenFiles = new Set(await listFiles(hiddenDir));
 
-    return this.exclusive(challenge, () =>
+    return this.exclusive(t, () =>
       withTempDir('submit', async (work) => {
         await copyDir(dir, work);
         await copyDir(hiddenDir, work);
@@ -177,9 +225,9 @@ export class WorkspaceManager {
   }
 
   /** The reference solution: each changed file next to its starter version. */
-  async solution(challenge: Challenge): Promise<SolutionFile[]> {
-    const solutionDir = path.join(challenge.dir, 'solution');
-    const starterDir = path.join(challenge.dir, 'starter');
+  async solution(t: Target): Promise<SolutionFile[]> {
+    const solutionDir = this.layer(t, 'solution');
+    const starterDir = this.layer(t, 'starter');
     const files = await listFiles(solutionDir);
     return Promise.all(
       files.map(async (rel) => ({
@@ -191,8 +239,8 @@ export class WorkspaceManager {
   }
 
   /** The hidden test files, for players who have solved the challenge. */
-  async hiddenTests(challenge: Challenge): Promise<FileContent[]> {
-    const dir = path.join(challenge.dir, 'hidden-tests');
+  async hiddenTests(t: Target): Promise<FileContent[]> {
+    const dir = this.layer(t, 'hidden-tests');
     const files = await listFiles(dir);
     return Promise.all(
       files.map(async (rel) => {
@@ -206,31 +254,32 @@ export class WorkspaceManager {
     );
   }
 
-  private relative(challenge: Challenge, file: string): string {
-    return toPosix(path.relative(this.dirFor(challenge), file));
+  private relative(t: Target, file: string): string {
+    return toPosix(path.relative(this.dirFor(t), file));
   }
 
-  private async copyStarter(challenge: Challenge): Promise<void> {
-    await mkdir(this.root, { recursive: true });
-    await copyDir(path.join(challenge.dir, 'starter'), this.dirFor(challenge));
+  private async copyStarter(t: Target): Promise<void> {
+    await mkdir(path.dirname(this.dirFor(t)), { recursive: true });
+    await copyDir(this.layer(t, 'starter'), this.dirFor(t));
   }
 
-  private async requireDir(challenge: Challenge): Promise<string> {
-    if (!(await this.exists(challenge))) {
+  private async requireDir(t: Target): Promise<string> {
+    if (!(await this.exists(t))) {
       throw new HttpError(404, 'Start the challenge first.');
     }
-    return this.dirFor(challenge);
+    return this.dirFor(t);
   }
 
-  private async exclusive<T>(challenge: Challenge, task: () => Promise<T>): Promise<T> {
-    if (this.busy.has(challenge.meta.id)) {
+  private async exclusive<T>(t: Target, task: () => Promise<T>): Promise<T> {
+    const key = this.key(t);
+    if (this.busy.has(key)) {
       throw new HttpError(409, 'Tests or a reset are already running. Wait for them to finish.');
     }
-    this.busy.add(challenge.meta.id);
+    this.busy.add(key);
     try {
       return await task();
     } finally {
-      this.busy.delete(challenge.meta.id);
+      this.busy.delete(key);
     }
   }
 

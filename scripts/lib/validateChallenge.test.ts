@@ -34,7 +34,7 @@ describe('validateChallenge', () => {
 
   it('rejects a solution that does not fix the bug', async () => {
     const dir = await variant('broken-solution', (d) =>
-      cp(path.join(d, 'starter/src/discount.js'), path.join(d, 'solution/src/discount.js')),
+      cp(path.join(d, 'js/starter/src/discount.js'), path.join(d, 'js/solution/src/discount.js')),
     );
     const result = await validateChallenge(dir);
     expect(result.ok).toBe(false);
@@ -43,7 +43,7 @@ describe('validateChallenge', () => {
 
   it('rejects a starter that has no bug', async () => {
     const dir = await variant('no-bug', (d) =>
-      cp(path.join(d, 'solution/src/discount.js'), path.join(d, 'starter/src/discount.js')),
+      cp(path.join(d, 'js/solution/src/discount.js'), path.join(d, 'js/starter/src/discount.js')),
     );
     const result = await validateChallenge(dir);
     expect(result.ok).toBe(false);
@@ -53,7 +53,7 @@ describe('validateChallenge', () => {
   it('rejects tests that import vitest', async () => {
     const dir = await variant('imports-vitest', (d) =>
       writeFile(
-        path.join(d, 'starter/tests/extra.test.js'),
+        path.join(d, 'js/starter/tests/extra.test.js'),
         `import { it } from 'vitest';\nit('x', () => {});\n`,
       ),
     );
@@ -65,7 +65,7 @@ describe('validateChallenge', () => {
   it('rejects package dependencies', async () => {
     const dir = await variant('has-deps', (d) =>
       writeFile(
-        path.join(d, 'starter/package.json'),
+        path.join(d, 'js/starter/package.json'),
         JSON.stringify({ type: 'module', dependencies: { lodash: '1.0.0' } }),
       ),
     );
@@ -77,38 +77,40 @@ describe('validateChallenge', () => {
   it.each([
     [
       'a symlink',
-      (d: string) => symlink('/etc/hosts', path.join(d, 'starter/src/hosts.js')),
+      (d: string) => symlink('/etc/hosts', path.join(d, 'js/starter/src/hosts.js')),
       'no symlinks',
     ],
     [
       'a skipped test',
       (d: string) =>
-        writeFile(path.join(d, 'starter/tests/extra.test.js'), `it.skip('x', () => {});\n`),
+        writeFile(path.join(d, 'js/starter/tests/extra.test.js'), `it.skip('x', () => {});\n`),
       'remove .skip/.only/.todo',
     ],
     [
       'a vitest config in solution/',
-      (d: string) => writeFile(path.join(d, 'solution/vitest.config.js'), 'export default {};\n'),
+      (d: string) =>
+        writeFile(path.join(d, 'js/solution/vitest.config.js'), 'export default {};\n'),
       'config files are not allowed',
     ],
     [
       'a spec file in solution/',
-      (d: string) => writeFile(path.join(d, 'solution/src/cheat.spec.js'), `it('x', () => {});\n`),
+      (d: string) =>
+        writeFile(path.join(d, 'js/solution/src/cheat.spec.js'), `it('x', () => {});\n`),
       'must not change tests',
     ],
     [
       'a dynamic import with a computed path',
       (d: string) =>
         writeFile(
-          path.join(d, 'starter/src/load.js'),
+          path.join(d, 'js/starter/src/load.js'),
           'export const load = (m) => import(`${m}`);\n',
         ),
       'plain string path',
     ],
     [
       'a TypeScript file',
-      (d: string) => writeFile(path.join(d, 'starter/src/x.ts'), 'export const x = 1;\n'),
-      'only plain .js files',
+      (d: string) => writeFile(path.join(d, 'js/starter/src/x.ts'), 'export const x = 1;\n'),
+      'only JavaScript files',
     ],
   ])('rejects %s', async (name, change, expected) => {
     const dir = await variant(name.replace(/\W+/g, '-'), change);
@@ -119,9 +121,9 @@ describe('validateChallenge', () => {
 
   it('ignores the word "from" in comments and .DS_Store files', async () => {
     const dir = await variant('comment-and-ds-store', async (d) => {
-      const file = path.join(d, 'starter/src/cart.js');
+      const file = path.join(d, 'js/starter/src/cart.js');
       await writeFile(file, `// copied from "the old checkout"\n${await readFile(file, 'utf8')}`);
-      await writeFile(path.join(d, 'hidden-tests/.DS_Store'), '');
+      await writeFile(path.join(d, 'js/hidden-tests/.DS_Store'), '');
     });
     const result = await validateChallenge(dir);
     expect(result.errors).toEqual([]);

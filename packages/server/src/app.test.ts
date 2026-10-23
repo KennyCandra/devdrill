@@ -147,7 +147,7 @@ describe('workspace flow', () => {
   });
 
   it('handles two starts at once (React dev mode sends two)', async () => {
-    await rm(path.join(dataDir, 'workspaces', ID), { recursive: true });
+    await rm(path.join(dataDir, 'workspaces', 'js', ID), { recursive: true });
     const [a, b] = await Promise.all([
       api('post', `/challenges/${ID}/start`),
       api('post', `/challenges/${ID}/start`),
@@ -157,7 +157,7 @@ describe('workspace flow', () => {
   });
 
   it('needs the challenge to be started first', async () => {
-    await rm(path.join(dataDir, 'workspaces', ID), { recursive: true });
+    await rm(path.join(dataDir, 'workspaces', 'js', ID), { recursive: true });
     const res = await api('get', `/workspaces/${ID}`).expect(404);
     expect(res.body).toEqual({ error: 'Start the challenge first.' });
   });
@@ -201,7 +201,7 @@ describe('workspace flow', () => {
     const saved = JSON.parse(await readFile(path.join(dataDir, 'progress.json'), 'utf8')) as {
       challenges: Record<string, { status: string }>;
     };
-    expect(saved.challenges[ID]?.status).toBe('solved');
+    expect(saved.challenges[`js:${ID}`]?.status).toBe('solved');
   }, 30_000);
 
   it('does not solve when only the visible tests pass', async () => {
@@ -263,14 +263,14 @@ describe('workspace flow', () => {
   it('blocks a symlink that points outside the workspace', async () => {
     const outside = path.join(dataDir, 'secret.txt');
     await writeFile(outside, 'secret');
-    await symlink(outside, path.join(dataDir, 'workspaces', ID, 'link.js'));
+    await symlink(outside, path.join(dataDir, 'workspaces', 'js', ID, 'link.js'));
     await api('get', `/workspaces/${ID}/files?path=link.js`).expect(400);
     await api('put', `/workspaces/${ID}/files?path=link.js`).send({ content: 'x' }).expect(400);
     expect(await readFile(outside, 'utf8')).toBe('secret');
   });
 
   it('lets the user create a new file inside the workspace', async () => {
-    await mkdir(path.join(dataDir, 'workspaces', ID, 'src'), { recursive: true });
+    await mkdir(path.join(dataDir, 'workspaces', 'js', ID, 'src'), { recursive: true });
     await api('put', `/workspaces/${ID}/files?path=src/helpers/new.js`)
       .send({ content: 'export const x = 1;\n' })
       .expect(200);
@@ -284,7 +284,7 @@ describe('workspace flow', () => {
 });
 
 describe('workspace edge cases', () => {
-  const ws = () => path.join(dataDir, 'workspaces', ID);
+  const ws = () => path.join(dataDir, 'workspaces', 'js', ID);
 
   beforeEach(async () => {
     await api('post', `/challenges/${ID}/start`).expect(200);
@@ -373,10 +373,10 @@ describe('settings', () => {
   it('returns defaults and saves valid changes', async () => {
     const res = await api('get', '/settings').expect(200);
     // The timer is on unless the user turns it off.
-    expect(res.body).toEqual({ timerEnabled: true, theme: 'system' });
+    expect(res.body).toEqual({ timerEnabled: true, theme: 'system', language: 'js' });
     await api('put', '/settings').send({ timerEnabled: false }).expect(200);
     const after = await api('get', '/settings').expect(200);
-    expect(after.body).toEqual({ timerEnabled: false, theme: 'system' });
+    expect(after.body).toEqual({ timerEnabled: false, theme: 'system', language: 'js' });
   });
 
   it.each([{ timerEnabled: 'yes' }, { theme: 'pink' }, { unknown: 1 }])(
@@ -509,5 +509,47 @@ describe('hidden test rules and code', () => {
     expect(detail.body).not.toHaveProperty('hiddenTestRules');
     const list = await api('get', '/challenges').expect(200);
     expect((list.body as object[])[0]).not.toHaveProperty('hiddenTestRules');
+  });
+});
+
+describe('languages', () => {
+  it('rejects an unknown language', async () => {
+    await api('get', `/challenges?lang=python`).expect(400);
+  });
+
+  it('lists the languages each challenge has', async () => {
+    const list = await api('get', '/challenges').expect(200);
+    const cart = (list.body as { id: string; languages: string[] }[]).find((c) => c.id === ID);
+    expect(cart?.languages).toContain('js');
+  });
+
+  it('moves workspaces and progress from before languages into JavaScript', async () => {
+    const oldHome = await mkdtemp(path.join(tmpdir(), 'devdrill-migrate-test-'));
+    try {
+      await mkdir(path.join(oldHome, 'workspaces', ID, 'src'), { recursive: true });
+      await writeFile(path.join(oldHome, 'workspaces', ID, 'src', 'mine.js'), '// my work');
+      await writeFile(
+        path.join(oldHome, 'progress.json'),
+        JSON.stringify({ challenges: { [ID]: { status: 'solved', attempts: 2 } } }),
+      );
+      const app = createApp({
+        challenges: await loadChallenges(appPaths().challenges),
+        dataDir: oldHome,
+        token: TOKEN,
+      });
+      const old = app.listen(0, '127.0.0.1');
+      await new Promise((resolve) => old.once('listening', resolve));
+      const oldHost = `127.0.0.1:${(old.address() as AddressInfo).port}`;
+      const get = (url: string) =>
+        request(old).get(`/api${url}`).set('Host', oldHost).set(TOKEN_HEADER, TOKEN);
+
+      const ws = await get(`/workspaces/${ID}?lang=js`).expect(200);
+      expect((ws.body as WorkspaceInfo).files).toContain('src/mine.js');
+      const detail = await get(`/challenges/${ID}?lang=js`).expect(200);
+      expect((detail.body as ChallengeDetail).progress).toMatchObject({ status: 'solved' });
+      old.close();
+    } finally {
+      await rm(oldHome, { recursive: true, force: true });
+    }
   });
 });

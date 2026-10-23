@@ -3,6 +3,9 @@
 
 export type ChallengeMode = 'debug' | 'feature';
 
+/** The languages a challenge can come in; each is a folder in the challenge. */
+export type Language = 'js' | 'ts';
+
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export type ChallengeStatus = 'not_started' | 'in_progress' | 'solved';
@@ -87,11 +90,15 @@ export interface ApiError {
 
 /** Challenges come back in list order, which is also the "Next challenge" order. */
 export interface ChallengeSummary extends Omit<ChallengeMeta, 'hints' | 'hiddenTestRules'> {
+  /** Progress in the language that was asked for. */
   progress: ProgressEntry;
+  languages: Language[];
 }
 
 export interface ChallengeDetail extends Omit<ChallengeMeta, 'hiddenTestRules'> {
+  /** Progress in the language that was asked for. */
   progress: ProgressEntry;
+  languages: Language[];
   /** README.md as Markdown. */
   readme: string;
 }
@@ -157,6 +164,8 @@ export interface ProgressEntry {
 export interface Settings {
   timerEnabled: boolean;
   theme: 'system' | 'light' | 'dark';
+  /** The language challenges open in. */
+  language: Language;
 }
 
 export interface SessionInfo {

@@ -1,8 +1,10 @@
+import { existsSync } from 'node:fs';
 import { cp, lstat, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { init as initLexer, parse as parseImports } from 'es-module-lexer';
-import type { ChallengeMeta, TestRunResult } from '@devdrill/shared';
+import { transform } from 'esbuild';
+import type { ChallengeMeta, Language, TestRunResult } from '@devdrill/shared';
 import { parseChallengeMeta } from '../../packages/server/src/services/challengeMeta.js';
 import { IGNORED_FILES } from '../../packages/server/src/services/files.js';
 import { runTests } from '../../packages/server/src/services/testRunner.js';
@@ -13,22 +15,49 @@ export interface ValidationResult {
   errors: string[];
 }
 
-const JS_FILE = /\.m?js$/;
-/** Source files that are not plain JS (rule 1). */
-const NON_JS_SOURCE = /\.(?:ts|tsx|jsx|mts|cts|cjs)$/;
+/** What differs between languages: which files are code, tests and hidden tests. */
+interface LanguageRules {
+  name: string;
+  /** Source files of this language. */
+  source: RegExp;
+  /** Source files of other languages, which don't belong in this folder. */
+  foreign: RegExp;
+  hiddenTest: RegExp;
+  testExample: string;
+}
+
+const LANGUAGES: Record<Language, LanguageRules> = {
+  js: {
+    name: 'JavaScript',
+    source: /\.m?js$/,
+    foreign: /\.(?:ts|tsx|jsx|mts|cts|cjs)$/,
+    hiddenTest: /\.hidden\.test\.m?js$/,
+    testExample: '*.test.js',
+  },
+  ts: {
+    name: 'TypeScript',
+    source: /\.ts$/,
+    foreign: /\.(?:js|mjs|cjs|tsx|jsx|mts|cts)$/,
+    hiddenTest: /\.hidden\.test\.ts$/,
+    testExample: '*.test.ts',
+  },
+};
+
 /** Anything Vitest would pick up as a test file by default. */
 const TEST_LIKE_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
-const HIDDEN_TEST_FILE = /\.hidden\.test\.m?js$/;
 /** Config files could change which tests run, so challenges can't have them. */
 const CONFIG_FILE = /(?:^|\/)(?:vitest|vite)\.(?:config|workspace)\.[cm]?[jt]s$/;
 /** Tests that are skipped or focused would let a challenge pass without running everything. */
 const SKIP_OR_FOCUS = /\b(?:describe|suite|it|test)\s*\.\s*(?:skip|only|todo|skipIf|runIf)\b/;
 
 type Layer = 'starter' | 'hidden-tests' | 'solution';
+const LAYERS: Layer[] = ['starter', 'hidden-tests', 'solution'];
 
 /**
  * Checks one challenge folder against the rules listed in CONTRIBUTING.md ("Validate").
- * Runs the tests, so it takes a few seconds per challenge.
+ * Each language folder (js/, ts/) is checked on its own; the metadata, README and
+ * hidden-test rules are shared and must hold for every language.
+ * Runs the tests, so it takes a few seconds per language.
  */
 export async function validateChallenge(dir: string): Promise<ValidationResult> {
   const errors: string[] = [];
@@ -39,7 +68,7 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   const readme = await readText(path.join(dir, 'README.md'));
   if (!readme?.trim()) {
     errors.push('README.md is missing or empty.');
-  } else if (!/```(?:js|javascript)\n/.test(readme)) {
+  } else if (!/```(?:js|javascript|ts|typescript)\n/.test(readme)) {
     // Playtesting showed rules written only in prose get missed; an example doesn't.
     errors.push('README.md needs an example of the exact result in a ```js code block.');
   }
@@ -48,30 +77,59 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
     errors.push('README.md needs a "## Data" section describing every object and function.');
   }
 
-  const roots: Record<Layer, string> = {
-    starter: path.join(dir, 'starter'),
-    'hidden-tests': path.join(dir, 'hidden-tests'),
-    solution: path.join(dir, 'solution'),
+  for (const layer of LAYERS) {
+    if (await isDir(path.join(dir, layer))) {
+      errors.push(`${layer}/ must be inside a language folder (js/ or ts/).`);
+    }
+  }
+  const languages = (Object.keys(LANGUAGES) as Language[]).filter((lang) =>
+    existsSync(path.join(dir, lang)),
+  );
+  if (languages.length === 0) errors.push('Add at least one language folder: js/ or ts/.');
+  if (errors.length > 0 || !meta) return done();
+
+  await initLexer();
+  for (const lang of languages) {
+    await validateLanguage(path.join(dir, lang), lang, meta, readme ?? '', errors);
+  }
+  return done();
+}
+
+/** Checks one language folder; error messages start with that folder's name. */
+async function validateLanguage(
+  langDir: string,
+  lang: Language,
+  meta: ChallengeMeta,
+  readme: string,
+  allErrors: string[],
+): Promise<void> {
+  const rules = LANGUAGES[lang];
+  const errors: string[] = [];
+  const flush = (): void => {
+    allErrors.push(...errors.map((e) => `${lang}/${e}`));
   };
+
+  const roots = Object.fromEntries(
+    LAYERS.map((layer) => [layer, path.join(langDir, layer)]),
+  ) as Record<Layer, string>;
   const files = {} as Record<Layer, string[]>;
-  for (const layer of Object.keys(roots) as Layer[]) {
+  for (const layer of LAYERS) {
     const listed = await listFiles(roots[layer], layer, errors);
     if (listed) files[layer] = listed;
   }
-  if (errors.length > 0 || !meta) return done();
+  if (errors.length > 0) return flush();
 
-  // Plain JavaScript, no dependencies.
+  // Plain code of this language, no dependencies.
   await checkPackageJson(roots.starter, errors);
-  await initLexer();
-  for (const layer of Object.keys(roots) as Layer[]) {
+  for (const layer of LAYERS) {
     for (const file of files[layer]) {
       const label = `${layer}/${file}`;
-      if (NON_JS_SOURCE.test(file)) errors.push(`${label}: only plain .js files are allowed.`);
+      if (rules.foreign.test(file)) errors.push(`${label}: only ${rules.name} files are allowed.`);
       if (CONFIG_FILE.test(file)) errors.push(`${label}: config files are not allowed.`);
-      if (!JS_FILE.test(file)) continue;
+      if (!rules.source.test(file)) continue;
 
       const source = await readFile(path.join(roots[layer], file), 'utf8');
-      checkImports(label, source, errors);
+      await checkImports(label, lang, source, errors);
       if (TEST_LIKE_FILE.test(file) && SKIP_OR_FOCUS.test(source)) {
         errors.push(`${label}: remove .skip/.only/.todo; every test must run.`);
       }
@@ -80,12 +138,14 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
 
   // Layout rules that keep visible, hidden and solution files apart.
   if (!files.starter.some((f) => TEST_LIKE_FILE.test(f))) {
-    errors.push('starter/ has no visible tests (*.test.js).');
+    errors.push(`starter/ has no visible tests (${rules.testExample}).`);
   }
   if (files['hidden-tests'].length === 0) errors.push('hidden-tests/ is empty.');
   for (const f of files['hidden-tests']) {
-    if (!HIDDEN_TEST_FILE.test(f)) {
-      errors.push(`hidden-tests/${f}: only *.hidden.test.js files are allowed here.`);
+    if (!rules.hiddenTest.test(f)) {
+      errors.push(
+        `hidden-tests/${f}: only ${rules.testExample.replace('*.', '*.hidden.')} files are allowed here.`,
+      );
     }
     if (files.starter.includes(f)) errors.push(`hidden-tests/${f} would overwrite a starter file.`);
   }
@@ -96,16 +156,15 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
       errors.push(`solution/${f}: the solution must not change package.json.`);
     }
   }
-  if (errors.length > 0) return done();
+  if (errors.length > 0) return flush();
 
   // Debug / feature behaviour: run the tests.
   const onStarter = await runLayers([roots.starter, roots['hidden-tests']]);
   const onSolution = await runLayers([roots.starter, roots.solution, roots['hidden-tests']]);
   const hiddenFiles = new Set(files['hidden-tests']);
   checkBehaviour(meta, onStarter, onSolution, hiddenFiles, errors);
-  checkHiddenTestRules(meta, readme ?? '', onStarter, hiddenFiles, errors);
-
-  return done();
+  checkHiddenTestRules(meta, readme, onStarter, hiddenFiles, errors);
+  flush();
 }
 
 async function readMeta(dir: string, errors: string[]): Promise<ChallengeMeta | null> {
@@ -156,12 +215,19 @@ async function checkPackageJson(starter: string, errors: string[]): Promise<void
   }
 }
 
-function checkImports(label: string, source: string, errors: string[]): void {
+async function checkImports(
+  label: string,
+  lang: Language,
+  source: string,
+  errors: string[],
+): Promise<void> {
   let imports;
   try {
-    [imports] = parseImports(source, label);
+    // The import lexer only reads JavaScript, so strip TypeScript types first.
+    const js = lang === 'ts' ? (await transform(source, { loader: 'ts' })).code : source;
+    [imports] = parseImports(js, label);
   } catch {
-    errors.push(`${label}: could not be parsed as a JavaScript module.`);
+    errors.push(`${label}: could not be parsed as a module.`);
     return;
   }
 
@@ -345,6 +411,14 @@ async function listFiles(root: string, layer: Layer, errors: string[]): Promise<
     }
   }
   return ok ? files.sort() : null;
+}
+
+async function isDir(p: string): Promise<boolean> {
+  try {
+    return (await lstat(p)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 async function readText(file: string): Promise<string | null> {
