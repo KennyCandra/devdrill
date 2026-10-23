@@ -45,7 +45,7 @@ The `id` is the mode plus the folder name.
 
 ### 3. Write it so it's fair
 
-- **README:** describe the symptom like a bug report, or the feature like a ticket. Every rule the hidden tests check must be in the README; a correct solution must never fail because of something unstated.
+- **README:** describe the symptom like a bug report, or the feature like a ticket. Every rule the hidden tests check must be in the README; a correct solution must never fail because of something unstated. Show an example of the exact result (fields, order, empty cases): playtesters miss rules written only in prose.
 - **Visible tests:** for debug, at least one fails at the start. For feature, all pass at the start.
 - **Hidden tests:** check the edge cases a symptom-only fix misses. Try to beat your own challenge: hardcode the visible test's values, special-case inputs, add a `sleep`. If a hack passes everything, add a test. Prefix pure regression tests with `regression:`.
 - **Hints:** three steps, from "how to look" (e.g. "add a console.log here") to "the concept" to "almost the answer".

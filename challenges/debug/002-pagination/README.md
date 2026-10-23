@@ -2,6 +2,8 @@
 
 The product catalog shows 10 products per page. A shop owner noticed that some products never show up on any page, even though search finds them.
 
+Pages start at 1. Every product must appear on exactly one page, in order. An empty list still has one (empty) page.
+
 ## Your task
 
 Find out why products go missing and fix it. All tests must pass.
