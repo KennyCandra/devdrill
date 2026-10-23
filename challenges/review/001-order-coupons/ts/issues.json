@@ -16,8 +16,8 @@
     "id": "coupon-test-checks-nothing",
     "file": "tests/orders.test.ts",
     "lines": [
-      19,
-      22
+      24,
+      28
     ],
     "type": "weak-test",
     "alsoAccept": [
