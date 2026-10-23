@@ -37,7 +37,7 @@ Hints come one at a time, from "where to look" to "almost the answer". A timer r
 | ------- | ------------------------------- | ---------- |
 | Debug   | Cart total ignores discount     | Easy       |
 | Debug   | Pagination skips an item        | Easy       |
-| Debug   | Leaderboard sorts wrong         | Easy       |
+| Debug   | Leaderboard sorts wrong         | Medium     |
 | Debug   | Daily report is always empty    | Medium     |
 | Debug   | Settings leak between users     | Medium     |
 | Feature | Add search to the todo list     | Easy       |

@@ -2,9 +2,12 @@
   "id": "debug-003-leaderboard",
   "mode": "debug",
   "title": "Leaderboard sorts wrong",
-  "difficulty": "easy",
-  "estimatedMinutes": 10,
-  "tags": ["arrays", "sorting"],
+  "difficulty": "medium",
+  "estimatedMinutes": 15,
+  "tags": [
+    "arrays",
+    "sorting"
+  ],
   "hints": [
     "Print the scores list right after it's sorted. Is it in the order you expect?",
     "What does JavaScript's sort() compare by default when you don't give it a function?",
