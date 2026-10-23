@@ -143,6 +143,15 @@ describe('validateChallenge', () => {
     expect(errors).toContain("isn't in README.md");
   });
 
+  it('requires a Data section in the README', async () => {
+    const dir = await variant('no-data', async (d) => {
+      const file = path.join(d, 'README.md');
+      await writeFile(file, (await readFile(file, 'utf8')).replace('## Data', '## Shapes'));
+    });
+    const result = await validateChallenge(dir);
+    expect(result.errors.join('\n')).toContain('needs a "## Data" section');
+  });
+
   it('requires a code example in the README', async () => {
     const dir = await variant('no-example', (d) =>
       writeFile(path.join(d, 'README.md'), '# Title\n\nFix the bug.\n'),

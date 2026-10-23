@@ -26,6 +26,32 @@ getDefaults().notifications;       // { email: true, sms: false, weeklyDigest: t
 - Choices made at sign-up only affect that user, and keep the other defaults (`createPreferences({ notifications: { sms: true } })` still has `email: true`).
 - `setNotification` throws for a channel that doesn't exist.
 
+## Data
+
+**Preferences**
+
+| Field           | Type                 | Meaning                       |
+| --------------- | -------------------- | ----------------------------- |
+| `theme`         | text, e.g. `"light"` or `"dark"` | Color theme       |
+| `language`      | text, e.g. `"en"`    | Interface language            |
+| `notifications` | **Notifications**    | Which channels are on         |
+
+**Notifications**
+
+| Field          | Type       | Meaning                    |
+| -------------- | ---------- | -------------------------- |
+| `email`        | true/false | Email notifications on?    |
+| `sms`          | true/false | Text messages on?          |
+| `weeklyDigest` | true/false | Weekly summary email on?   |
+
+**Functions**
+
+| Function                                   | Returns                                              |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `createPreferences(choices)`               | new **Preferences**: the defaults plus `choices` (any of the fields above; `notifications` may list only some channels) |
+| `setNotification(prefs, channel, enabled)` | the same **Preferences**, changed. `channel` is `"email"`, `"sms"` or `"weeklyDigest"`; throws for anything else |
+| `getDefaults()`                            | the default **Preferences**                          |
+
 ## Files
 
 - `src/preferences.js`: default preferences and changing them

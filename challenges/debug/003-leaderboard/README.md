@@ -31,6 +31,28 @@ podium(players, 2).map((p) => p.name); // ['Ana', 'Ben', 'Cai']: ranks 1 and 2
 
 Find out why the order is wrong and fix it. All tests must pass.
 
+## Data
+
+**Player** (what you pass in)
+
+| Field   | Type   | Meaning                   |
+| ------- | ------ | ------------------------- |
+| `name`  | text   | Player name               |
+| `score` | number | Points; can be negative   |
+
+**Ranked player** (what you get back): a **Player** plus
+
+| Field  | Type                 | Meaning                        |
+| ------ | -------------------- | ------------------------------ |
+| `rank` | whole number, from 1 | 1 is the best; ties share one  |
+
+**Functions**
+
+| Function                     | Returns                                                       |
+| ---------------------------- | ------------------------------------------------------------- |
+| `rankPlayers(players)`       | a new list of **Ranked players**, best first                  |
+| `podium(players, count = 3)` | list of **Ranked players** whose rank is `count` or better    |
+
 ## Files
 
 - `src/leaderboard.js`: ranks the players

@@ -26,6 +26,26 @@ paginate([], 1);              // { items: [], page: 1, pageSize: 10, totalPages:
 
 Find out why products go missing and fix it. All tests must pass.
 
+## Data
+
+**Page** (what `paginate` returns)
+
+| Field         | Type                  | Meaning                             |
+| ------------- | --------------------- | ----------------------------------- |
+| `items`       | list (same type as the input) | The items on this page      |
+| `page`        | whole number, from 1  | This page's number                  |
+| `pageSize`    | whole number          | How many items a full page holds    |
+| `totalPages`  | whole number, 1 or more | How many pages there are          |
+| `hasPrevious` | true/false            | Is there a page before this one?    |
+| `hasNext`     | true/false            | Is there a page after this one?     |
+
+**Functions**
+
+| Function                                | Returns                                  |
+| --------------------------------------- | ---------------------------------------- |
+| `paginate(items, page, pageSize = 10)`  | a **Page**. Throws if `page` isn't a whole number of at least 1 |
+| `showingLabel(products, page, pageSize = 10)` | text like `"Showing 11–20 of 45"`  |
+
 ## Files
 
 - `src/paginate.js`: splits a list into pages (pages start at 1)

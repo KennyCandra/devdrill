@@ -28,6 +28,40 @@ await buildDailyReport(['north', 'east'], '2026-10-21');
 - Only orders from the requested `date` count.
 - No stores means `rows: []` and `totalRevenueCents: 0`.
 
+## Data
+
+**Order** (from the orders service)
+
+| Field        | Type                     | Meaning                    |
+| ------------ | ------------------------ | -------------------------- |
+| `storeId`    | text                     | Which store, e.g. `north`  |
+| `date`       | text, `YYYY-MM-DD`       | The day of the order       |
+| `totalCents` | whole number             | Order total in cents       |
+
+**Report** (what `buildDailyReport` returns)
+
+| Field               | Type            | Meaning                          |
+| ------------------- | --------------- | -------------------------------- |
+| `date`              | text, `YYYY-MM-DD` | The day of the report         |
+| `rows`              | list of **Row** | One per store, in `storeIds` order |
+| `totalRevenueCents` | whole number    | All stores' revenue added up     |
+
+**Row**
+
+| Field          | Type         | Meaning                      |
+| -------------- | ------------ | ---------------------------- |
+| `storeId`      | text         | Which store                  |
+| `orderCount`   | whole number | How many orders that day     |
+| `revenueCents` | whole number | Those orders added up, in cents |
+
+**Functions**
+
+| Function                             | Returns                                          |
+| ------------------------------------ | ------------------------------------------------ |
+| `fetchOrders(storeId, date)`         | _later_ (async): list of **Order**                |
+| `buildDailyReport(storeIds, date)`   | _later_ (async): a **Report**                     |
+| `formatCents(cents)`                 | text like `"$37.00"`                              |
+
 ## Files
 
 - `src/report.js`: builds the daily report

@@ -25,6 +25,44 @@ applyCoupon(cart, 'NOPE');   // false, and the total doesn't change
 - Fixed coupons take that many cents off, but the total never goes below `0`.
 - Codes ignore upper/lower case and spaces around them (`' save10 '` works).
 
+## Data
+
+**Cart**
+
+| Field    | Type             | Meaning                     |
+| -------- | ---------------- | --------------------------- |
+| `items`  | list of **Item** | What's in the cart          |
+| `coupon` | **Coupon** or null | The applied coupon, if any |
+
+**Item**
+
+| Field        | Type                 | Meaning                                 |
+| ------------ | -------------------- | --------------------------------------- |
+| `sku`        | text                 | Product code; the same sku is one line  |
+| `name`       | text                 | Product name                            |
+| `priceCents` | whole number         | Price of one unit in cents (1999 = $19.99) |
+| `quantity`   | whole number, 1 or more | How many                             |
+
+**Coupon**
+
+| Field   | Type                    | Meaning                                         |
+| ------- | ----------------------- | ----------------------------------------------- |
+| `code`  | text                    | What the customer types, e.g. `SAVE10`          |
+| `type`  | `"percent"` or `"fixed"` | How the discount works                         |
+| `value` | number                  | Percent off (10 = 10%), or cents off (500 = $5.00) |
+
+**Functions**
+
+| Function                                  | Returns                                       |
+| ----------------------------------------- | --------------------------------------------- |
+| `createCart()`                            | a new, empty **Cart**                         |
+| `addItem(cart, item)`                     | the same **Cart**, with the item added or its quantity increased |
+| `applyCoupon(cart, code)`                 | true if the code was valid and applied, else false |
+| `subtotal(cart)`                          | whole number: cents before discount           |
+| `total(cart)`                             | whole number: cents after discount            |
+| `calculateDiscount(coupon or null, amountCents)` | whole number: cents taken off          |
+| `findCoupon(code)`                        | the **Coupon**, or null if the code doesn't exist |
+
 ## Files
 
 - `src/cart.js`: the cart (items, subtotal, total)

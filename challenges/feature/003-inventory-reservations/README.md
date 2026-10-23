@@ -43,6 +43,28 @@ inv.confirm(late);         // throws: no active reservation
 
 The existing tests pass now and must keep passing. Pass `now` to `createInventory` in tests to control time.
 
+## Data
+
+`sku` is text (a product code). `qty` is a whole number, 1 or more. A **reservation id** is text.
+
+**Options** for `createInventory(options)`
+
+| Field | Type                             | Meaning                                |
+| ----- | -------------------------------- | -------------------------------------- |
+| `now` | function returning ms (optional) | The clock; tests pass a fake one       |
+
+**Inventory** (what `createInventory` returns)
+
+| Method                        | Returns                                                     |
+| ----------------------------- | ----------------------------------------------------------- |
+| `addStock(sku, qty)`          | nothing                                                     |
+| `sell(sku, qty)`              | nothing. Throws if fewer than `qty` are available           |
+| `available(sku)`              | whole number: on hand minus held                            |
+| `onHand(sku)`                 | whole number: on the shelf, held or not                     |
+| `reserve(sku, qty, { ttlMs })`| a reservation id: **you build this**                        |
+| `confirm(id)`                 | nothing: **you build this**                                 |
+| `release(id)`                 | nothing: **you build this**                                 |
+
 ## Files
 
 - `src/inventory.js`: the inventory

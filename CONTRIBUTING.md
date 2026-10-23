@@ -51,6 +51,7 @@ The `id` is the mode plus the folder name.
 ### 3. Write it so it's fair
 
 - **README:** describe the symptom like a bug report, or the feature like a ticket. Every rule the hidden tests check must be in the README; a correct solution must never fail because of something unstated. Show an example of the exact result (fields, order, empty cases): playtesters miss rules written only in prose.
+- **Data:** add a `## Data` section with a table for every object (field, type, meaning) and every function (what it takes, what it returns). Write types in plain words, like "text", "whole number", "true/false", "list of **Todo**", "**Coupon** or null", so the description works for any language. Players can't see types in plain JavaScript, so this is where they learn the shapes.
 - **Visible tests:** for debug, at least one fails at the start. For feature, all pass at the start.
 - **Hidden tests:** check the edge cases a symptom-only fix misses. Try to beat your own challenge: hardcode the visible test's values, special-case inputs, add a `sleep`. If a hack passes everything, add a test. Prefix pure regression tests with `regression:`.
 - **Hints:** three steps, from "how to look" (e.g. "add a console.log here") to "the concept" to "almost the answer".
@@ -66,7 +67,7 @@ It also checks that your number isn't already used in that mode.
 
 The validator checks:
 
-1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` has an example of the exact result in a ` ```js ` block.
+1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` has a `## Data` section and an example of the exact result in a ` ```js ` block.
 2. **Plain JavaScript, no dependencies:** only `.js`/`.mjs` files; `starter/package.json` has `"type": "module"` and no dependencies; only relative or `node:` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
 3. **Every test runs:** no symlinks, no `vitest.config.*` or `vite.config.*`, no `.skip` / `.only` / `.todo` / `.skipIf` / `.runIf`.
 4. **Layout:** hidden test files are named `*.hidden.test.js` and don't share a path with a starter file; `solution/` doesn't contain tests or `package.json`.
