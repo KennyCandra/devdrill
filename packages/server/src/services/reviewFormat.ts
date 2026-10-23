@@ -91,6 +91,13 @@ export function parseIssues(raw: unknown, types: IssueType[]): Parsed<ReviewIssu
     if (typeof issue.type !== 'string' || !typeIds.has(issue.type)) {
       errors.push(`${where}: "type" must be one of this language's issue types.`);
     }
+    if (
+      issue.alsoAccept !== undefined &&
+      (!Array.isArray(issue.alsoAccept) ||
+        !issue.alsoAccept.every((t) => typeof t === 'string' && typeIds.has(t)))
+    ) {
+      errors.push(`${where}: "alsoAccept" must list this language's issue types.`);
+    }
     if (!SEVERITIES.includes(issue.severity as ReviewSeverity)) {
       errors.push(`${where}: "severity" must be one of ${SEVERITIES.join(', ')}.`);
     }

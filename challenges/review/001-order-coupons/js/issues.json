@@ -1,0 +1,42 @@
+[
+  {
+    "id": "coupon-mutates-order",
+    "file": "src/orders.js",
+    "lines": [
+      18,
+      23
+    ],
+    "function": "applyCoupon",
+    "type": "mutates-shared-state",
+    "severity": "must",
+    "title": "applyCoupon changes the cart's order instead of returning a new one",
+    "explanation": "It sets item.price on the items of the order it was given, so the cart screen shows discounted prices before checkout, and applying a coupon twice discounts twice. The PR description promises the original order stays unchanged: build new items instead, e.g. order.items.map((item) => ({ ...item, price: ... }))."
+  },
+  {
+    "id": "coupon-test-checks-nothing",
+    "file": "tests/orders.test.js",
+    "lines": [
+      19,
+      22
+    ],
+    "type": "weak-test",
+    "alsoAccept": [
+      "missing-test"
+    ],
+    "severity": "should",
+    "title": "The coupon test only checks the number of items",
+    "explanation": "It would still pass if applyCoupon took off the wrong amount, or none at all, and it never checks that the original order is unchanged. Assert the new prices and the old ones."
+  },
+  {
+    "id": "free-shipping-magic-number",
+    "file": "src/orders.js",
+    "lines": [
+      12,
+      12
+    ],
+    "type": "magic-value",
+    "severity": "nit",
+    "title": "50 is an unnamed threshold",
+    "explanation": "The fee next to it is a named constant (SHIPPING_FEE); the free-shipping threshold should be too, e.g. FREE_SHIPPING_FROM = 50, so both live in one place."
+  }
+]

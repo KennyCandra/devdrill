@@ -201,6 +201,8 @@ export interface ReviewIssue {
   function?: string;
   /** An `IssueType` id. */
   type: string;
+  /** Other issue types that also describe it fairly (e.g. off-by-one for a `>` vs `>=` bug). */
+  alsoAccept?: string[];
   severity: ReviewSeverity;
   title: string;
   explanation: string;

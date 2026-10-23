@@ -1,0 +1,13 @@
+{
+  "id": "review-001-order-coupons",
+  "mode": "review",
+  "title": "Coupons and free shipping",
+  "difficulty": "easy",
+  "estimatedMinutes": 10,
+  "tags": ["immutability", "tests"],
+  "hints": [
+    "Take each promise in the PR description and find the code that keeps it.",
+    "Look at what applyCoupon does to the order it's given, and who else still uses that order.",
+    "Would the new test fail if applyCoupon returned the wrong prices?"
+  ]
+}
