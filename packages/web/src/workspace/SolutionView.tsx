@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SolutionFile } from '@devdrill/shared';
+import type { Language, SolutionFile } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { Spinner } from '../components/ui';
 import { languageFor, monaco } from '../editor/monacoSetup';
@@ -13,7 +13,7 @@ interface FileVersions extends SolutionFile {
 }
 
 /** The reference solution as a read-only diff against the user's code or the starter code. */
-export function SolutionView({ id }: { id: string }) {
+export function SolutionView({ id, lang }: { id: string; lang: Language }) {
   const theme = useResolvedTheme();
   const [files, setFiles] = useState<FileVersions[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function SolutionView({ id }: { id: string }) {
   useEffect(() => {
     let cancelled = false;
     api
-      .solution(id)
+      .solution(id, lang)
       .then((solution) =>
         Promise.all(
           solution.map(async (file) => ({
@@ -44,7 +44,7 @@ export function SolutionView({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, lang]);
 
   const file = files?.[selected];
 

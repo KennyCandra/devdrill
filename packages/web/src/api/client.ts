@@ -69,18 +69,27 @@ export function currentLanguage(): Language {
   return language;
 }
 
-/** Challenge and workspace routes are per language; the server reads `?lang=`. */
-function withLanguage(path: string): string {
+/**
+ * Challenge and workspace routes are per language; the server reads `?lang=`.
+ * Pass `lang` explicitly from anything tied to one language (a workspace, a result):
+ * the setting can change while its requests are still running.
+ */
+function withLanguage(path: string, lang: Language = language): string {
   if (!path.startsWith('/challenges') && !path.startsWith('/workspaces')) return path;
-  return `${path}${path.includes('?') ? '&' : '?'}lang=${language}`;
+  return `${path}${path.includes('?') ? '&' : '?'}lang=${lang}`;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  lang?: Language,
+): Promise<T> {
   const headers: Record<string, string> = {};
   if (token) headers[TOKEN_HEADER] = token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(`/api${withLanguage(path)}`, {
+  const res = await fetch(`/api${withLanguage(path, lang)}`, {
     method,
     headers,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -105,27 +114,36 @@ export const api = {
   session: () => request<SessionInfo>('GET', '/session'),
 
   challenges: () => request<ChallengeSummary[]>('GET', '/challenges'),
-  challenge: (id: string) => request<ChallengeDetail>('GET', `/challenges/${enc(id)}`),
-  start: (id: string) => request<WorkspaceInfo>('POST', `/challenges/${enc(id)}/start`),
-  solution: (id: string) => request<SolutionFile[]>('GET', `/challenges/${enc(id)}/solution`),
-  hiddenTests: (id: string) => request<FileContent[]>('GET', `/challenges/${enc(id)}/hidden-tests`),
+  challenge: (id: string, lang?: Language) =>
+    request<ChallengeDetail>('GET', `/challenges/${enc(id)}`, undefined, lang),
+  start: (id: string, lang?: Language) =>
+    request<WorkspaceInfo>('POST', `/challenges/${enc(id)}/start`, undefined, lang),
+  solution: (id: string, lang?: Language) =>
+    request<SolutionFile[]>('GET', `/challenges/${enc(id)}/solution`, undefined, lang),
+  hiddenTests: (id: string, lang?: Language) =>
+    request<FileContent[]>('GET', `/challenges/${enc(id)}/hidden-tests`, undefined, lang),
 
-  workspace: (id: string) => request<WorkspaceInfo>('GET', `/workspaces/${enc(id)}`),
-  readFile: (id: string, path: string) => request<FileContent>('GET', fileUrl(id, path)),
-  saveFile: (id: string, path: string, body: SaveFileRequest) =>
-    request<SavedFile>('PUT', fileUrl(id, path), body),
-  deleteFile: (id: string, path: string) => request<{ ok: true }>('DELETE', fileUrl(id, path)),
-  reset: (id: string) => request<WorkspaceInfo>('POST', `/workspaces/${enc(id)}/reset`),
-  run: (id: string) => request<TestRunResult>('POST', `/workspaces/${enc(id)}/run`),
-  submit: (id: string, body: SubmitRequest) =>
-    request<SubmitResult>('POST', `/workspaces/${enc(id)}/submit`, body),
+  workspace: (id: string, lang?: Language) =>
+    request<WorkspaceInfo>('GET', `/workspaces/${enc(id)}`, undefined, lang),
+  readFile: (id: string, path: string, lang?: Language) =>
+    request<FileContent>('GET', fileUrl(id, path), undefined, lang),
+  saveFile: (id: string, path: string, body: SaveFileRequest, lang?: Language) =>
+    request<SavedFile>('PUT', fileUrl(id, path), body, lang),
+  deleteFile: (id: string, path: string, lang?: Language) =>
+    request<{ ok: true }>('DELETE', fileUrl(id, path), undefined, lang),
+  reset: (id: string, lang?: Language) =>
+    request<WorkspaceInfo>('POST', `/workspaces/${enc(id)}/reset`, undefined, lang),
+  run: (id: string, lang?: Language) =>
+    request<TestRunResult>('POST', `/workspaces/${enc(id)}/run`, undefined, lang),
+  submit: (id: string, body: SubmitRequest, lang?: Language) =>
+    request<SubmitResult>('POST', `/workspaces/${enc(id)}/submit`, body, lang),
 
   /**
    * Last-chance save while the page closes: `keepalive` lets the request outlive the page.
    * Browsers cap keepalive bodies at 64 KB, so very large files can't be saved this way.
    */
-  saveFileOnUnload: (id: string, path: string, body: SaveFileRequest) => {
-    void fetch(`/api${withLanguage(fileUrl(id, path))}`, {
+  saveFileOnUnload: (id: string, path: string, body: SaveFileRequest, lang?: Language) => {
+    void fetch(`/api${withLanguage(fileUrl(id, path), lang)}`, {
       method: 'PUT',
       keepalive: true,
       headers: { 'Content-Type': 'application/json', ...(token ? { [TOKEN_HEADER]: token } : {}) },

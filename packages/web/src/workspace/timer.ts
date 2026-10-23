@@ -1,10 +1,10 @@
-import { currentLanguage } from '../api/client';
+import type { Language } from '@devdrill/shared';
 const TICK_MS = 1000;
 /** A longer gap means the computer slept or the tab was frozen; don't count it. */
 const MAX_TICK_GAP_MS = 5000;
 
 // Time is per language, like progress.
-const timeKey = (id: string) => `devdrill-time-${currentLanguage()}-${id}`;
+const timeKey = (id: string, lang: Language) => `devdrill-time-${lang}-${id}`;
 
 /** "4:05", "12:30", "1:02:03". */
 export function formatDuration(ms: number): string {
@@ -33,7 +33,10 @@ export class ActiveTimer {
   private interval: ReturnType<typeof setInterval> | undefined;
   private readonly listeners = new Set<() => void>();
 
-  constructor(private readonly id: string) {
+  constructor(
+    private readonly id: string,
+    private readonly lang: Language,
+  ) {
     this.elapsed = this.read();
   }
 
@@ -80,7 +83,14 @@ export class ActiveTimer {
 
   private read(): number {
     try {
-      return Number(localStorage.getItem(timeKey(this.id))) || 0;
+      // Before languages, the key had no language and every timer was JavaScript.
+      const oldKey = `devdrill-time-${this.id}`;
+      const old = this.lang === 'js' ? localStorage.getItem(oldKey) : null;
+      if (old !== null) {
+        localStorage.setItem(timeKey(this.id, this.lang), old);
+        localStorage.removeItem(oldKey);
+      }
+      return Number(localStorage.getItem(timeKey(this.id, this.lang))) || 0;
     } catch {
       return 0;
     }
@@ -88,7 +98,7 @@ export class ActiveTimer {
 
   private save(): void {
     try {
-      localStorage.setItem(timeKey(this.id), String(Math.round(this.elapsed)));
+      localStorage.setItem(timeKey(this.id, this.lang), String(Math.round(this.elapsed)));
     } catch {
       // Not persisted; the timer still runs for this visit.
     }

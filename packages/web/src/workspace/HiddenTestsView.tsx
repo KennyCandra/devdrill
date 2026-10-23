@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FileContent } from '@devdrill/shared';
+import type { FileContent, Language } from '@devdrill/shared';
 import { api } from '../api/client';
 import { Spinner } from '../components/ui';
 import { languageFor, monaco } from '../editor/monacoSetup';
@@ -9,7 +9,7 @@ const LINE_HEIGHT = 18;
 const MAX_HEIGHT = 480;
 
 /** The hidden test files, read-only. The server only sends them once the challenge is solved. */
-export function HiddenTestsView({ id }: { id: string }) {
+export function HiddenTestsView({ id, lang }: { id: string; lang: Language }) {
   const theme = useResolvedTheme();
   const [files, setFiles] = useState<FileContent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -19,13 +19,13 @@ export function HiddenTestsView({ id }: { id: string }) {
   useEffect(() => {
     let cancelled = false;
     api
-      .hiddenTests(id)
+      .hiddenTests(id, lang)
       .then((loaded) => !cancelled && setFiles(loaded))
       .catch((err: Error) => !cancelled && setError(err.message));
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, lang]);
 
   const file = files?.[selected];
 

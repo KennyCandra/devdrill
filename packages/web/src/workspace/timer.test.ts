@@ -33,7 +33,7 @@ describe('ActiveTimer', () => {
     vi.useFakeTimers();
     try {
       localStorage.clear();
-      const timer = new ActiveTimer('t1');
+      const timer = new ActiveTimer('t1', 'js');
       timer.start();
       vi.advanceTimersByTime(3000);
       expect(timer.getSnapshot()).toBe(3000);
@@ -51,6 +51,16 @@ describe('ActiveTimer', () => {
 
   it('picks up where it left off after a reload', () => {
     localStorage.setItem('devdrill-time-js-t2', '42000');
-    expect(new ActiveTimer('t2').get()).toBe(42000);
+    expect(new ActiveTimer('t2', 'js').get()).toBe(42000);
+  });
+});
+
+describe('ActiveTimer migration', () => {
+  it('moves a JavaScript timer saved before languages to its new key', () => {
+    localStorage.clear();
+    localStorage.setItem('devdrill-time-old', '9000');
+    expect(new ActiveTimer('old', 'js').get()).toBe(9000);
+    expect(localStorage.getItem('devdrill-time-old')).toBeNull();
+    expect(new ActiveTimer('old', 'ts').get()).toBe(0);
   });
 });

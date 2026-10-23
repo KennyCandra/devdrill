@@ -87,10 +87,18 @@ export function App({ hasToken }: { hasToken: boolean }) {
             {route.name === 'settings' && <SettingsPage />}
             {/* Keyed by language too: switching languages loads a different workspace. */}
             {route.name === 'results' && (
-              <Results key={`${session.settings.language}:${route.id}`} id={route.id} />
+              <Results
+                key={`${session.settings.language}:${route.id}`}
+                id={route.id}
+                lang={session.settings.language}
+              />
             )}
             {route.name === 'workspace' && (
-              <Workspace key={`${session.settings.language}:${route.id}`} id={route.id} />
+              <Workspace
+                key={`${session.settings.language}:${route.id}`}
+                id={route.id}
+                lang={session.settings.language}
+              />
             )}
             {route.name === 'notFound' && (
               <StatusScreen

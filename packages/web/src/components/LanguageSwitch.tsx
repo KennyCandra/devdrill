@@ -16,9 +16,12 @@ const ALL_LANGUAGES = Object.keys(LANGUAGE_LABELS) as Language[];
  */
 export function LanguageSwitch({
   available = ALL_LANGUAGES,
+  beforeChange,
 }: {
   /** Inside a challenge: only the languages it comes in. */
   available?: Language[];
+  /** Runs (and is waited for) before switching, e.g. saving open files. */
+  beforeChange?: () => Promise<void>;
 }) {
   const { settings, update } = useSettings();
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +29,9 @@ export function LanguageSwitch({
   const choose = (language: Language) => {
     if (language === settings.language) return;
     setError(null);
-    update({ language }).catch((err: Error) => setError(err.message));
+    Promise.resolve(beforeChange?.())
+      .then(() => update({ language }))
+      .catch((err: Error) => setError(err.message));
   };
 
   return (

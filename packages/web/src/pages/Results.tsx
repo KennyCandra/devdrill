@@ -8,7 +8,7 @@ import {
   FlaskConical,
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import type { ChallengeDetail, ChallengeSummary } from '@devdrill/shared';
+import type { ChallengeDetail, ChallengeSummary, Language } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TestResultList } from '../components/TestPanel';
@@ -26,7 +26,8 @@ type Load =
   | { state: 'error'; message: string }
   | { state: 'ready'; challenge: ChallengeDetail; stored: StoredResult | null };
 
-export function Results({ id }: { id: string }) {
+/** `lang` is fixed for this screen, like the workspace's. */
+export function Results({ id, lang }: { id: string; lang: Language }) {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [all, setAll] = useState<ChallengeSummary[] | null>(null);
   const [showSolution, setShowSolution] = useState(false);
@@ -36,14 +37,14 @@ export function Results({ id }: { id: string }) {
   useEffect(() => {
     let cancelled = false;
     api
-      .challenge(id)
+      .challenge(id, lang)
       .then((challenge) => {
         if (cancelled) return;
         // The server is the source of truth: a result from before "Reset all progress",
         // or older than the latest submit (another tab), is not shown.
-        let stored = loadResult(id);
+        let stored = loadResult(id, lang);
         if (stored && stored.submit.progress.attempts !== challenge.progress.attempts) {
-          clearResult(id);
+          clearResult(id, lang);
           stored = null;
         }
         setLoad({ state: 'ready', challenge, stored });
@@ -63,7 +64,7 @@ export function Results({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, lang]);
 
   if (load.state === 'loading') {
     return (
@@ -194,9 +195,9 @@ export function Results({ id }: { id: string }) {
           )}
         </div>
 
-        {showSolution && <SolutionView id={id} />}
+        {showSolution && <SolutionView id={id} lang={lang} />}
 
-        {showHiddenTests && <HiddenTestsView id={id} />}
+        {showHiddenTests && <HiddenTestsView id={id} lang={lang} />}
 
         <ConfirmDialog
           open={confirmSolution}

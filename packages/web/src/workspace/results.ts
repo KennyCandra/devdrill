@@ -1,5 +1,4 @@
-import type { ChallengeSummary, SubmitResult } from '@devdrill/shared';
-import { currentLanguage } from '../api/client';
+import type { ChallengeSummary, Language, SubmitResult } from '@devdrill/shared';
 
 export interface StoredResult {
   submit: SubmitResult;
@@ -8,35 +7,35 @@ export interface StoredResult {
 }
 
 // Results are per language: solving in JavaScript says nothing about TypeScript.
-const resultKey = (id: string) => `devdrill-result-${currentLanguage()}-${id}`;
+const resultKey = (id: string, lang: Language) => `devdrill-result-${lang}-${id}`;
 
 // Fallback for when sessionStorage is unavailable: the result still survives navigation.
 const memory = new Map<string, StoredResult>(); // keyed like resultKey()
 
 /** Keeps the last submit so the Results page can show it, including after a reload. */
-export function saveResult(id: string, result: StoredResult): void {
-  memory.set(resultKey(id), result);
+export function saveResult(id: string, lang: Language, result: StoredResult): void {
+  memory.set(resultKey(id, lang), result);
   try {
-    sessionStorage.setItem(resultKey(id), JSON.stringify(result));
+    sessionStorage.setItem(resultKey(id, lang), JSON.stringify(result));
   } catch {
     // Too big or storage blocked: the in-memory copy is enough for this visit.
   }
 }
 
-export function loadResult(id: string): StoredResult | null {
+export function loadResult(id: string, lang: Language): StoredResult | null {
   try {
-    const raw = sessionStorage.getItem(resultKey(id));
+    const raw = sessionStorage.getItem(resultKey(id, lang));
     if (raw) return JSON.parse(raw) as StoredResult;
   } catch {
     // Fall through to memory.
   }
-  return memory.get(resultKey(id)) ?? null;
+  return memory.get(resultKey(id, lang)) ?? null;
 }
 
-export function clearResult(id: string): void {
-  memory.delete(resultKey(id));
+export function clearResult(id: string, lang: Language): void {
+  memory.delete(resultKey(id, lang));
   try {
-    sessionStorage.removeItem(resultKey(id));
+    sessionStorage.removeItem(resultKey(id, lang));
   } catch {
     // Nothing stored.
   }

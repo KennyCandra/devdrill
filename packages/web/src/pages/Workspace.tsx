@@ -14,8 +14,8 @@ import {
   useDefaultLayout,
   type LayoutStorage,
 } from 'react-resizable-panels';
-import type { ChallengeDetail, TestRunResult } from '@devdrill/shared';
-import { api, currentLanguage } from '../api/client';
+import type { ChallengeDetail, Language, TestRunResult } from '@devdrill/shared';
+import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { FileTree } from '../components/FileTree';
@@ -57,19 +57,23 @@ function defaultFile(files: string[]): string | undefined {
   return files.find((f) => f.startsWith('src/')) ?? files[0];
 }
 
-export function Workspace({ id }: { id: string }) {
+/**
+ * `lang` is fixed for the life of this screen: everything it saves goes to that
+ * language's workspace, even if the language setting changes while a save is running.
+ */
+export function Workspace({ id, lang }: { id: string; lang: Language }) {
   const theme = useResolvedTheme();
   const [store] = useState(
     () =>
       new FileStore({
-        read: (path) => api.readFile(id, path),
-        save: (path, body) => api.saveFile(id, path, body),
+        read: (path) => api.readFile(id, path, lang),
+        save: (path, body) => api.saveFile(id, path, body, lang),
       }),
   );
   const buffers = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const columns = useDefaultLayout({ id: 'devdrill-columns', storage: layoutStorage });
   const rows = useDefaultLayout({ id: 'devdrill-editor-rows', storage: layoutStorage });
-  const [timer] = useState(() => new ActiveTimer(id));
+  const [timer] = useState(() => new ActiveTimer(id, lang));
   useEffect(() => {
     timer.start();
     return () => timer.stop();
@@ -99,7 +103,7 @@ export function Workspace({ id }: { id: string }) {
   // Load the challenge and create its workspace on first visit.
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.challenge(id), api.start(id)])
+    Promise.all([api.challenge(id, lang), api.start(id, lang)])
       .then(([detail, ws]) => {
         if (cancelled) return;
         setChallenge(detail);
@@ -108,7 +112,7 @@ export function Workspace({ id }: { id: string }) {
         if (first) openFile(first);
         // TypeScript checks imports across files, so every .ts file needs to be in the
         // editor (not opened as a tab) for its types to be known.
-        if (currentLanguage() === 'ts') {
+        if (lang === 'ts') {
           for (const file of ws.files.filter((f) => f.endsWith('.ts'))) void store.load(file);
         }
       })
@@ -116,7 +120,7 @@ export function Workspace({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id, openFile, store]);
+  }, [id, lang, openFile, store]);
 
   const runTests = useCallback(async () => {
     if (busy) return;
@@ -124,13 +128,13 @@ export function Workspace({ id }: { id: string }) {
     setMessage(null);
     try {
       await store.flush();
-      setResult(await api.run(id));
+      setResult(await api.run(id, lang));
     } catch (err) {
       setMessage((err as Error).message);
     } finally {
       setRunning(false);
     }
-  }, [id, busy, store]);
+  }, [id, lang, busy, store]);
 
   // Submit can finish after the user left this screen; don't pull them back.
   const mounted = useRef(true);
@@ -148,8 +152,8 @@ export function Workspace({ id }: { id: string }) {
     try {
       await store.flush();
       const elapsed = timer.get();
-      const result = await api.submit(id, { elapsedMs: elapsed });
-      saveResult(id, { submit: result, elapsedMs: elapsed });
+      const result = await api.submit(id, { elapsedMs: elapsed }, lang);
+      saveResult(id, lang, { submit: result, elapsedMs: elapsed });
       if (result.solved) timer.reset(); // the next try is a new attempt
       if (mounted.current) navigate(resultsPath(id));
     } catch (err) {
@@ -157,14 +161,14 @@ export function Workspace({ id }: { id: string }) {
       setMessage((err as Error).message);
       setSubmitting(false);
     }
-  }, [id, busy, store, timer]);
+  }, [id, lang, busy, store, timer]);
 
   const reset = async () => {
     setConfirmReset(false);
     if (busy) return;
     try {
       await store.clear(); // lets in-flight saves finish first
-      const ws = await api.reset(id);
+      const ws = await api.reset(id, lang);
       timer.reset(); // starting over is a new attempt
       setFiles(ws.files);
       setResult(null);
@@ -217,7 +221,12 @@ export function Workspace({ id }: { id: string }) {
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       for (const file of store.unsaved()) {
-        api.saveFileOnUnload(id, file.path, { content: file.content, baseMtimeMs: file.mtimeMs });
+        api.saveFileOnUnload(
+          id,
+          file.path,
+          { content: file.content, baseMtimeMs: file.mtimeMs },
+          lang,
+        );
       }
       // A conflict or failed save can't be fixed by saving now; ask the user to stay.
       const stuck = Object.values(store.getSnapshot()).some(
@@ -235,7 +244,7 @@ export function Workspace({ id }: { id: string }) {
       document.removeEventListener('visibilitychange', onHidden);
       void store.flush(); // leaving for another screen in the app
     };
-  }, [id, store]);
+  }, [id, lang, store]);
 
   if (loadError) {
     return (
@@ -286,7 +295,7 @@ export function Workspace({ id }: { id: string }) {
         <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
         {/* Switching saves your code (the workspace flushes on leave) and reopens this
             challenge in the other language. */}
-        <LanguageSwitch available={challenge.languages} />
+        <LanguageSwitch available={challenge.languages} beforeChange={() => store.flush()} />
         {challenge.progress.attempts > 0 && (
           <button
             type="button"
@@ -345,7 +354,7 @@ export function Workspace({ id }: { id: string }) {
                 )}
                 <div className="min-h-0 flex-1">
                   <CodeEditor
-                    workspaceId={`${currentLanguage()}/${id}`}
+                    workspaceId={`${lang}/${id}`}
                     activePath={active}
                     buffers={buffers}
                     theme={theme}
