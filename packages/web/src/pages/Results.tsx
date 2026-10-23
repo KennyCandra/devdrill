@@ -1,4 +1,12 @@
-import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDot, CircleX, Eye } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CircleCheckBig,
+  CircleDot,
+  CircleX,
+  Eye,
+  FlaskConical,
+} from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ChallengeDetail, ChallengeSummary } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
@@ -8,6 +16,7 @@ import { TopBar } from '../components/TopBar';
 import { Button, DifficultyBadge, Spinner, StatusScreen } from '../components/ui';
 import { challengePath, navigate } from '../router';
 import { clearResult, loadResult, nextChallenge, type StoredResult } from '../workspace/results';
+import { HiddenTestsView } from '../workspace/HiddenTestsView';
 import { SolutionView } from '../workspace/SolutionView';
 import { formatDuration } from '../workspace/timer';
 
@@ -22,6 +31,7 @@ export function Results({ id }: { id: string }) {
   const [all, setAll] = useState<ChallengeSummary[] | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [confirmSolution, setConfirmSolution] = useState(false);
+  const [showHiddenTests, setShowHiddenTests] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +98,8 @@ export function Results({ id }: { id: string }) {
   }
 
   const solved = stored ? stored.submit.solved : progress.status === 'solved';
+  // The server only unlocks the hidden tests once the challenge is solved.
+  const progressSolved = progress.status === 'solved' || Boolean(stored?.submit.solved);
   const next = all ? nextChallenge(all, id) : null;
 
   return (
@@ -173,9 +185,18 @@ export function Results({ id }: { id: string }) {
                 ? 'Compare with the solution'
                 : 'Show the solution'}
           </Button>
+          {/* Hidden tests unlock with the solve, like their failure details. */}
+          {progressSolved && (
+            <Button onClick={() => setShowHiddenTests((v) => !v)} aria-expanded={showHiddenTests}>
+              <FlaskConical size={14} aria-hidden="true" />
+              {showHiddenTests ? 'Hide the hidden tests' : 'See the hidden tests'}
+            </Button>
+          )}
         </div>
 
         {showSolution && <SolutionView id={id} />}
+
+        {showHiddenTests && <HiddenTestsView id={id} />}
 
         <ConfirmDialog
           open={confirmSolution}

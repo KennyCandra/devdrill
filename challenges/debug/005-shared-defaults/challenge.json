@@ -4,10 +4,20 @@
   "title": "Settings leak between users",
   "difficulty": "medium",
   "estimatedMinutes": 20,
-  "tags": ["objects", "references"],
+  "tags": [
+    "objects",
+    "references"
+  ],
   "hints": [
     "Create two users, change one, then log both. Are they really two separate objects all the way down?",
     "The spread operator {...obj} copies only the top level. Nested objects are still shared.",
     "Give every user their own notifications object, and make sure nothing can change DEFAULTS (structuredClone helps)."
-  ]
+  ],
+  "hiddenTestRules": {
+    "preferences > keeps two existing users independent": "Changing one user's preferences never changes another user's.",
+    "preferences > doesn't let sign-up choices change the defaults": "Choices made at sign-up only affect that user",
+    "preferences > keeps the other channels when a user picks one at sign-up": "Choices made at sign-up only affect that user, and keep the other defaults",
+    "preferences > protects the defaults from whoever reads them": "code that reads them (like getDefaults(), which the settings page uses for \"Reset to defaults\") must not be able to change them.",
+    "preferences > regression: rejects an unknown channel": "setNotification throws for a channel that doesn't exist."
+  }
 }

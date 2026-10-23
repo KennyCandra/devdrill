@@ -190,6 +190,22 @@ export class WorkspaceManager {
     );
   }
 
+  /** The hidden test files, for players who have solved the challenge. */
+  async hiddenTests(challenge: Challenge): Promise<FileContent[]> {
+    const dir = path.join(challenge.dir, 'hidden-tests');
+    const files = await listFiles(dir);
+    return Promise.all(
+      files.map(async (rel) => {
+        const file = path.join(dir, rel);
+        return {
+          path: rel,
+          content: await readFile(file, 'utf8'),
+          mtimeMs: (await stat(file)).mtimeMs,
+        };
+      }),
+    );
+  }
+
   private relative(challenge: Challenge, file: string): string {
     return toPosix(path.relative(this.dirFor(challenge), file));
   }

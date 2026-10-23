@@ -478,3 +478,36 @@ describe('serving the built UI', () => {
     expect(res.body).toEqual({ error: 'Unknown API route.' });
   });
 });
+
+describe('hidden test rules and code', () => {
+  it('names the README rule for each hidden test, and unlocks the code after solving', async () => {
+    await api('delete', '/progress').expect(200);
+    await api('post', `/challenges/${ID}/start`).expect(200);
+
+    const failed = (await api('post', `/workspaces/${ID}/submit`).send({}).expect(200))
+      .body as SubmitResult;
+    const hidden = failed.run.tests.filter((t) => t.hidden);
+    expect(hidden.length).toBeGreaterThan(0);
+    expect(hidden.every((t) => typeof t.rule === 'string' && t.rule.length > 0)).toBe(true);
+    expect(failed.run.tests.filter((t) => !t.hidden).every((t) => t.rule === undefined)).toBe(true);
+
+    await api('get', `/challenges/${ID}/hidden-tests`).expect(403);
+
+    const file = await api('get', `/workspaces/${ID}/files?path=src/discount.js`).expect(200);
+    const fixed = (file.body as FileContent).content.replace(BUGGY_LINE, FIXED_LINE);
+    await api('put', `/workspaces/${ID}/files?path=src/discount.js`).send({ content: fixed });
+    await api('post', `/workspaces/${ID}/submit`).send({}).expect(200);
+
+    const res = await api('get', `/challenges/${ID}/hidden-tests`).expect(200);
+    const files = res.body as FileContent[];
+    expect(files[0]?.path).toMatch(/\.hidden\.test\.js$/);
+    expect(files[0]?.content).toContain('describe(');
+  }, 30_000);
+
+  it('never sends the rules map to the browser', async () => {
+    const detail = await api('get', `/challenges/${ID}`).expect(200);
+    expect(detail.body).not.toHaveProperty('hiddenTestRules');
+    const list = await api('get', '/challenges').expect(200);
+    expect((list.body as object[])[0]).not.toHaveProperty('hiddenTestRules');
+  });
+});

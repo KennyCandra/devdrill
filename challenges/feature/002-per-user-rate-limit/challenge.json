@@ -4,10 +4,23 @@
   "title": "Rate limit each user separately",
   "difficulty": "medium",
   "estimatedMinutes": 25,
-  "tags": ["closures", "maps", "time"],
+  "tags": [
+    "closures",
+    "maps",
+    "time"
+  ],
   "hints": [
     "Leave the global counter alone and add a Map from userId to that user's { windowStart, count }.",
     "The window logic is the same for everyone. Move it into a small helper used by the global bucket and by each user's bucket.",
     "A user's window starts at their first request, so create their bucket the first time you see them."
-  ]
+  ],
+  "hiddenTestRules": {
+    "rate limiter (per user) > gives each user their own limit": "With a userId: that user has their own count and their own window.",
+    "rate limiter (per user) > starts each user's window at their first request": "Their window starts at their first request and lasts windowMs; after that, their count starts over.",
+    "rate limiter (per user) > reports remaining requests per user": "remaining(userId) for a user who hasn't made a request yet is limit.",
+    "rate limiter (per user) > doesn't start a user's window when you only ask about them": "Their window starts at their first request and lasts windowMs",
+    "rate limiter (per user) > reports when a user can retry": "retryAfterMs(userId) is 0 while the user has requests left, otherwise the ms until their window ends.",
+    "rate limiter (per user) > keeps the shared counter separate from per-user counters": "The shared counter and per-user counters don't affect each other.",
+    "rate limiter (per user) > regression: the shared window still starts when the limiter is created": "one shared counter whose window starts when the limiter is created"
+  }
 }

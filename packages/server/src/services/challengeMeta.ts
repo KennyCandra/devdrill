@@ -63,6 +63,17 @@ export function parseChallengeMeta(
     errors.push('"hints" must be a non-empty array of strings.');
   }
 
+  const rules = data.hiddenTestRules;
+  if (
+    rules !== undefined &&
+    (typeof rules !== 'object' ||
+      rules === null ||
+      Array.isArray(rules) ||
+      !Object.values(rules).every((v) => typeof v === 'string' && v.trim() !== ''))
+  ) {
+    errors.push('"hiddenTestRules" must map hidden test names to non-empty strings.');
+  }
+
   if (errors.length > 0) return { ok: false, errors };
 
   return {
@@ -75,6 +86,7 @@ export function parseChallengeMeta(
       estimatedMinutes: data.estimatedMinutes as number,
       tags: data.tags as string[],
       hints: data.hints as string[],
+      ...(rules ? { hiddenTestRules: rules as Record<string, string> } : {}),
     },
   };
 }

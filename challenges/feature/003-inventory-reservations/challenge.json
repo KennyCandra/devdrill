@@ -4,10 +4,28 @@
   "title": "Hold stock during checkout",
   "difficulty": "medium",
   "estimatedMinutes": 30,
-  "tags": ["state", "maps", "time"],
+  "tags": [
+    "state",
+    "maps",
+    "time"
+  ],
   "hints": [
     "Keep reservations in a Map: id → { sku, qty, expiresAt }.",
     "available(sku) is on-hand stock minus the units in active (not expired) reservations for that sku. Make sell() check available(), not on-hand.",
     "confirm(): make sure the reservation is still active, then lower the stock and delete the reservation. release() just deletes it."
-  ]
+  ],
+  "hiddenTestRules": {
+    "reservations > holds units: they are no longer available but still on hand": "onHand(sku) still counts held units (they're still on the shelf).",
+    "reservations > can't reserve more than is available": "Throws if fewer than qty units are available.",
+    "reservations > gives every reservation its own id": "returns a reservation id (any unique string).",
+    "reservations > confirm takes the units out of stock for good": "confirm(id) completes the purchase: the units leave stock for good and the reservation ends.",
+    "reservations > release makes the units available again": "release(id) cancels the reservation and the units become available again.",
+    "reservations > stops holding units once the reservation expires": "a reservation stops holding units as soon as ttlMs ms have passed (at exactly ttlMs it has already expired).",
+    "reservations > holds for 15 minutes by default": "ttlMs defaults to 15 minutes.",
+    "reservations > can't confirm an expired, released or unknown reservation": "Throws if the reservation doesn't exist, has expired, or was already confirmed or released.",
+    "reservations > can't release an unknown, already released or expired reservation": "Throws if there's no active reservation with that id.",
+    "reservations > can't confirm the same reservation twice": "Throws if the reservation doesn't exist, has expired, or was already confirmed or released.",
+    "reservations > in-store sales respect reservations": "sell(sku, qty) can't sell units someone else is holding.",
+    "reservations > keeps products separate": "Each product (sku) has its own stock and its own reservations."
+  }
 }

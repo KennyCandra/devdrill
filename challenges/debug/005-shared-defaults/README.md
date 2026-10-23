@@ -22,6 +22,7 @@ createPreferences().notifications; // { email: true, sms: false, weeklyDigest: t
 getDefaults().notifications;       // { email: true, sms: false, weeklyDigest: true }: unchanged
 ```
 
+- Changing one user's preferences never changes another user's.
 - Choices made at sign-up only affect that user, and keep the other defaults (`createPreferences({ notifications: { sms: true } })` still has `email: true`).
 - `setNotification` throws for a channel that doesn't exist.
 

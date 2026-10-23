@@ -37,11 +37,16 @@ Name the folder `NNN-short-name` with the next free number in that mode (look at
   "difficulty": "easy",
   "estimatedMinutes": 15,
   "tags": ["arrays", "async"],
-  "hints": ["Where to look", "The concept", "Almost the answer"]
+  "hints": ["Where to look", "The concept", "Almost the answer"],
+  "hiddenTestRules": {
+    "invoices > rounds each line before adding": "Each line is rounded to the cent before the lines are added up."
+  }
 }
 ```
 
 The `id` is the mode plus the folder name.
+
+`hiddenTestRules` maps every hidden test (its `"describe > test"` name) to the README sentence it checks, copied word for word. When a player's Submit fails that test, the app shows them that sentence so they know which rule they missed.
 
 ### 3. Write it so it's fair
 
@@ -68,6 +73,7 @@ The validator checks:
 5. **Debug:** at least one visible and one hidden test fail on `starter/`; everything passes on `solution/`.
 6. **Feature:** all visible tests pass on `starter/`; at least one hidden test fails; everything passes on `solution/`.
 7. **Same tests:** the solution run runs exactly the same tests as the starter run.
+8. **Every hidden test has a rule:** each hidden test is in `hiddenTestRules`, and its sentence appears in the README (bold and code ticks are ignored when comparing).
 
 ### 5. Playtest
 

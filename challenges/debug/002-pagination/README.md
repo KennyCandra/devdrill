@@ -2,7 +2,7 @@
 
 The product catalog shows 10 products per page. A shop owner noticed that some products never show up on any page, even though search finds them.
 
-Pages start at 1. Every product must appear on exactly one page, in order. An empty list still has one (empty) page.
+Pages start at 1. Every product must appear on exactly one page, in order. Page size can be any number, including 1. An empty list still has one (empty) page. The label under the list shows which products the page holds, like "Showing 21–25 of 25" on a last, partial page.
 
 ```js
 const products = ['product-1', 'product-2', /* … */ 'product-25'];

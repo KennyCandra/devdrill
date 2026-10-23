@@ -4,10 +4,24 @@
   "title": "Add search to the todo list",
   "difficulty": "easy",
   "estimatedMinutes": 15,
-  "tags": ["arrays", "strings"],
+  "tags": [
+    "arrays",
+    "strings"
+  ],
   "hints": [
     "Start from list(): search is list() plus two more filters.",
     "Compare lowercase versions of both the title and the query, and trim the query first.",
     "Return copies the way list() does, so callers can't change the stored todos."
-  ]
+  ],
+  "hiddenTestRules": {
+    "search > matches part of the title, ignoring case": "Return the todos whose title contains query, ignoring upper/lower case.",
+    "search > ignores spaces around the query": "Ignore spaces around the query.",
+    "search > returns everything for an empty query, in the order added": "An empty query matches every todo.",
+    "search > filters by tag, ignoring case": "options.tag (optional): only todos that have this exact tag, ignoring case",
+    "search > combines the query and the tag": "options.tag (optional): only todos that have this exact tag, ignoring case",
+    "search > filters by status like list()": "options.status (optional): 'all' (default), 'open' or 'done', the same as list().",
+    "search > returns an empty list when nothing matches": "Return the todos whose title contains query, ignoring upper/lower case.",
+    "search > matches whole tags, not parts of them": "('trav' doesn't match 'travel')",
+    "search > returns copies, tags included": "Like list(), return copies: changing a result must not change the stored todo."
+  }
 }

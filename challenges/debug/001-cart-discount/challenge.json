@@ -12,5 +12,11 @@
     "Add a console.log of the coupon inside calculateDiscount and run the tests.",
     "Which branch of calculateDiscount does a SAVE10 coupon reach?",
     "Compare how a percent coupon is defined in coupons.js with how discount.js checks for it."
-  ]
+  ],
+  "hiddenTestRules": {
+    "coupons > rounds the percent discount once on the whole cart, not per item": "Percent coupons take that percent off the whole cart, rounded to the nearest cent.",
+    "coupons > rounds percent discounts to the nearest cent": "Percent coupons take that percent off the whole cart, rounded to the nearest cent.",
+    "coupons > accepts codes typed in lower case with spaces": "Codes ignore upper/lower case and spaces around them",
+    "coupons > regression: a fixed coupon never pushes the total below zero": "Fixed coupons take that many cents off, but the total never goes below 0."
+  }
 }

@@ -127,6 +127,22 @@ describe('validateChallenge', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('requires every hidden test to name a README rule that exists', async () => {
+    const dir = await variant('bad-rules', async (d) => {
+      const file = path.join(d, 'challenge.json');
+      const meta = JSON.parse(await readFile(file, 'utf8')) as {
+        hiddenTestRules: Record<string, string>;
+      };
+      const [first, second] = Object.keys(meta.hiddenTestRules);
+      delete meta.hiddenTestRules[first!];
+      meta.hiddenTestRules[second!] = 'A sentence that is not in the README.';
+      await writeFile(file, JSON.stringify(meta));
+    });
+    const errors = (await validateChallenge(dir)).errors.join('\n');
+    expect(errors).toContain('add the README sentence that hidden test');
+    expect(errors).toContain("isn't in README.md");
+  });
+
   it('requires a code example in the README', async () => {
     const dir = await variant('no-example', (d) =>
       writeFile(path.join(d, 'README.md'), '# Title\n\nFix the bug.\n'),

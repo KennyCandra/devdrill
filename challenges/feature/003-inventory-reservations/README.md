@@ -18,6 +18,7 @@ And keep the stock counts right:
 - `available(sku)` = units on hand minus units held by active reservations.
 - `onHand(sku)` still counts held units (they're still on the shelf).
 - `sell(sku, qty)` can't sell units someone else is holding.
+- Each product (sku) has its own stock and its own reservations.
 
 ### Example
 

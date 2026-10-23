@@ -12,5 +12,11 @@
     "Print the scores list right after it's sorted. Is it in the order you expect?",
     "What does JavaScript's sort() compare by default when you don't give it a function?",
     "Without a compare function, sort() compares values as strings: \"1200\" < \"900\"."
-  ]
+  ],
+  "hiddenTestRules": {
+    "rankPlayers > gives tied players the same rank, and the next score the next rank": "Players with the same score share a rank, and the next score gets the next rank (1, 2, 2, 3).",
+    "rankPlayers > handles negative scores": "Scores can be negative.",
+    "rankPlayers > regression: does not change the array it was given": "it must not change the array or the player objects you pass in.",
+    "podium > includes everyone tied for third place": "podium(players, 3) returns everyone whose rank is 3 or better, so ties can make it more than 3 players."
+  }
 }

@@ -4,10 +4,21 @@
   "title": "Pagination skips an item",
   "difficulty": "easy",
   "estimatedMinutes": 10,
-  "tags": ["arrays", "off-by-one"],
+  "tags": [
+    "arrays",
+    "off-by-one"
+  ],
   "hints": [
     "Count the products on page 1 by hand. Which one is missing?",
     "Check what slice(start, end) returns. Does it include the item at index end?",
     "slice stops before end, so end shouldn't be adjusted by one."
-  ]
+  ],
+  "hiddenTestRules": {
+    "paginate > shows every product exactly once across all pages": "Every product must appear on exactly one page, in order.",
+    "paginate > starts page 2 right after page 1 ends": "Every product must appear on exactly one page, in order.",
+    "paginate > works with one product per page": "Page size can be any number, including 1.",
+    "paginate > regression: an empty list still has one (empty) page": "An empty list still has one (empty) page.",
+    "showingLabel > describes the last, partial page": "The label under the list shows which products the page holds, like \"Showing 21–25 of 25\" on a last, partial page.",
+    "showingLabel > describes a middle page": "The label under the list shows which products the page holds"
+  }
 }

@@ -84,17 +84,20 @@ export function createApp(options: AppOptions) {
   api.get('/challenges', async (_req, res: Response<ChallengeSummary[]>) => {
     const all = (await progress.get()).challenges;
     res.json(
-      [...challenges.values()].map(({ meta: { hints: _hints, ...meta } }) => ({
-        ...meta,
-        progress: all[meta.id] ?? emptyProgress(),
-      })),
+      [...challenges.values()].map(
+        ({ meta: { hints: _hints, hiddenTestRules: _rules, ...meta } }) => ({
+          ...meta,
+          progress: all[meta.id] ?? emptyProgress(),
+        }),
+      ),
     );
   });
 
   api.get('/challenges/:id', async (req, res: Response<ChallengeDetail>) => {
     const challenge = challengeById(req.params.id);
+    const { hiddenTestRules: _rules, ...meta } = challenge.meta;
     res.json({
-      ...challenge.meta,
+      ...meta,
       progress: await progressOf(challenge.meta.id),
       readme: challenge.readme,
     });
@@ -109,6 +112,15 @@ export function createApp(options: AppOptions) {
 
   api.get('/challenges/:id/solution', async (req, res: Response<SolutionFile[]>) => {
     res.json(await workspaces.solution(challengeById(req.params.id)));
+  });
+
+  // The hidden tests unlock once you've solved the challenge, like their failure details.
+  api.get('/challenges/:id/hidden-tests', async (req, res: Response<FileContent[]>) => {
+    const challenge = challengeById(req.params.id);
+    if ((await progressOf(challenge.meta.id)).status !== 'solved') {
+      throw new HttpError(403, 'Solve the challenge to see its hidden tests.');
+    }
+    res.json(await workspaces.hiddenTests(challenge));
   });
 
   // ---- Workspaces ----
@@ -146,7 +158,15 @@ export function createApp(options: AppOptions) {
   api.post('/workspaces/:id/submit', async (req, res: Response<SubmitResult>) => {
     const challenge = challengeById(req.params.id);
     const elapsedMs = parseElapsed((req.body as SubmitRequest | undefined)?.elapsedMs);
-    const fullRun = await workspaces.submit(challenge);
+    const submitted = await workspaces.submit(challenge);
+    // Each hidden test says which rule from the task it checks, solved or not.
+    const rules = challenge.meta.hiddenTestRules ?? {};
+    const fullRun = {
+      ...submitted,
+      tests: submitted.tests.map((t) =>
+        t.hidden && rules[t.name] ? { ...t, rule: rules[t.name] } : t,
+      ),
+    };
     const solved = fullRun.status === 'passed';
     // Until it's solved, hidden tests give nothing away: a failing one shows only its name
     // (its expected values would be the answer), and no hidden test shows console output

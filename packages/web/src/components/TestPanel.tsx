@@ -1,4 +1,4 @@
-import { Check, Circle, EyeOff, X } from 'lucide-react';
+import { BookOpen, Check, Circle, EyeOff, X } from 'lucide-react';
 import type { ConsoleLine, TestCaseResult, TestRunResult } from '@devdrill/shared';
 import { Kbd, modKey, Spinner } from './ui';
 
@@ -117,6 +117,14 @@ function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
       )}
       {test.message && (
         <pre className="mt-1 mb-1 ml-5 whitespace-pre-wrap text-danger">{test.message}</pre>
+      )}
+      {test.rule && test.status === 'failed' && (
+        <p className="mt-1 mb-1 ml-5 flex gap-1.5 rounded-sm bg-warning-bg px-2 py-1 font-sans text-[12px] leading-relaxed text-fg">
+          <BookOpen size={13} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+          <span>
+            <span className="text-warning">From the task: </span>“{test.rule}”
+          </span>
+        </p>
       )}
       {test.detailsHidden && (
         <p className="mt-0.5 mb-1 ml-5 font-sans text-[12px] text-muted">

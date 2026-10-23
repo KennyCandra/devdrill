@@ -97,7 +97,9 @@ export async function validateChallenge(dir: string): Promise<ValidationResult> 
   // Debug / feature behaviour: run the tests.
   const onStarter = await runLayers([roots.starter, roots['hidden-tests']]);
   const onSolution = await runLayers([roots.starter, roots.solution, roots['hidden-tests']]);
-  checkBehaviour(meta, onStarter, onSolution, new Set(files['hidden-tests']), errors);
+  const hiddenFiles = new Set(files['hidden-tests']);
+  checkBehaviour(meta, onStarter, onSolution, hiddenFiles, errors);
+  checkHiddenTestRules(meta, readme ?? '', onStarter, hiddenFiles, errors);
 
   return done();
 }
@@ -185,6 +187,46 @@ function checkImports(label: string, source: string, errors: string[]): void {
   if (/\bcreateRequire\b/.test(source)) {
     errors.push(`${label}: createRequire is not allowed; use import.`);
   }
+}
+
+/**
+ * Every hidden test must name the README sentence it checks, and that sentence must
+ * really be in the README. So a hidden test can never check a rule the task doesn't
+ * state, and a failing one can point the player at the rule they missed.
+ */
+function checkHiddenTestRules(
+  meta: ChallengeMeta,
+  readme: string,
+  onStarter: TestRunResult,
+  hiddenFiles: Set<string>,
+  errors: string[],
+): void {
+  const rules = meta.hiddenTestRules ?? {};
+  const hiddenNames = new Set(
+    onStarter.tests.filter((t) => hiddenFiles.has(t.file)).map((t) => t.name),
+  );
+  const text = plainText(readme);
+
+  for (const name of hiddenNames) {
+    if (!(name in rules)) {
+      errors.push(`hiddenTestRules: add the README sentence that hidden test "${name}" checks.`);
+    }
+  }
+  for (const [name, rule] of Object.entries(rules)) {
+    if (!hiddenNames.has(name)) {
+      errors.push(`hiddenTestRules: "${name}" isn't a hidden test (names are "describe > test").`);
+    } else if (!text.includes(plainText(rule))) {
+      errors.push(`hiddenTestRules: the rule for "${name}" isn't in README.md: "${rule}"`);
+    }
+  }
+}
+
+/** README text without Markdown emphasis or code ticks, with whitespace collapsed. */
+function plainText(markdown: string): string {
+  return markdown
+    .replace(/\*\*|`/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function checkBehaviour(

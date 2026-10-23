@@ -90,6 +90,7 @@ export const api = {
   challenge: (id: string) => request<ChallengeDetail>('GET', `/challenges/${enc(id)}`),
   start: (id: string) => request<WorkspaceInfo>('POST', `/challenges/${enc(id)}/start`),
   solution: (id: string) => request<SolutionFile[]>('GET', `/challenges/${enc(id)}/solution`),
+  hiddenTests: (id: string) => request<FileContent[]>('GET', `/challenges/${enc(id)}/hidden-tests`),
 
   workspace: (id: string) => request<WorkspaceInfo>('GET', `/workspaces/${enc(id)}`),
   readFile: (id: string, path: string) => request<FileContent>('GET', fileUrl(id, path)),

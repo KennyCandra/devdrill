@@ -16,6 +16,11 @@ export interface ChallengeMeta {
   estimatedMinutes: number;
   tags: string[];
   hints: string[];
+  /**
+   * For each hidden test ("describe > test" name), the README sentence it checks.
+   * Shown under a failing hidden test so you know which rule you missed. Server-side only.
+   */
+  hiddenTestRules?: Record<string, string>;
 }
 
 export type TestCaseStatus = 'passed' | 'failed' | 'skipped';
@@ -38,6 +43,8 @@ export interface TestCaseResult {
   detailsHidden?: boolean;
   /** What the test and the code it called printed, in order. */
   logs?: ConsoleLine[];
+  /** For a hidden test: the sentence in the task (README) that it checks. */
+  rule?: string;
   /** First failure message, without terminal colors. */
   message?: string;
   durationMs: number;
@@ -79,11 +86,11 @@ export interface ApiError {
 }
 
 /** Challenges come back in list order, which is also the "Next challenge" order. */
-export interface ChallengeSummary extends Omit<ChallengeMeta, 'hints'> {
+export interface ChallengeSummary extends Omit<ChallengeMeta, 'hints' | 'hiddenTestRules'> {
   progress: ProgressEntry;
 }
 
-export interface ChallengeDetail extends ChallengeMeta {
+export interface ChallengeDetail extends Omit<ChallengeMeta, 'hiddenTestRules'> {
   progress: ProgressEntry;
   /** README.md as Markdown. */
   readme: string;

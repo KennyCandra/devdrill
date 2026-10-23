@@ -4,10 +4,20 @@
   "title": "Daily report is always empty",
   "difficulty": "medium",
   "estimatedMinutes": 20,
-  "tags": ["async", "promises"],
+  "tags": [
+    "async",
+    "promises"
+  ],
   "hints": [
     "Add a console.log inside the loop and another just before the return. Which one prints first?",
     "forEach doesn't wait for an async callback. It starts them all and moves on.",
     "Wait for every store before building the totals: a for...of loop with await, or Promise.all over a map. Keep the rows in the same order as storeIds."
-  ]
+  ],
+  "hiddenTestRules": {
+    "buildDailyReport > keeps the rows in the same order as the stores given, even when some answer faster": "One row for every store you ask for, in the same order as storeIds, no matter which store answers first.",
+    "buildDailyReport > counts orders and revenue per store": "Each row has exactly these fields: storeId, orderCount, revenueCents.",
+    "buildDailyReport > only counts orders from the requested day": "Only orders from the requested date count.",
+    "buildDailyReport > gives a store with no orders a zero row": "A store with no orders that day still gets a row, with orderCount: 0 and revenueCents: 0.",
+    "buildDailyReport > regression: no stores means an empty report": "No stores means rows: [] and totalRevenueCents: 0."
+  }
 }
