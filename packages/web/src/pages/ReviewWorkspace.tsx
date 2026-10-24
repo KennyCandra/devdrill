@@ -114,10 +114,20 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
     models.current = m;
   }, []);
 
-  const startComment = () => {
-    if (!selection || busy || draft.comments.length >= MAX_REVIEW_COMMENTS) return;
-    setEditing({ file: activePath, lines: selection, type: '', why: '' });
+  const openComment = (lines: LineRange | null) => {
+    if (!lines || busy || editing) return;
+    if (draft.comments.length >= MAX_REVIEW_COMMENTS) {
+      setMessage(`You've used all ${MAX_REVIEW_COMMENTS} comments. Remove one to add another.`);
+      return;
+    }
+    if (lines[1] - lines[0] + 1 > MAX_COMMENT_LINES) {
+      setMessage(`A comment covers at most ${MAX_COMMENT_LINES} lines. Select fewer.`);
+      return;
+    }
+    setMessage(null);
+    setEditing({ file: activePath, lines, type: '', why: '' });
   };
+  const startComment = () => openComment(selection);
 
   /** Widens the comment to the function around it; returns why it couldn't, or null. */
   const wholeFunction = async (): Promise<string | null> => {
@@ -314,6 +324,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                 pending={editing && editing.file === activePath ? editing.lines : null}
                 clearSelection={clearSelection}
                 onCommentShortcut={startComment}
+                onAddComment={openComment}
                 focusedId={focusedId}
                 theme={theme}
                 onSelect={setSelection}

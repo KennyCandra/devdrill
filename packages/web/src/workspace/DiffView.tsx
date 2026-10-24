@@ -28,6 +28,7 @@ export function DiffView({
   onCommentClick,
   clearSelection,
   onCommentShortcut,
+  onAddComment,
   onModels,
 }: {
   /** Unique per challenge and language, for model URIs. */
@@ -46,6 +47,8 @@ export function DiffView({
   clearSelection?: number;
   /** Ctrl/Cmd+Enter in the new code: comment on the selection, without the mouse. */
   onCommentShortcut?: () => void;
+  /** The + beside a line was clicked: comment on that line, or on the selection around it. */
+  onAddComment?: (lines: LineRange) => void;
   /** The new-code model of each file, for "whole function". */
   onModels?: (models: Map<string, monaco.editor.ITextModel>) => void;
 }) {
@@ -59,9 +62,9 @@ export function DiffView({
   const editorDisposed = useRef(false);
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
 
-  const callbacks = useRef({ onSelect, onCommentClick, onCommentShortcut });
+  const callbacks = useRef({ onSelect, onCommentClick, onCommentShortcut, onAddComment });
   useLayoutEffect(() => {
-    callbacks.current = { onSelect, onCommentClick, onCommentShortcut };
+    callbacks.current = { onSelect, onCommentClick, onCommentShortcut, onAddComment };
   });
 
   // The editor, once.
@@ -81,6 +84,12 @@ export function DiffView({
       useInlineViewWhenSpaceIsLimited: true,
       renderSideBySideInlineBreakpoint: 760,
       hideUnchangedRegions: { enabled: false },
+      // Room for the + that starts a comment, like on GitHub.
+      glyphMargin: true,
+      // The diff editor's own gutter menu (revert arrows) sits where the + goes and would
+      // take its clicks; nothing here can be reverted anyway.
+      renderGutterMenu: false,
+      renderMarginRevertIcon: false,
     });
     const modified = diff.getModifiedEditor();
     decorations.current = modified.createDecorationsCollection();
@@ -100,10 +109,45 @@ export function DiffView({
     modified.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () =>
       callbacks.current.onCommentShortcut?.(),
     );
+
+    // A + beside the line under the mouse; clicking it comments on that line, or on the
+    // selected lines when it's inside the selection.
+    const hover = modified.createDecorationsCollection();
+    const showPlus = (line: number | null) =>
+      hover.set(
+        line === null
+          ? []
+          : [
+              {
+                range: new monaco.Range(line, 1, line, 1),
+                options: {
+                  glyphMarginClassName: 'review-add',
+                  glyphMarginHoverMessage: { value: 'Comment on this line' },
+                },
+              },
+            ],
+      );
+    const move = modified.onMouseMove((e) => showPlus(e.target.position?.lineNumber ?? null));
+    const leave = modified.onMouseLeave(() => showPlus(null));
+    const down = modified.onMouseDown((e) => {
+      const line = e.target.position?.lineNumber;
+      if (e.target.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN || !line) return;
+      const s = modified.getSelection();
+      const end =
+        s && s.endColumn === 1 && s.endLineNumber > s.startLineNumber
+          ? s.endLineNumber - 1
+          : s?.endLineNumber;
+      const inSelection =
+        s && !s.isEmpty() && end !== undefined && s.startLineNumber <= line && line <= end;
+      callbacks.current.onAddComment?.(inSelection ? [s.startLineNumber, end] : [line, line]);
+    });
     editorDisposed.current = false;
     setEditor(diff);
     return () => {
       selection.dispose();
+      move.dispose();
+      leave.dispose();
+      down.dispose();
       diff.setModel(null);
       diff.dispose();
       editorDisposed.current = true;

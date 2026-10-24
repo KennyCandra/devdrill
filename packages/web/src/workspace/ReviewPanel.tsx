@@ -121,12 +121,22 @@ export function ReviewPanel({
               )}
             </div>
           ) : (
-            <p className="leading-relaxed text-muted">
-              Select lines in the new code to comment on them: click a line number, shift-click
-              another to select more (or Shift + arrow keys in the editor, then {modKey} Enter). Up
-              to {MAX_REVIEW_COMMENTS} comments, whatever the pull request. A good pull request
-              deserves an approval and no comments.
-            </p>
+            <div className="flex flex-col gap-2 rounded border border-dashed border-line-strong p-3 leading-relaxed">
+              <p className="flex items-center gap-2 font-semibold">
+                <MessageSquarePlus size={14} className="text-accent" aria-hidden="true" />
+                Comment on the code
+              </p>
+              <p className="text-muted">
+                Hover a line in the new code and click{' '}
+                <span className="rounded bg-accent-bg px-1 font-semibold text-on-accent">+</span>.
+                To cover several lines, select them first (drag, or shift-click line numbers), then
+                click + or press {modKey} Enter.
+              </p>
+              <p className="text-muted">
+                Say what's wrong and why. Up to {MAX_REVIEW_COMMENTS} comments; a good pull request
+                needs none, just an approval.
+              </p>
+            </div>
           )}
         </div>
 
@@ -333,7 +343,7 @@ function CommentForm({
         required
         className="resize-y rounded border border-line-strong bg-bg p-1.5 leading-relaxed focus-visible:outline-2 focus-visible:outline-accent"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <span className="mr-auto text-[11px] text-muted">
           {edit.why.length}/{MAX_COMMENT_CHARS}
         </span>
