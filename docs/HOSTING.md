@@ -26,6 +26,6 @@ The link to share is `DEVDRILL_PUBLIC_URL` + `/#token=` + `DEVDRILL_TOKEN`.
 2. **Settings → Networking → Generate Domain.** Copy it (e.g. `devdrill-ada.up.railway.app`).
 3. **Variables:** add `DEVDRILL_PUBLIC_URL` = `https://` + that domain. Each service makes its own token.
 4. **Add a volume** (right-click the service → Attach volume) with mount path `/data`. Without it, progress is lost on every deploy.
-5. Deploy. The logs print `Open: https://…/#token=…`: that's the link to send.
+5. Deploy. The logs print `Open: https://…/#token=…`: that's the link to send. Take it from the **latest** deploy that has the volume: the token is saved on the volume, so a deploy before the volume was attached printed a token that no longer works.
 
 For a second person, add another service from the same repo in the same project (steps 2–5), with its own domain and volume (and so its own token).
