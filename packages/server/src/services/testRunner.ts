@@ -89,12 +89,12 @@ export async function runTests(dir: string, options: RunTestsOptions = {}): Prom
   return withTempDir('report', async (reportDir) => {
     const reportFile = path.join(reportDir, 'report.json');
     const consoleFile = path.join(reportDir, 'console.jsonl');
-    const outcome = await spawnVitest(dir, reportFile, consoleFile, timeoutMs);
-    const durationMs = Date.now() - started;
-    // Vitest reports real paths; resolve symlinks (e.g. macOS /var -> /private/var) and
-    // Windows short names (C:\Users\RUNNER~1 -> runneradmin; only the native realpath
-    // expands those) so file paths come out relative to the run folder.
+    // Run Vitest on the folder's real path, and make its paths relative to that same
+    // path: otherwise symlinks (macOS /var -> /private/var) or Windows short names
+    // (C:\Users\RUNNER~1) make the two differ, and every test file looks like ../../….
     const realDir = await realpathNative(dir);
+    const outcome = await spawnVitest(realDir, reportFile, consoleFile, timeoutMs);
+    const durationMs = Date.now() - started;
     const logs = await readConsoleLogs(consoleFile, realDir);
 
     if (outcome.timedOut) {
