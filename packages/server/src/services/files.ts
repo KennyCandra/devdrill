@@ -58,6 +58,9 @@ export async function listFiles(root: string): Promise<string[]> {
  * Resolves a user-supplied relative path inside `root`, or throws a 400.
  * Blocks `..`, absolute paths, drive letters, NUL bytes, and symlinks that point outside.
  */
+/** The longest file or folder name most file systems allow. */
+const MAX_NAME_BYTES = 255;
+
 export async function resolveInside(root: string, relPath: unknown): Promise<string> {
   if (typeof relPath !== 'string' || relPath.trim() === '' || relPath.includes('\0')) {
     throw new HttpError(400, 'A file path is required.');
@@ -66,6 +69,10 @@ export async function resolveInside(root: string, relPath: unknown): Promise<str
   const parts = relPath.split(/[\\/]+/);
   if (path.isAbsolute(relPath) || /^[a-zA-Z]:/.test(relPath) || parts.includes('..')) {
     throw outside;
+  }
+  // Checked here, not left to the OS: Windows reports an over-long name as "not found".
+  if (parts.some((p) => Buffer.byteLength(p) > MAX_NAME_BYTES)) {
+    throw new HttpError(400, 'That file name is too long.');
   }
 
   const resolved = path.resolve(root, ...parts.filter((p) => p !== '' && p !== '.'));

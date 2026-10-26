@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { readFile, realpath } from 'node:fs/promises';
+import { realpath } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
@@ -78,6 +80,8 @@ function vitestCliPath(): string {
  * `dir` needs no `node_modules`: tests use Vitest globals instead of imports.
  * Nothing is written into `dir`.
  */
+const realpathNative = promisify(realpath.native);
+
 export async function runTests(dir: string, options: RunTestsOptions = {}): Promise<TestRunResult> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const started = Date.now();
@@ -87,9 +91,10 @@ export async function runTests(dir: string, options: RunTestsOptions = {}): Prom
     const consoleFile = path.join(reportDir, 'console.jsonl');
     const outcome = await spawnVitest(dir, reportFile, consoleFile, timeoutMs);
     const durationMs = Date.now() - started;
-    // Vitest reports real paths; resolve symlinks (e.g. macOS /var -> /private/var)
-    // so file paths come out relative to the run folder.
-    const realDir = await realpath(dir);
+    // Vitest reports real paths; resolve symlinks (e.g. macOS /var -> /private/var) and
+    // Windows short names (C:\Users\RUNNER~1 -> runneradmin; only the native realpath
+    // expands those) so file paths come out relative to the run folder.
+    const realDir = await realpathNative(dir);
     const logs = await readConsoleLogs(consoleFile, realDir);
 
     if (outcome.timedOut) {
