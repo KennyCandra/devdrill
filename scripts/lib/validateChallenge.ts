@@ -469,7 +469,7 @@ export async function typeCheck(layers: readonly string[]): Promise<string[]> {
     });
     return ts.getPreEmitDiagnostics(program).map((d) => {
       const where = d.file
-        ? `${path.relative(work, d.file.fileName)}:${d.file.getLineAndCharacterOfPosition(d.start ?? 0).line + 1} `
+        ? `${path.relative(work, d.file.fileName).split(path.sep).join('/')}:${d.file.getLineAndCharacterOfPosition(d.start ?? 0).line + 1} `
         : '';
       return where + ts.flattenDiagnosticMessageText(d.messageText, ' ');
     });
