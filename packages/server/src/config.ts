@@ -12,14 +12,18 @@ export const DEFAULT_PORT = 3000;
 export interface HostedConfig {
   /** Where people open the app, e.g. https://devdrill-ada.up.railway.app. */
   publicUrl: string;
-  /** Fixed, so the link you share keeps working across restarts and deploys. */
-  token: string;
+  /**
+   * From DEVDRILL_TOKEN, or null: the server then makes one and keeps it in the data
+   * folder, so the link you share keeps working across restarts and deploys.
+   */
+  token: string | null;
   port: number;
 }
 
 /**
  * Hosted mode, for running on a server (e.g. Railway) for a few trusted people, set by
- * environment variables: DEVDRILL_PUBLIC_URL, DEVDRILL_TOKEN and the platform's PORT.
+ * environment variables: DEVDRILL_PUBLIC_URL, the platform's PORT, and optionally
+ * DEVDRILL_TOKEN.
  * Null when DEVDRILL_PUBLIC_URL isn't set: the normal local app.
  * Everyone with the link shares one progress and can run code on the server, so give
  * each person their own deployment, and the link only to people you trust.
@@ -36,11 +40,11 @@ export function hostedConfig(env: NodeJS.ProcessEnv = process.env): HostedConfig
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new Error('DEVDRILL_PUBLIC_URL must start with https:// or http://.');
   }
-  const token = env.DEVDRILL_TOKEN?.trim() ?? '';
+  const token = env.DEVDRILL_TOKEN?.trim() || null;
   // Anyone with the token can run code on the server: it must be hard to guess.
-  if (!/^[A-Za-z0-9_-]{24,}$/.test(token)) {
+  if (token !== null && !/^[A-Za-z0-9_-]{24,}$/.test(token)) {
     throw new Error(
-      'Hosted mode needs DEVDRILL_TOKEN: at least 24 letters, digits, - or _ (e.g. from `openssl rand -base64 32 | tr "+/" "-_" | tr -d =`).',
+      'DEVDRILL_TOKEN must be at least 24 letters, digits, - or _. Or leave it out: the server makes one.',
     );
   }
   const port = Number(env.PORT ?? DEFAULT_PORT);

@@ -11,12 +11,12 @@ Read this first:
 
 Set these variables; without `DEVDRILL_PUBLIC_URL` the app runs normally (local).
 
-| Variable              | Value                                                                      |
-| --------------------- | -------------------------------------------------------------------------- |
-| `DEVDRILL_PUBLIC_URL` | The URL people open, e.g. `https://devdrill-ada.up.railway.app`            |
-| `DEVDRILL_TOKEN`      | A long random secret: `openssl rand -base64 32 \| tr "+/" "-_" \| tr -d =` |
-| `PORT`                | Set by the platform                                                        |
-| `DEVDRILL_HOME`       | `/data` (the Dockerfile sets it): mount a volume there                     |
+| Variable              | Value                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `DEVDRILL_PUBLIC_URL` | The URL people open, e.g. `https://devdrill-ada.up.railway.app`                                             |
+| `DEVDRILL_TOKEN`      | Optional. Leave it out and the server makes a long random one on its first start and keeps it on the volume |
+| `PORT`                | Set by the platform                                                                                         |
+| `DEVDRILL_HOME`       | `/data` (the Dockerfile sets it): mount a volume there                                                      |
 
 The link to share is `DEVDRILL_PUBLIC_URL` + `/#token=` + `DEVDRILL_TOKEN`.
 
@@ -24,8 +24,8 @@ The link to share is `DEVDRILL_PUBLIC_URL` + `/#token=` + `DEVDRILL_TOKEN`.
 
 1. In Railway: **New Project → Deploy from GitHub repo → `devdrill`**. It finds the `Dockerfile` and `railway.json`.
 2. **Settings → Networking → Generate Domain.** Copy it (e.g. `devdrill-ada.up.railway.app`).
-3. **Variables:** add `DEVDRILL_PUBLIC_URL` = `https://` + that domain, and `DEVDRILL_TOKEN` = a new secret (one per person).
+3. **Variables:** add `DEVDRILL_PUBLIC_URL` = `https://` + that domain. Each service makes its own token.
 4. **Add a volume** (right-click the service → Attach volume) with mount path `/data`. Without it, progress is lost on every deploy.
 5. Deploy. The logs print `Open: https://…/#token=…`: that's the link to send.
 
-For a second person, add another service from the same repo in the same project (steps 2–5), with its own domain, token and volume.
+For a second person, add another service from the same repo in the same project (steps 2–5), with its own domain and volume (and so its own token).

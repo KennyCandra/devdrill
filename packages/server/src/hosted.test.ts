@@ -6,6 +6,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
 import { appPaths, hostedConfig } from './config.js';
+import { hostedToken } from './instanceLock.js';
 import { TOKEN_HEADER } from './security.js';
 import { loadChallenges } from './services/challengeLoader.js';
 
@@ -23,14 +24,27 @@ describe('hostedConfig', () => {
     ).toEqual({ publicUrl: PUBLIC, token: TOKEN, port: 8080 });
   });
 
-  it('refuses a missing or guessable token, and a bad URL', () => {
-    expect(() => hostedConfig({ DEVDRILL_PUBLIC_URL: PUBLIC })).toThrow('DEVDRILL_TOKEN');
+  it('makes the token optional (the server then creates one), but never guessable', () => {
+    expect(hostedConfig({ DEVDRILL_PUBLIC_URL: PUBLIC })).toMatchObject({ token: null });
     expect(() => hostedConfig({ DEVDRILL_PUBLIC_URL: PUBLIC, DEVDRILL_TOKEN: 'abc' })).toThrow(
       'DEVDRILL_TOKEN',
     );
     expect(() =>
       hostedConfig({ DEVDRILL_PUBLIC_URL: 'railway.app', DEVDRILL_TOKEN: TOKEN }),
     ).toThrow('full URL');
+  });
+});
+
+describe('hostedToken', () => {
+  it('creates a token once and keeps it', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'devdrill-hosted-token-'));
+    try {
+      const first = await hostedToken(dir, () => 'made-the-first-time-0123456789');
+      const again = await hostedToken(dir, () => 'should-not-be-used-0123456789');
+      expect(again).toBe(first);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

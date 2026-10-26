@@ -53,3 +53,21 @@ export async function writeInstance(dataDir: string, info: InstanceInfo): Promis
   // Only the user can read it: the token lets anyone run code through the server.
   await writeFile(lockFile(dataDir), JSON.stringify(info, null, 2) + '\n', { mode: 0o600 });
 }
+
+/**
+ * Hosted mode without DEVDRILL_TOKEN: the token made on the first start, kept in the data
+ * folder (a volume), so the shared link survives restarts and deploys.
+ */
+export async function hostedToken(dataDir: string, create: () => string): Promise<string> {
+  const file = path.join(dataDir, 'hosted-token');
+  try {
+    const saved = (await readFile(file, 'utf8')).trim();
+    if (saved) return saved;
+  } catch {
+    // First start.
+  }
+  const token = create();
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(file, token + '\n', { mode: 0o600 });
+  return token;
+}
