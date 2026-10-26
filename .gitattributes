@@ -1,0 +1,5 @@
+# Keep LF line endings everywhere, Windows checkouts included: Prettier (and the
+# format check in CI) expects them.
+* text=auto eol=lf
+*.jpg binary
+*.png binary
