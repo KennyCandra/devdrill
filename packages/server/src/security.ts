@@ -13,6 +13,8 @@ export interface SecurityOptions {
   token: string;
   /** Extra origins allowed to call the API, e.g. the Vite dev server. */
   extraOrigins?: string[];
+  /** Hosted mode: the public URL the app is served at (e.g. https://x.up.railway.app). */
+  publicUrl?: string;
 }
 
 /**
@@ -24,19 +26,24 @@ export interface SecurityOptions {
  * 4. The session token from the URL the browser was opened with. Browsers can't add
  *    this header cross-site without a preflight, which this server never approves.
  */
-export function apiSecurity({ token, extraOrigins = [] }: SecurityOptions) {
+export function apiSecurity({ token, extraOrigins = [], publicUrl }: SecurityOptions) {
   const expected = Buffer.from(token);
+  const publicOrigin = publicUrl ? [new URL(publicUrl).origin] : [];
 
   return (req: Request, res: Response, next: NextFunction): void => {
     res.set('X-Content-Type-Options', 'nosniff');
-    const allowedHosts = hostsFor(req);
+    const allowedHosts = hostsFor(req, publicUrl);
     if (!allowedHosts.includes(req.headers.host ?? '')) {
       throw new HttpError(403, 'Unexpected Host header.');
     }
 
     const origin = req.headers.origin;
     if (origin !== undefined) {
-      const allowedOrigins = [...allowedHosts.map((h) => `http://${h}`), ...extraOrigins];
+      const allowedOrigins = [
+        ...hostsFor(req).map((h) => `http://${h}`),
+        ...publicOrigin,
+        ...extraOrigins,
+      ];
       if (!allowedOrigins.includes(origin)) {
         throw new HttpError(403, 'Cross-origin requests are not allowed.');
       }
@@ -63,21 +70,23 @@ export function apiSecurity({ token, extraOrigins = [] }: SecurityOptions) {
  * plus headers that stop other sites from framing it and lock down what the page can load.
  * The token is never in these files; the page reads it from the URL fragment.
  */
-export function uiSecurity(req: Request, res: Response, next: NextFunction): void {
-  if (!hostsFor(req).includes(req.headers.host ?? '')) {
-    res.status(403).type('text/plain').send('Unexpected Host header.');
-    return;
-  }
-  res.set({
-    'Content-Security-Policy': CONTENT_SECURITY_POLICY,
-    'X-Content-Type-Options': 'nosniff',
-    // For browsers too old for CSP frame-ancestors.
-    'X-Frame-Options': 'DENY',
-    'Referrer-Policy': 'no-referrer',
-    'Cross-Origin-Opener-Policy': 'same-origin',
-  });
-  next();
-}
+export const uiSecurity =
+  (publicUrl?: string) =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    if (!hostsFor(req, publicUrl).includes(req.headers.host ?? '')) {
+      res.status(403).type('text/plain').send('Unexpected Host header.');
+      return;
+    }
+    res.set({
+      'Content-Security-Policy': CONTENT_SECURITY_POLICY,
+      'X-Content-Type-Options': 'nosniff',
+      // For browsers too old for CSP frame-ancestors.
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    });
+    next();
+  };
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -94,9 +103,14 @@ const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
 ].join('; ');
 
-function hostsFor(req: Request): string[] {
+/** This server's own addresses, plus the public host in hosted mode. */
+function hostsFor(req: Request, publicUrl?: string): string[] {
   const port = req.socket.localPort;
-  return [`127.0.0.1:${port}`, `localhost:${port}`];
+  return [
+    `127.0.0.1:${port}`,
+    `localhost:${port}`,
+    ...(publicUrl ? [new URL(publicUrl).host] : []),
+  ];
 }
 
 function hasBody(req: Request): boolean {

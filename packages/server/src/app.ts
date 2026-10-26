@@ -47,6 +47,8 @@ export interface AppOptions {
   testTimeoutMs?: number;
   /** The built web UI to serve, if any (in development Vite serves it instead). */
   uiDir?: string | null;
+  /** Hosted mode: the public URL, allowed by the Host and Origin checks. */
+  publicUrl?: string;
 }
 
 export function createApp(options: AppOptions) {
@@ -60,7 +62,13 @@ export function createApp(options: AppOptions) {
   app.disable('x-powered-by');
 
   const api = express.Router();
-  api.use(apiSecurity({ token: options.token, extraOrigins: options.extraOrigins ?? [] }));
+  api.use(
+    apiSecurity({
+      token: options.token,
+      extraOrigins: options.extraOrigins ?? [],
+      ...(options.publicUrl ? { publicUrl: options.publicUrl } : {}),
+    }),
+  );
   // JSON bodies can carry a whole file, plus a little room for the wrapper.
   api.use(express.json({ limit: MAX_FILE_BYTES * 2 }));
 
@@ -317,7 +325,7 @@ export function createApp(options: AppOptions) {
 
   if (options.uiDir) {
     const uiDir = options.uiDir;
-    app.use(uiSecurity);
+    app.use(uiSecurity(options.publicUrl));
     // Built assets have content hashes in their names, so they can be cached for good.
     // A missing asset is a real 404 (e.g. an old tab asking for a chunk from before an
     // upgrade), not the app page with a 200.

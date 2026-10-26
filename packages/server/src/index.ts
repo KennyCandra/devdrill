@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import open from 'open';
 import { createApp } from './app.js';
 import { HELP, parseCliArgs, type CliOptions } from './cli.js';
-import { APP_NAME, appPaths, dataDir, DEFAULT_PORT, HOST } from './config.js';
+import { APP_NAME, appPaths, dataDir, DEFAULT_PORT, HOST, hostedConfig } from './config.js';
 import { isRunning, readInstance, writeInstance } from './instanceLock.js';
 import { createSessionToken } from './security.js';
 import { loadChallenges } from './services/challengeLoader.js';
@@ -26,11 +26,21 @@ if (options.version) {
   process.exit(0);
 }
 
-const home = dataDir();
-const appUrl = (port: number, token: string) => `http://${HOST}:${port}/#token=${token}`;
+let hosted: ReturnType<typeof hostedConfig>;
+try {
+  hosted = hostedConfig();
+} catch (err) {
+  console.error((err as Error).message);
+  process.exit(1);
+}
 
-// One server per data folder: two would overwrite each other's progress.
-const previous = await readInstance(home);
+const home = dataDir();
+const appUrl = (port: number, token: string) =>
+  hosted ? `${hosted.publicUrl}/#token=${token}` : `http://${HOST}:${port}/#token=${token}`;
+
+// One server per data folder: two would overwrite each other's progress. (Hosted, the
+// platform runs exactly one.)
+const previous = hosted ? null : await readInstance(home);
 if (previous && (await isRunning(previous))) {
   const url = appUrl(previous.port, previous.token);
   console.log(`${APP_NAME} is already running.\nOpen: ${url}`);
@@ -42,7 +52,7 @@ if (previous && (await isRunning(previous))) {
 }
 
 // Reusing the last token keeps tabs from a previous run working after a restart.
-const token = previous?.token ?? createSessionToken();
+const token = hosted?.token ?? previous?.token ?? createSessionToken();
 const challenges = await loadChallenges(appPaths().challenges);
 
 const app = createApp({
@@ -52,11 +62,16 @@ const app = createApp({
   uiDir: appPaths().ui,
   // The Vite dev server (milestone M3) proxies /api from this origin.
   extraOrigins: process.env.DEVDRILL_DEV_ORIGIN ? [process.env.DEVDRILL_DEV_ORIGIN] : [],
+  ...(hosted ? { publicUrl: hosted.publicUrl } : {}),
 });
 
-const server = await listen(options.port, previous?.port ?? DEFAULT_PORT);
+// Hosted, listen on every interface (the platform's proxy forwards to it); locally,
+// only this machine.
+const server = hosted
+  ? await listenOn(hosted.port, '0.0.0.0')
+  : await listen(options.port, previous?.port ?? DEFAULT_PORT);
 const { port } = server.address() as AddressInfo;
-await writeInstance(home, { pid: process.pid, port, token });
+if (!hosted) await writeInstance(home, { pid: process.pid, port, token });
 
 // The token goes in the fragment so it never reaches server logs or Referer headers.
 const url = appUrl(port, token);
@@ -66,7 +81,7 @@ console.log('Press Ctrl+C to stop.');
 if (!appPaths().ui) {
   console.log("Note: the web UI isn't built here. In this repo, use `npm run dev` instead.");
 }
-if (options.open) await openBrowser(url);
+if (options.open && !hosted) await openBrowser(url);
 
 // server.json stays on shutdown: the next start sees this pid is gone and reuses the token.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -84,6 +99,14 @@ async function openBrowser(target: string): Promise<void> {
   } catch {
     console.log('Could not open a browser; open the link above yourself.');
   }
+}
+
+function listenOn(port: number, host: string): Promise<Server> {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, host);
+    server.once('listening', () => resolve(server));
+    server.once('error', reject);
+  });
 }
 
 /**
