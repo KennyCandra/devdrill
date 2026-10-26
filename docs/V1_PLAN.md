@@ -314,7 +314,7 @@ Deferred from the M3 review (not blocking v1):
 ## 13. Open decisions (need Ahmed)
 
 1. ~~**Final project name.**~~ **DevDrill** (`npx devdrill`), chosen 2026-10-22.
-2. **GitHub org or personal account**, then add `repository`, `homepage` and `bugs` to the release `package.json` (`scripts/build-release.ts`) so README links work on npmjs.com.
+2. ~~**GitHub org or personal account.**~~ Personal: [KennyCandra/devdrill](https://github.com/KennyCandra/devdrill), linked from the release `package.json`.
 3. **Playtest** the 8 challenges (M5) and adjust README, hints and estimates.
 4. **Publish:** `npm run build:release && npm publish ./release` (after 1–3).
 
