@@ -5,8 +5,6 @@ import type { AiFeature } from '../service.js';
 const KINDS: readonly FeedbackKind[] = ['good', 'risk', 'readability', 'simpler'];
 const MAX_POINTS = 6;
 const MAX_TEXT = 800;
-/** Enough for any challenge; keeps a pasted log or huge file from blowing up the request. */
-const MAX_PROMPT_CHARS = 120_000;
 
 export interface SolutionFeedbackInput {
   /** The task (the challenge README). */
@@ -32,9 +30,7 @@ export function solutionFeedback(input: SolutionFeedbackInput): AiFeature<Soluti
     changed.length > 0 ? changed.join('\n\n') : '(no files changed)',
     '# A reference solution (for comparison only)',
     reference.join('\n\n'),
-  ]
-    .join('\n\n')
-    .slice(0, MAX_PROMPT_CHARS);
+  ].join('\n\n');
 
   return {
     system: SOLUTION_FEEDBACK_SYSTEM,

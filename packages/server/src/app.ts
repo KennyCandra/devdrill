@@ -69,6 +69,12 @@ export function createApp(options: AppOptions) {
   const settings = createSettingsStore(dataDir);
   const reviews = new ReviewService(workspaces);
   const ai = new AiService(AiConfigStore.inDataDir(dataDir), options.aiProvider);
+  /**
+   * The AI's last hints per workspace ("lang:id"), so it doesn't repeat itself. Kept here,
+   * not taken from the browser, so no other text can be slipped into the prompt.
+   */
+  const aiHints = new Map<string, string[]>();
+  const AI_HINTS_KEPT = 3;
 
   const app = express();
   app.disable('x-powered-by');
@@ -255,6 +261,7 @@ export function createApp(options: AppOptions) {
     reviews.forget(target);
     const files = await workspaces.reset(target);
     reviews.forget(target);
+    aiHints.delete(progressKey(target.lang, target.challenge.meta.id));
     res.json({ challengeId: target.challenge.meta.id, files: visibleFiles(target, files) });
   });
 
@@ -370,11 +377,19 @@ export function createApp(options: AppOptions) {
     if ((await progressOf(target)).status !== 'solved') {
       throw new HttpError(403, 'Solve the challenge first, then ask for feedback.');
     }
+    const changes = await workspaces.changes(target);
+    if (changes.length === 0) {
+      // E.g. reset after solving: there's nothing of the player's to review.
+      throw new HttpError(
+        409,
+        'Your code is back to the starting files: there is nothing to review.',
+      );
+    }
     res.json(
       await ai.run(
         solutionFeedback({
           task: target.challenge.readme,
-          changes: await workspaces.changes(target),
+          changes,
           reference: await workspaces.solution(target),
         }),
         abortWhenClosed(res),
@@ -391,20 +406,23 @@ export function createApp(options: AppOptions) {
     const shownHints = Array.isArray(body.shownHints)
       ? body.shownHints.filter((h): h is string => typeof h === 'string' && known.has(h))
       : [];
+    // Source files only (the code and visible tests), each capped: config files add nothing.
     const files = await Promise.all(
       (await workspaces.files(target))
-        .filter((f) => /\.(?:[cm]?[jt]s|json|md)$/.test(f))
+        .filter((f) => /\.[cm]?[jt]s$/.test(f))
         .map(async (f) => {
           const { content } = await workspaces.readFile(target, f);
-          return { path: f, content };
+          return { path: f, content: content.slice(0, 20_000) };
         }),
     );
-    res.json(
-      await ai.run(
-        hint({ task: target.challenge.readme, files, shownHints }),
-        abortWhenClosed(res),
-      ),
+    const key = progressKey(target.lang, target.challenge.meta.id);
+    const earlier = aiHints.get(key) ?? [];
+    const answer = await ai.run(
+      hint({ task: target.challenge.readme, files, shownHints: [...shownHints, ...earlier] }),
+      abortWhenClosed(res),
     );
+    aiHints.set(key, [...earlier, answer.hint].slice(-AI_HINTS_KEPT));
+    res.json(answer);
   });
 
   // The AI judges each issue against the player's comments and pre-ticks what was caught.

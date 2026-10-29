@@ -95,34 +95,37 @@ export function AiFeedback({ id, lang }: { id: string; lang: Language }) {
           {error}
         </p>
       )}
-      {feedback && (
-        <div className="animate-fade-in flex flex-col gap-2" aria-live="polite">
-          <p className="leading-relaxed">{feedback.summary}</p>
-          {feedback.points.length === 0 && (
-            <p className="text-muted">Nothing to add: the AI had no points.</p>
-          )}
-          <ul className="flex flex-col gap-2">
-            {feedback.points.map((p, i) => (
-              <li key={i} className="flex gap-2 rounded bg-bg p-2 leading-relaxed">
-                <span
-                  className={`h-fit shrink-0 rounded px-1.5 py-px text-[11px] font-medium ${KIND_STYLE[p.kind]}`}
-                >
-                  {KIND_LABELS[p.kind]}
-                </span>
-                <span>
-                  {p.file && (
-                    <span className="block font-mono text-[12px] text-muted">
-                      {p.file}
-                      {p.line ? `:${p.line}` : ''}
-                    </span>
-                  )}
-                  {p.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Mounted before the answer arrives, so screen readers announce it. */}
+      <div aria-live="polite">
+        {feedback && (
+          <div className="animate-fade-in flex flex-col gap-2">
+            <p className="leading-relaxed">{feedback.summary}</p>
+            {feedback.points.length === 0 && (
+              <p className="text-muted">Nothing to add: the AI had no points.</p>
+            )}
+            <ul className="flex flex-col gap-2">
+              {feedback.points.map((p, i) => (
+                <li key={i} className="flex gap-2 rounded bg-bg p-2 leading-relaxed">
+                  <span
+                    className={`h-fit shrink-0 rounded px-1.5 py-px text-[11px] font-medium ${KIND_STYLE[p.kind]}`}
+                  >
+                    {KIND_LABELS[p.kind]}
+                  </span>
+                  <span>
+                    {p.file && (
+                      <span className="block font-mono text-[12px] text-muted">
+                        {p.file}
+                        {p.line ? `:${p.line}` : ''}
+                      </span>
+                    )}
+                    {p.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

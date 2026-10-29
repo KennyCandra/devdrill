@@ -8,7 +8,7 @@ export interface HintInput {
   task: string;
   /** The player's files as they are now. Never the reference solution: that's the answer. */
   files: { path: string; content: string }[];
-  /** The written hints they've already seen, so the AI doesn't repeat them. */
+  /** The hints they've already seen (written ones and earlier AI ones), so it doesn't repeat them. */
   shownHints: string[];
 }
 

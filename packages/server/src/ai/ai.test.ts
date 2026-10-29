@@ -402,6 +402,9 @@ describe('AI feedback on a solution', () => {
       expect(sent).toContain('# A reference solution');
 
       await call('post', `/workspaces/review-001-order-coupons/feedback`).send({}).expect(400);
+      // Reset after solving: nothing of the player's to review.
+      await call('post', `/workspaces/${ID}/reset`).expect(200);
+      await call('post', `/workspaces/${ID}/feedback`).send({}).expect(409);
     } finally {
       server.close();
       await rm(dataDir, { recursive: true, force: true });
@@ -512,6 +515,10 @@ describe('AI hint', () => {
       expect(prompt).toContain(firstHint);
       expect(prompt).not.toContain('reveal the answer');
       expect(prompt).not.toContain('reference solution');
+      // The next hint sees the AI's own earlier one, so it doesn't repeat itself.
+      await call('post', `/workspaces/${ID}/hint`).send({}).expect(200);
+      expect(fake.requests.at(-1)?.prompt).toContain('- Compare the coupon types.');
+      expect(fake.requests.at(-1)?.prompt).not.toContain('package.json');
       await call('post', '/workspaces/review-001-order-coupons/hint').send({}).expect(400);
     } finally {
       server.close();

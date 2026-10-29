@@ -1,6 +1,6 @@
 # DevDrill — Version 1.2 Plan: the AI module
 
-> Status: built (A0–A5) on 2026-10-29, each milestone checked by a fresh reviewer. Tried against a local Ollama model (qwen3.5:4b); Claude, OpenAI, OpenCode and Custom are covered by tests with fakes, not yet by a real key.
+> Status: built (A0–A5) on 2026-10-29, each milestone checked by a fresh reviewer, then a final review of the whole module (no must-fix issues). Every feature was tried for real against a local Ollama model (qwen3.5:4b, through the UI). Claude, OpenAI, OpenCode and Custom are covered by tests with fakes only: try each once with a real key before relying on it, and check the default model names (`claude-opus-5-5`, `gpt-5.5`).
 
 ## 1. Goal
 
@@ -45,3 +45,4 @@ Each: build → a fresh reviewer agent checks it → fix → commit. Commit afte
 
 - **OpenCode runs tools.** Our requests switch off every tool OpenCode ships with. Tools from MCP servers a player added to OpenCode aren't covered by that list; players using OpenCode with MCP servers should know the model could call them.
 - **Changing a provider's URL drops its saved key**, so a key can't be redirected to another server (in hosted mode anyone with the link can edit Settings).
+- **Hosted mode and base URLs:** anyone with the link can point a provider at another address (they only learn whether it answered). Fine for a few trusted friends; don't host it publicly.

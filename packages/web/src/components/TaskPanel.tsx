@@ -96,18 +96,20 @@ export function TaskPanel({
             </span>
           </p>
         ))}
-        {aiHints.map((hint, i) => (
-          <p
-            key={`ai-${i}`}
-            className="animate-fade-in flex gap-2 rounded bg-hover p-2 leading-relaxed"
-          >
-            <Bot size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-            <span>
-              <span className="text-muted">AI hint: </span>
-              {hint}
-            </span>
-          </p>
-        ))}
+        <div aria-live="polite" className="contents">
+          {aiHints.map((hint, i) => (
+            <p
+              key={`ai-${i}`}
+              className="animate-fade-in flex gap-2 rounded bg-hover p-2 leading-relaxed"
+            >
+              <Bot size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
+              <span>
+                <span className="text-muted">AI hint: </span>
+                {hint}
+              </span>
+            </p>
+          ))}
+        </div>
         {aiError && (
           <p role="alert" className="text-danger">
             {aiError}
