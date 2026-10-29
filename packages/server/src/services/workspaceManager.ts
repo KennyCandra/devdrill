@@ -242,6 +242,24 @@ export class WorkspaceManager {
     );
   }
 
+  /**
+   * What the player changed: each workspace file that differs from the starter (or is new),
+   * next to its starter version. Text files only, at most MAX_FILE_BYTES each.
+   */
+  async changes(t: Target): Promise<SolutionFile[]> {
+    const dir = await this.requireDir(t);
+    const starterDir = this.layer(t, 'starter');
+    const changed: SolutionFile[] = [];
+    for (const rel of await listFiles(dir)) {
+      const bytes = await readFile(path.join(dir, rel)).catch(() => null);
+      if (!bytes || bytes.length > MAX_FILE_BYTES || bytes.includes(0)) continue;
+      const current = bytes.toString('utf8');
+      const starter = await readFile(path.join(starterDir, rel), 'utf8').catch(() => null);
+      if (starter !== current) changed.push({ path: rel, starter, solution: current });
+    }
+    return changed;
+  }
+
   /** The reference solution: each changed file next to its starter version. */
   async solution(t: Target): Promise<SolutionFile[]> {
     const solutionDir = this.layer(t, 'solution');

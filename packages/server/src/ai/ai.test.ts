@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { AiSettings, AiTestResult, ReviewResult } from '@devdrill/shared';
+import type { AiSettings, AiTestResult, ReviewResult, SolutionFeedback } from '@devdrill/shared';
 import { createApp } from '../app.js';
 import { appPaths } from '../config.js';
 import { TOKEN_HEADER } from '../security.js';
@@ -347,5 +347,65 @@ describe('AI judges a review', () => {
       verdict: 'approve',
     });
     expect(() => feature.parse({ issues: [] })).toThrow('no verdict for a');
+  });
+});
+
+describe('AI feedback on a solution', () => {
+  it('waits for the solve, then reviews your change against the reference', async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), 'devdrill-ai-feedback-'));
+    const fake = createFakeProvider(() =>
+      JSON.stringify({
+        summary: 'Clean fix.',
+        points: [
+          { kind: 'good', file: 'src/discount.js', line: 3, text: 'Right comparison.' },
+          { kind: 'risk', file: 'src/elsewhere.js', line: 9, text: 'Not your file.' },
+          { kind: 'nonsense', file: '', line: 0, text: 'Dropped.' },
+        ],
+      }),
+    );
+    const app = createApp({
+      challenges: await loadChallenges(appPaths().challenges),
+      dataDir,
+      token: 'test-token-0123456789abcdef',
+      aiProvider: fake,
+    });
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise((resolve) => server.once('listening', resolve));
+    const host = `127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const call = (method: 'get' | 'put' | 'post', url: string) => {
+      const agent = request(server);
+      return agent[method](`/api${url}`)
+        .set('Host', host)
+        .set(TOKEN_HEADER, 'test-token-0123456789abcdef');
+    };
+    const ID = 'debug-001-cart-discount';
+    try {
+      await call('post', `/challenges/${ID}/start`).expect(200);
+      await call('post', `/workspaces/${ID}/feedback`).send({}).expect(403);
+
+      const file = `/workspaces/${ID}/files?path=src/discount.js`;
+      const { content } = (await call('get', file).expect(200)).body as { content: string };
+      await call('put', file)
+        .send({ content: content.replace("'percentage'", "'percent'") })
+        .expect(200);
+      await call('post', `/workspaces/${ID}/submit`).send({}).expect(200);
+
+      const res = await call('post', `/workspaces/${ID}/feedback`).send({}).expect(200);
+      const feedback = res.body as SolutionFeedback;
+      expect(feedback.summary).toBe('Clean fix.');
+      expect(feedback.points).toEqual([
+        { kind: 'good', file: 'src/discount.js', line: 3, text: 'Right comparison.' },
+        { kind: 'risk', file: null, line: null, text: 'Not your file.' },
+      ]);
+      const sent = fake.requests.at(-1)?.prompt ?? '';
+      expect(sent).toContain('## src/discount.js');
+      expect(sent).toContain("coupon.type === 'percent'");
+      expect(sent).toContain('# A reference solution');
+
+      await call('post', `/workspaces/review-001-order-coupons/feedback`).send({}).expect(400);
+    } finally {
+      server.close();
+      await rm(dataDir, { recursive: true, force: true });
+    }
   });
 });

@@ -342,3 +342,12 @@ export interface AiTestResult {
   message: string;
   durationMs: number;
 }
+
+export type FeedbackKind = 'good' | 'risk' | 'readability' | 'simpler';
+
+/** The AI's feedback on a solved debug/feature challenge: how the code could be better. */
+export interface SolutionFeedback {
+  /** Two or three sentences on the solution as a whole. */
+  summary: string;
+  points: { kind: FeedbackKind; file: string | null; line: number | null; text: string }[];
+}

@@ -19,6 +19,7 @@ import type {
   SaveFileRequest,
   SessionInfo,
   Settings,
+  SolutionFeedback,
   SolutionFile,
   SubmitRequest,
   SubmitResult,
@@ -29,6 +30,7 @@ import type {
 import { AiConfigStore } from './ai/config.js';
 import type { AiProvider } from './ai/provider.js';
 import { judgeReview } from './ai/features/judgeReview.js';
+import { solutionFeedback } from './ai/features/solutionFeedback.js';
 import { AiService } from './ai/service.js';
 import { APP_NAME } from './config.js';
 import { HttpError } from './httpError.js';
@@ -358,6 +360,25 @@ export function createApp(options: AppOptions) {
 
   api.get('/ai/status', async (_req, res: Response<AiStatus>) => {
     res.json({ enabled: await ai.enabled() });
+  });
+
+  // Feedback on a solved debug/feature challenge. Only once it's solved: the AI sees the
+  // reference solution, so before that it could hand out the answer.
+  api.post('/workspaces/:id/feedback', async (req, res: Response<SolutionFeedback>) => {
+    const target = codeTargetOf(req);
+    if ((await progressOf(target)).status !== 'solved') {
+      throw new HttpError(403, 'Solve the challenge first, then ask for feedback.');
+    }
+    res.json(
+      await ai.run(
+        solutionFeedback({
+          task: target.challenge.readme,
+          changes: await workspaces.changes(target),
+          reference: await workspaces.solution(target),
+        }),
+        abortWhenClosed(res),
+      ),
+    );
   });
 
   // The AI judges each issue against the player's comments and pre-ticks what was caught.
