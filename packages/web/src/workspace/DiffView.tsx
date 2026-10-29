@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { IssueType, LineRange, ReviewComment, ReviewFile } from '@devdrill/shared';
-import { CATEGORY_LABELS } from '@devdrill/shared/review';
+import type { LineRange, ReviewComment, ReviewFile } from '@devdrill/shared';
 import { languageFor, monaco } from '../editor/monacoSetup';
 import type { ResolvedTheme } from '../theme';
 import { holdsFunction } from './functionText';
@@ -20,7 +19,6 @@ export function DiffView({
   files,
   activePath,
   comments,
-  issueTypes,
   pending,
   focusedId,
   theme,
@@ -36,7 +34,6 @@ export function DiffView({
   files: ReviewFile[];
   activePath: string;
   comments: ReviewComment[];
-  issueTypes: IssueType[];
   /** Lines being commented on right now, highlighted. */
   pending: LineRange | null;
   focusedId: string | null;
@@ -227,14 +224,12 @@ export function DiffView({
         zones.addZone({
           afterLineNumber: c.lines[1],
           heightInLines: 2 + Math.min(3, Math.ceil(c.why.length / 90)),
-          domNode: commentNode(c, issueTypes, c.id === focusedId, () =>
-            callbacks.current.onCommentClick(c.id),
-          ),
+          domNode: commentNode(c, c.id === focusedId, () => callbacks.current.onCommentClick(c.id)),
           suppressMouseDown: true,
         }),
       );
     });
-  }, [editor, files, activePath, comments, issueTypes, pending, focusedId]);
+  }, [editor, files, activePath, comments, pending, focusedId]);
 
   useEffect(() => {
     if (!editor || clearSelection === undefined || clearSelection === 0) return;
@@ -258,24 +253,12 @@ export function DiffView({
 }
 
 /** A comment shown inside the editor. Plain DOM (Monaco owns it); text only, no HTML. */
-function commentNode(
-  comment: ReviewComment,
-  issueTypes: IssueType[],
-  focused: boolean,
-  onClick: () => void,
-): HTMLElement {
-  const type = issueTypes.find((t) => t.id === comment.type);
+function commentNode(comment: ReviewComment, focused: boolean, onClick: () => void): HTMLElement {
   const node = document.createElement('div');
   node.className = focused ? 'review-zone review-zone-focused' : 'review-zone';
   const head = document.createElement('div');
   head.className = 'review-zone-head';
-  head.textContent = [
-    type ? CATEGORY_LABELS[type.category] : null,
-    type?.label ?? comment.type,
-    lineLabel(comment.lines),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  head.textContent = `Your comment · ${lineLabel(comment.lines)}`;
   const why = document.createElement('div');
   why.className = 'review-zone-why';
   why.textContent = comment.why;

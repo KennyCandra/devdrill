@@ -143,15 +143,18 @@ try {
         id: 'smoke',
         file: 'src/orders.js',
         lines: [20, 20],
-        type: 'mutates-shared-state',
         why: 'It changes the cart order.',
       },
     ],
   });
   const review = (await api('POST', `/workspaces/${REVIEW}/review/submit`, {})) as {
-    solved: boolean;
+    passed: boolean;
   };
-  check(review.solved, 'a review that finds the must-fix issue is solved');
+  check(review.passed, 'a review with the right verdict passes');
+  const scored = (await api('PUT', `/workspaces/${REVIEW}/review/caught`, {
+    caught: ['coupon-mutates-order'],
+  })) as { score: number };
+  check(scored.score === 50, `ticking the must-fix issue scores 50% (${scored.score}%)`);
 
   console.log('Smoke test passed.');
 } catch (err) {

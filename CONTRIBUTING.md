@@ -126,10 +126,11 @@ Each entry in `issues.json`:
 }
 ```
 
-- `type` is an id from `challenges/review/issue-types.json` (shared types, plus some per language). `alsoAccept` lists other types of the same category that describe the issue fairly, e.g. `missing-test` for a `weak-test`.
-- `severity`: `must` blocks merging (the right verdict is then "Request changes"), `should` is worth a comment, `nit` is a style point. A PR with no `must` issue should be approved.
+- `type` is an id from `challenges/review/issue-types.json` (shared types, plus some per language), shown as a label next to the issue in the answer key. (`alsoAccept` is optional and currently unused: players' comments have no type; they grade themselves against the key.)
+- `severity`: `must` blocks merging (the right verdict is then "Request changes"), `should` is worth a comment, `nit` is a style point. A PR with no `must` issue should be approved. Severity also weighs the player's self-graded score: must 3, should 2, nit 1.
 - `lines` are in the head version. With `function`, they must be exactly that function; without, at most 40 lines.
-- At most 5 issues: players get 7 comments, so the comment limit never gives the count away. (After a submit, results do show how many issues of each severity there were.)
+- At most 5 issues: players get 7 comments, so the comment limit never gives the count away.
+- Each issue's `lines` decide which of the player's comments appear under it in the results, so keep them on the code a reviewer would point at.
 
 Make it fair:
 

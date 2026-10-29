@@ -21,7 +21,6 @@ import { useResolvedTheme } from '../theme';
 import { DiffView, functionAround, lineLabel } from '../workspace/DiffView';
 import { ReviewDraftStore } from '../workspace/reviewDraft';
 import { ReviewPanel, type CommentEdit } from '../workspace/ReviewPanel';
-import { saveReviewResult } from '../workspace/results';
 import { ActiveTimer } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
 import { layoutStorage } from './Workspace';
@@ -125,7 +124,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
       return;
     }
     setMessage(null);
-    setEditing({ file: activePath, lines, type: '', why: '' });
+    setEditing({ file: activePath, lines, why: '' });
   };
   const startComment = () => openComment(selection);
 
@@ -155,7 +154,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
       id: editing.id ?? newCommentId(),
       file: editing.file,
       lines: editing.lines,
-      type: editing.type,
       why: editing.why.trim(),
     };
     if (editing.id) store.updateComment(comment);
@@ -187,8 +185,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
       await store.flush();
       const elapsed = timer.get();
       const review = await api.submitReview(id, { elapsedMs: elapsed }, lang);
-      saveReviewResult(id, lang, { review, elapsedMs: elapsed });
-      if (review.solved) timer.reset(); // the next try is a new attempt
+      if (review.passed) timer.reset(); // the next try is a new attempt
       if (mounted.current) navigate(resultsPath(id));
     } catch (err) {
       if (!mounted.current) return;
@@ -320,7 +317,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                 files={pr.files}
                 activePath={activePath}
                 comments={draft.comments}
-                issueTypes={pr.issueTypes}
                 pending={editing && editing.file === activePath ? editing.lines : null}
                 clearSelection={clearSelection}
                 onCommentShortcut={startComment}
@@ -340,7 +336,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
             activePath={activePath}
             selection={selection}
             comments={draft.comments}
-            issueTypes={pr.issueTypes}
             verdict={draft.verdict}
             editing={editing}
             focusedId={focusedId}

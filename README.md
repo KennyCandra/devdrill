@@ -30,12 +30,11 @@ A debug or feature challenge has a short task description, a few files, and test
 
 Hints come one at a time, from "where to look" to "almost the answer". A timer runs while you work, like in a timed interview; you can turn it off in Settings.
 
-**Review challenges** show the pull request's description and its diff. Select lines in the new code (or a whole function) and leave a comment: pick the kind of issue (a bug like a missing `await`, a security problem, a missing test…) and say why. Then approve the pull request or request changes, and submit.
+**Review challenges** show the pull request's description and its diff. Hover a line in the new code and click **+** (or select several lines, or a whole function) to leave a comment in your own words. Then approve the pull request or request changes, and submit.
 
-- Grading has no AI and no guessing: a comment counts when it's in the right place **and** names the right kind of issue.
-- You have up to 7 comments, whatever the pull request; comments that point at nothing real are false alarms, and more than one fails the review.
-- Some pull requests are fine as they are: then the right review is an approval with no comments.
-- Missed issues show only how serious they are and their category until you solve the review; after that, or behind a confirm, you can see the answer key.
+- **Passing is the verdict:** request changes when something must change before merging, approve when nothing does. Some pull requests are fine as they are.
+- **Then you grade yourself:** the answer key appears next to your review, with your comments under each issue they're on. Tick the issues you really caught; your score is the share you ticked, and must-fix issues count most (must 3, should 2, nit 1).
+- Without AI there's no fair way to judge free-text comments automatically, so DevDrill doesn't pretend to. Your results, ticks and best score are saved, so you can come back to them.
 
 **Languages:** every challenge comes in JavaScript and TypeScript. Pick one on the challenge list, in Settings, or inside a challenge. Your code and progress are kept separately per language. In TypeScript, type errors are underlined like in VS Code, but they don't stop the tests from running.
 

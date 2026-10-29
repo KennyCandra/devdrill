@@ -159,6 +159,8 @@ export interface ProgressEntry {
   startedAt?: string;
   bestTimeMs?: number;
   solvedAt?: string;
+  /** Review challenges: the best self-graded score, 0–100. */
+  bestScore?: number;
 }
 
 export interface Settings {
@@ -224,14 +226,11 @@ export interface ReviewPullRequest {
 
 export type ReviewVerdict = 'approve' | 'request_changes';
 
-/** A structured review comment: where, what kind of issue, and why. */
+/** A review comment: the lines it's on, and what's wrong in the player's words. */
 export interface ReviewComment {
   id: string;
   file: string;
   lines: LineRange;
-  /** An `IssueType` id. */
-  type: string;
-  /** In the player's words. Not graded here; the AI module will. */
   why: string;
 }
 
@@ -241,31 +240,40 @@ export interface ReviewDraft {
   verdict: ReviewVerdict | null;
 }
 
+/** One planted issue next to the player's review, shown after submitting. */
 export interface IssueOutcome {
-  id: string;
-  severity: ReviewSeverity;
-  category: ReviewCategory;
-  found: boolean;
-  /** The comment that found it. */
-  commentId?: string;
-  /**
-   * Where and what: given for found issues, and for every issue once the challenge is solved.
-   * A missed issue of an unsolved review shows only its severity and category.
-   */
-  details?: Omit<ReviewIssue, 'id' | 'severity'>;
+  issue: ReviewIssue;
+  /** This issue's share of the score, in percent (by severity: must 3, should 2, nit 1). */
+  weight: number;
+  /** Ids of the player's comments on this issue's lines, to compare with. */
+  nearby: string[];
+  /** The player ticked "I caught this". */
+  caught: boolean;
 }
 
+/**
+ * A submitted review. Only the verdict is checked automatically (it decides "passed");
+ * the player compares their comments with the answer key and ticks what they caught,
+ * which gives the score. Saved in the workspace, so it can be reopened later.
+ */
 export interface ReviewResult {
-  solved: boolean;
-  verdict: { given: ReviewVerdict; correct: boolean };
+  passed: boolean;
+  verdict: { given: ReviewVerdict; expected: ReviewVerdict };
   issues: IssueOutcome[];
-  /** Ids of comments that match no issue. */
-  falseAlarms: string[];
-  /** The comments that were graded, so the results screen can show them later. */
+  /** Ids of comments near no issue: maybe good points the key doesn't have. */
+  others: string[];
   comments: ReviewComment[];
+  /** 0–100, from the ticks. A PR with no issues scores 100 when passed. */
+  score: number;
+  submittedAt: string;
   progress: ProgressEntry;
 }
 
 export interface ReviewSubmitRequest {
   elapsedMs?: number;
+}
+
+/** The issues the player ticked as caught. */
+export interface ReviewCaughtRequest {
+  caught: string[];
 }

@@ -166,6 +166,10 @@ export const api = {
     request<ReviewDraft>('PUT', `/workspaces/${enc(id)}/review`, draft, lang),
   submitReview: (id: string, body: ReviewSubmitRequest, lang?: Language) =>
     request<ReviewResult>('POST', `/workspaces/${enc(id)}/review/submit`, body, lang),
+  reviewResult: (id: string, lang?: Language) =>
+    request<ReviewResult>('GET', `/workspaces/${enc(id)}/review/result`, undefined, lang),
+  setCaught: (id: string, caught: string[], lang?: Language) =>
+    request<ReviewResult>('PUT', `/workspaces/${enc(id)}/review/caught`, { caught }, lang),
 
   /** The review draft's last-chance save while the page closes (see saveFileOnUnload). */
   saveReviewOnUnload: (id: string, draft: ReviewDraft, lang?: Language) => {

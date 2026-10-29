@@ -608,7 +608,6 @@ describe('review challenges', () => {
     id: 'c1',
     file: 'src/orders.js',
     lines: [20, 20],
-    type: 'mutates-shared-state',
     why: 'It changes the prices of the order the cart still shows.',
   };
   const saveDraft = (draft: ReviewDraft, lang = 'js') =>
@@ -657,7 +656,6 @@ describe('review challenges', () => {
   it('rejects comments outside the pull request, and more than 7', async () => {
     await saveDraft({ comments: [{ ...MUST, file: 'src/other.js' }], verdict: null }).expect(400);
     await saveDraft({ comments: [{ ...MUST, lines: [20, 999] }], verdict: null }).expect(400);
-    await saveDraft({ comments: [{ ...MUST, type: 'made-up' }], verdict: null }).expect(400);
     await saveDraft({ comments: [{ ...MUST, why: '  ' }], verdict: null }).expect(400);
     const eight = Array.from({ length: 8 }, (_, i) => ({ ...MUST, id: `c${i}` }));
     await saveDraft({ comments: eight, verdict: null }).expect(400);
@@ -668,28 +666,56 @@ describe('review challenges', () => {
     await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({}).expect(400);
   });
 
-  it('solves the review when the must is found and changes are requested', async () => {
+  it('passes on the right verdict and shows the answer key next to the comments', async () => {
     await saveDraft({ comments: [MUST], verdict: 'request_changes' }).expect(200);
     const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`)
       .send({ elapsedMs: 60_000 })
       .expect(200);
     const result = res.body as ReviewResult;
-    expect(result.solved).toBe(true);
+    expect(result.passed).toBe(true);
     expect(result.progress).toMatchObject({ status: 'solved', bestTimeMs: 60_000 });
-    expect(result.issues.every((i) => i.details)).toBe(true);
+    expect(result.issues.map((o) => o.issue.id)).toEqual([
+      'coupon-mutates-order',
+      'coupon-test-checks-nothing',
+      'free-shipping-magic-number',
+    ]);
+    expect(result.issues[0]?.nearby).toEqual(['c1']);
+    expect(result.score).toBe(0);
   });
 
-  it('keeps where and what of missed issues hidden until solved', async () => {
-    await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`).send({}).expect(404); // not started
-    // TypeScript is unsolved here (JavaScript was solved above, which reveals everything).
-    await api('post', `/challenges/${REVIEW}/start?lang=ts`).expect(200);
-    await saveDraft({ comments: [], verdict: 'approve' }, 'ts').expect(200);
-    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`).send({});
-    const result = res.body as ReviewResult;
-    expect(result.solved).toBe(false);
-    expect(result.verdict.correct).toBe(false);
-    expect(result.issues.map((i) => i.details)).toEqual([undefined, undefined, undefined]);
-    expect(JSON.stringify(result)).not.toContain('coupon');
+  it('does not pass with the wrong verdict', async () => {
+    await saveDraft({ comments: [MUST], verdict: 'approve' }).expect(200);
+    const res = await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({});
+    expect(res.body as ReviewResult).toMatchObject({
+      passed: false,
+      verdict: { given: 'approve', expected: 'request_changes' },
+    });
+  });
+
+  it('saves the ticked issues and the best score, and reopens the result later', async () => {
+    await api('get', `/workspaces/${REVIEW}/review/result?lang=js`).expect(404);
+    await api('put', `/workspaces/${REVIEW}/review/caught?lang=js`)
+      .send({ caught: [] })
+      .expect(404); // nothing submitted yet
+    await saveDraft({ comments: [MUST], verdict: 'request_changes' }).expect(200);
+    await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({}).expect(200);
+
+    const ticked = await api('put', `/workspaces/${REVIEW}/review/caught?lang=js`)
+      .send({ caught: ['coupon-mutates-order', 'free-shipping-magic-number'] })
+      .expect(200);
+    expect((ticked.body as ReviewResult).score).toBe(67);
+    expect((ticked.body as ReviewResult).progress.bestScore).toBeGreaterThanOrEqual(67);
+
+    const later = await api('get', `/workspaces/${REVIEW}/review/result?lang=js`).expect(200);
+    const result = later.body as ReviewResult;
+    expect(result.score).toBe(67);
+    expect(result.issues.filter((o) => o.caught).map((o) => o.issue.id)).toEqual([
+      'coupon-mutates-order',
+      'free-shipping-magic-number',
+    ]);
+    await api('put', `/workspaces/${REVIEW}/review/caught?lang=js`)
+      .send({ caught: 'all' })
+      .expect(400);
   });
 
   it('serves the answer key', async () => {
@@ -697,11 +723,22 @@ describe('review challenges', () => {
     expect((res.body as ReviewIssue[]).map((i) => i.id)).toContain('coupon-mutates-order');
   });
 
-  it('clears the draft on reset', async () => {
+  it('clears the draft and the submitted result on reset', async () => {
     await saveDraft({ comments: [MUST], verdict: 'approve' }).expect(200);
+    await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({}).expect(200);
     await api('post', `/workspaces/${REVIEW}/reset?lang=js`).expect(200);
     const res = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
     expect(res.body).toEqual({ comments: [], verdict: null });
+    await api('get', `/workspaces/${REVIEW}/review/result?lang=js`).expect(404);
+  });
+
+  it('accepts drafts saved before comments lost their issue type', async () => {
+    await saveDraft({
+      comments: [{ ...MUST, type: 'mutates-shared-state' } as ReviewComment],
+      verdict: null,
+    }).expect(200);
+    const res = await api('get', `/workspaces/${REVIEW}/review?lang=js`).expect(200);
+    expect((res.body as ReviewDraft).comments[0]).not.toHaveProperty('type');
   });
 
   it('refuses the review routes for a debug challenge', async () => {
@@ -770,53 +807,5 @@ describe('review challenges', () => {
   it('shows no files in a review workspace', async () => {
     const res = await api('get', `/workspaces/${REVIEW}?lang=js`).expect(200);
     expect((res.body as WorkspaceInfo).files).toEqual([]);
-  });
-
-  it('accepts "Ada can read Linus\'s account" as data exposure on getAccount', async () => {
-    const ACCOUNT = 'review-002-account-settings';
-    await api('post', `/challenges/${ACCOUNT}/start?lang=js`).expect(200);
-    const comment = (id: string, lines: [number, number], type: string): ReviewComment => ({
-      id,
-      file: 'src/users.js',
-      lines,
-      type,
-      why: 'Anyone signed in gets someone else’s private data.',
-    });
-    await api('put', `/workspaces/${ACCOUNT}/review?lang=js`)
-      .send({
-        comments: [
-          comment('owner', [25, 28], 'data-exposure'),
-          comment('hash', [29, 29], 'data-exposure'),
-        ],
-        verdict: 'request_changes',
-      })
-      .expect(200);
-    const res = await api('post', `/workspaces/${ACCOUNT}/review/submit?lang=js`).send({});
-    const result = res.body as ReviewResult;
-    expect(result.issues.filter((i) => i.severity === 'must').every((i) => i.found)).toBe(true);
-    expect(result.solved).toBe(true);
-  });
-
-  it('counts a password-hash comment on line 47 as the leak, not the missing owner check', async () => {
-    const ACCOUNT = 'review-002-account-settings';
-    await api('post', `/challenges/${ACCOUNT}/start?lang=ts`).expect(200);
-    await api('put', `/workspaces/${ACCOUNT}/review?lang=ts`)
-      .send({
-        comments: [
-          {
-            id: 'leak',
-            file: 'src/users.ts',
-            lines: [47, 47],
-            type: 'data-exposure',
-            why: 'You return the password hash with the data.',
-          },
-        ],
-        verdict: 'request_changes',
-      })
-      .expect(200);
-    const res = await api('post', `/workspaces/${ACCOUNT}/review/submit?lang=ts`).send({});
-    const result = res.body as ReviewResult;
-    const found = result.issues.filter((i) => i.found).map((i) => i.id);
-    expect(found).toEqual(['account-leaks-password-hash']);
   });
 });

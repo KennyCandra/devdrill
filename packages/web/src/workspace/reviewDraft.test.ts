@@ -6,7 +6,6 @@ const comment = (id: string): ReviewComment => ({
   id,
   file: 'src/orders.js',
   lines: [1, 1],
-  type: 'magic-value',
   why: 'Name it.',
 });
 

@@ -51,6 +51,7 @@ function parseProgressFile(raw: unknown): ProgressFile {
       ...(typeof e.startedAt === 'string' ? { startedAt: e.startedAt } : {}),
       ...(typeof e.bestTimeMs === 'number' ? { bestTimeMs: e.bestTimeMs } : {}),
       ...(typeof e.solvedAt === 'string' ? { solvedAt: e.solvedAt } : {}),
+      ...(typeof e.bestScore === 'number' ? { bestScore: e.bestScore } : {}),
     };
     // Before languages, keys were bare challenge ids, all JavaScript.
     if (id.includes(':')) fromThisVersion.push([id, entry]);

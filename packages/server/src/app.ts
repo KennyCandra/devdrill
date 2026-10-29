@@ -34,7 +34,6 @@ import {
   parseSettingsPatch,
   progressKey,
 } from './services/stores.js';
-import { gradeReview } from './services/reviewGrading.js';
 import { ReviewService } from './services/reviewService.js';
 import { MAX_FILE_BYTES, WorkspaceManager, type Target } from './services/workspaceManager.js';
 
@@ -132,6 +131,23 @@ export function createApp(options: AppOptions) {
       } else if (entry.status === 'not_started') {
         entry.status = 'in_progress';
       }
+      p.challenges[key] = entry;
+      return p;
+    });
+    return updated.challenges[key] ?? emptyProgress();
+  };
+
+  /** Keeps a review's best score. */
+  const recordScore = async (
+    { challenge, lang }: Target,
+    score: number,
+    current?: ProgressEntry,
+  ): Promise<ProgressEntry> => {
+    const key = progressKey(lang, challenge.meta.id);
+    if (current && current.bestScore !== undefined && current.bestScore >= score) return current;
+    const updated = await progress.update((p) => {
+      const entry = p.challenges[key] ?? emptyProgress();
+      if (entry.bestScore === undefined || score > entry.bestScore) entry.bestScore = score;
       p.challenges[key] = entry;
       return p;
     });
@@ -280,22 +296,29 @@ export function createApp(options: AppOptions) {
     res.json(await reviews.saveDraft(targetOf(req), req.body));
   });
 
-  // Grades the saved draft: the UI saves before it submits.
+  // Lays the saved draft next to the answer key: the UI saves before it submits. Only the
+  // verdict decides "passed"; the player ticks what they caught afterwards.
   api.post('/workspaces/:id/review/submit', async (req, res: Response<ReviewResult>) => {
     const target = targetOf(req);
     const elapsedMs = parseElapsed((req.body as ReviewSubmitRequest | undefined)?.elapsedMs);
-    const draft = await reviews.draft(target);
-    if (draft.verdict === null) {
-      throw new HttpError(400, 'Pick a verdict (Approve or Request changes) before submitting.');
-    }
-    const graded = gradeReview(
-      reviews.issues(target),
-      draft.comments,
-      draft.verdict,
-      reviews.issueTypes(target),
-      (await progressOf(target)).status === 'solved',
-    );
-    res.json({ ...graded, progress: await recordAttempt(target, graded.solved, elapsedMs) });
+    const review = await reviews.submit(target);
+    const entry = await recordAttempt(target, review.passed, elapsedMs);
+    res.json({ ...review, progress: await recordScore(target, review.score, entry) });
+  });
+
+  // The last submitted review, to reopen the results later.
+  api.get('/workspaces/:id/review/result', async (req, res: Response<ReviewResult>) => {
+    const target = targetOf(req);
+    const review = await reviews.result(target);
+    if (!review) throw new HttpError(404, 'This review has not been submitted yet.');
+    res.json({ ...review, progress: await progressOf(target) });
+  });
+
+  // The issues the player ticked as caught; returns the new score.
+  api.put('/workspaces/:id/review/caught', async (req, res: Response<ReviewResult>) => {
+    const target = targetOf(req);
+    const review = await reviews.setCaught(target, req.body);
+    res.json({ ...review, progress: await recordScore(target, review.score) });
   });
 
   // ---- Settings ----

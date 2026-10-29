@@ -11,9 +11,6 @@ export const MAX_REVIEW_COMMENTS = 7;
 /** Issues a review challenge may plant: always fewer than the comments allowed. */
 export const MAX_REVIEW_ISSUES = 5;
 
-/** False alarms a review can have and still be solved. */
-export const MAX_FALSE_ALARMS = 1;
-
 export const MAX_COMMENT_CHARS = 1000;
 
 /** A comment covers at most this many lines (about one function). */
@@ -24,6 +21,9 @@ export function lineCount(text: string): number {
   const lines = text.split('\n');
   return text.endsWith('\n') ? lines.length - 1 : lines.length;
 }
+
+/** How much each severity counts towards a review's score. */
+export const SEVERITY_WEIGHTS = { must: 3, should: 2, nit: 1 } as const;
 
 export const REVIEW_CATEGORIES: readonly ReviewCategory[] = [
   'bug',

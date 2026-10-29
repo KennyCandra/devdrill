@@ -1,19 +1,7 @@
 import { Check, MessageSquarePlus, Pencil, SquareFunction, Trash2, X } from 'lucide-react';
 import { useId, useState } from 'react';
-import type {
-  IssueType,
-  LineRange,
-  ReviewCategory,
-  ReviewComment,
-  ReviewVerdict,
-} from '@devdrill/shared';
-import {
-  CATEGORY_LABELS,
-  MAX_COMMENT_CHARS,
-  MAX_COMMENT_LINES,
-  MAX_REVIEW_COMMENTS,
-  REVIEW_CATEGORIES,
-} from '@devdrill/shared/review';
+import type { LineRange, ReviewComment, ReviewVerdict } from '@devdrill/shared';
+import { MAX_COMMENT_CHARS, MAX_COMMENT_LINES, MAX_REVIEW_COMMENTS } from '@devdrill/shared/review';
 import { Button, modKey } from '../components/ui';
 import { lineLabel } from './DiffView';
 
@@ -23,7 +11,6 @@ export interface CommentEdit {
   lines: LineRange;
   /** Set when changing an existing comment. */
   id?: string;
-  type: string;
   why: string;
 }
 
@@ -35,7 +22,6 @@ export function ReviewPanel({
   activePath,
   selection,
   comments,
-  issueTypes,
   verdict,
   editing,
   focusedId,
@@ -53,7 +39,6 @@ export function ReviewPanel({
   activePath: string;
   selection: LineRange | null;
   comments: ReviewComment[];
-  issueTypes: IssueType[];
   verdict: ReviewVerdict | null;
   editing: CommentEdit | null;
   focusedId: string | null;
@@ -69,7 +54,6 @@ export function ReviewPanel({
   onVerdict: (verdict: ReviewVerdict) => void;
 }) {
   const full = comments.length >= MAX_REVIEW_COMMENTS;
-  const typeLabel = (id: string) => issueTypes.find((t) => t.id === id);
 
   return (
     <aside className="flex h-full flex-col bg-side" aria-label="Your review">
@@ -87,7 +71,6 @@ export function ReviewPanel({
             <CommentForm
               key={editing.id ?? 'new'}
               edit={editing}
-              issueTypes={issueTypes}
               disabled={disabled}
               onChange={onEditChange}
               onSave={onSaveComment}
@@ -143,7 +126,6 @@ export function ReviewPanel({
         {comments.length > 0 && (
           <ul className="flex flex-col gap-1 border-t border-line p-2" aria-label="Comments">
             {comments.map((c) => {
-              const type = typeLabel(c.type);
               return (
                 <li
                   key={c.id}
@@ -156,9 +138,6 @@ export function ReviewPanel({
                     onClick={() => onFocusComment(c)}
                     className="flex w-full flex-col items-start gap-0.5 text-left focus-visible:outline-2 focus-visible:outline-accent"
                   >
-                    <span className="text-[12px] font-semibold">
-                      {type ? `${CATEGORY_LABELS[type.category]} · ${type.label}` : c.type}
-                    </span>
                     <span className="text-[12px] text-muted">
                       {c.file} · {lineLabel(c.lines)}
                     </span>
@@ -247,7 +226,6 @@ function VerdictButton({
 
 function CommentForm({
   edit,
-  issueTypes,
   disabled,
   onChange,
   onSave,
@@ -255,22 +233,16 @@ function CommentForm({
   onWholeFunction,
 }: {
   edit: CommentEdit;
-  issueTypes: IssueType[];
   disabled: boolean;
   onChange: (edit: CommentEdit) => void;
   onSave: () => void;
   onCancel: () => void;
   onWholeFunction: () => Promise<string | null>;
 }) {
-  const typeId = useId();
   const whyId = useId();
   const [snapError, setSnapError] = useState<string | null>(null);
   const [snapping, setSnapping] = useState(false);
-  const chosen = issueTypes.find((t) => t.id === edit.type);
-  const byCategory = new Map<ReviewCategory, IssueType[]>(
-    REVIEW_CATEGORIES.map((c) => [c, issueTypes.filter((t) => t.category === c)]),
-  );
-  const ready = edit.type !== '' && edit.why.trim() !== '' && !disabled;
+  const ready = edit.why.trim() !== '' && !disabled;
 
   const wholeFunction = async () => {
     setSnapping(true);
@@ -302,42 +274,22 @@ function CommentForm({
       </div>
       {snapError && <p className="text-[12px] text-warning">{snapError}</p>}
 
-      <label htmlFor={typeId} className="text-[12px] text-muted">
-        What's wrong?
-      </label>
-      <select
-        id={typeId}
-        // The form opens because the user asked to comment: start where they type.
-        autoFocus
-        value={edit.type}
-        onChange={(e) => onChange({ ...edit, type: e.target.value })}
-        className="h-7 rounded border border-line-strong bg-bg px-1.5 focus-visible:outline-2 focus-visible:outline-accent"
-        required
-      >
-        <option value="" disabled>
-          Pick an issue type…
-        </option>
-        {[...byCategory].map(([category, types]) =>
-          types.length > 0 ? (
-            <optgroup key={category} label={CATEGORY_LABELS[category]}>
-              {types.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </optgroup>
-          ) : null,
-        )}
-      </select>
-      {chosen && <p className="text-[12px] leading-relaxed text-muted">{chosen.description}</p>}
-
       <label htmlFor={whyId} className="text-[12px] text-muted">
-        Why? Say what goes wrong, and when.
+        What's wrong here, and why does it matter?
       </label>
       <textarea
         id={whyId}
+        // The form opens because the user asked to comment: start where they type.
+        autoFocus
         value={edit.why}
         onChange={(e) => onChange({ ...edit, why: e.target.value })}
+        onKeyDown={(e) => {
+          // Cmd/Ctrl+Enter adds the comment, like in a code review tool.
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && ready) {
+            e.preventDefault();
+            onSave();
+          }
+        }}
         maxLength={MAX_COMMENT_CHARS}
         rows={4}
         required
