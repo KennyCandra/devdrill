@@ -162,3 +162,16 @@ Each milestone: build → a fresh reviewer agent (no context) checks it → fix 
 - Missed issues come back as `missed-1`, `missed-2`… in severity order until solved, so ids and order don't leak the key.
 - "Whole function" uses the editor's TypeScript service in the browser; the validator uses the TypeScript compiler, and function issues store the function's exact lines.
 - Known trade-off: each submit says which comments are false alarms, and submits are unlimited, so trial and error could find locations. It's the honor system, like reading the hidden tests.
+
+## 11. Change after playtesting (2026-10-29): self-graded reviews
+
+Playtest showed the grader can't tell whether a comment is right without reading it: a correct comment with a slightly different issue type, or one that fit two issues, was marked wrong. Without AI, the player compares their review with the answer key themselves.
+
+- **Comments are lines + the player's words.** No issue-type picker, no false alarms, no exact-type matching. The 7-comment limit stays.
+- **Pass = the right verdict:** Request changes when the PR has a `must` issue, Approve when it doesn't. That's the only automatic check, and passing marks the challenge solved.
+- **After submitting, the answer key is shown** next to the player's review: each issue with the player's comments on its lines ("nearby"), then the comments near no issue.
+- **The player ticks "I caught this"** per issue. The score is the share of issue weight caught: `must` 3, `should` 2, `nit` 1 (e.g. 1 must + 1 should + 1 nit = 50% / 33% / 17%). A PR with no issues scores 100% when passed.
+- **Saved on the server:** the last submitted review, its ticks and score (in the workspace), and the best score in progress, so results can be reopened later.
+- **Later (AI module):** the AI reads each comment and judges caught / partly / missed, replacing the self-tick.
+
+Routes: `POST /workspaces/:id/review/submit` saves and returns the result; `GET /workspaces/:id/review/result` reads it back; `PUT /workspaces/:id/review/caught` saves the ticks and returns the updated score.
