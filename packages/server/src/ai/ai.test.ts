@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { AiSettings, AiTestResult } from '@devdrill/shared';
+import type { AiSettings, AiTestResult, ReviewResult } from '@devdrill/shared';
 import { createApp } from '../app.js';
 import { appPaths } from '../config.js';
 import { TOKEN_HEADER } from '../security.js';
@@ -307,7 +307,7 @@ describe('AI judges a review', () => {
         .expect(200);
       await call('post', `/workspaces/${R}/review/submit`).send({}).expect(200);
       const res = await call('post', `/workspaces/${R}/review/judge`).send({}).expect(200);
-      const result = res.body as import('@devdrill/shared').ReviewResult;
+      const result = res.body as ReviewResult;
       expect(result.issues.filter((o) => o.caught).map((o) => o.issue.id)).toEqual([
         'coupon-mutates-order',
       ]);
