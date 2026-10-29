@@ -16,7 +16,8 @@ import { requestJson } from './http.js';
  *
  * OpenCode is an agent that can run tools (edit files, run commands) in its folder. Our
  * requests contain a player's code, so every tool it ships with is switched off: we only
- * want an answer.
+ * want an answer. (Tools from MCP servers the player added to OpenCode aren't in this
+ * list; see docs/V1_2_PLAN.md.)
  */
 const TOOLS_OFF = Object.fromEntries(
   [
@@ -34,6 +35,11 @@ const TOOLS_OFF = Object.fromEntries(
     'todowrite',
     'todoread',
     'task',
+    'skill',
+    'lsp',
+    'codesearch',
+    'apply_patch',
+    'question',
   ].map((tool) => [tool, false]),
 );
 
@@ -63,21 +69,37 @@ export function createOpenCodeProvider(config: ProviderConfig): AiProvider {
       });
       if (!session.id) throw new AiProviderError("OpenCode didn't create a session.");
 
-      const answer = await requestJson<PromptResponse>(
-        'OpenCode',
-        `${base}/session/${encodeURIComponent(session.id)}/message`,
-        {
-          body: {
-            ...(model ? { model } : {}),
-            system,
-            tools: TOOLS_OFF,
-            parts: [{ type: 'text', text: prompt }],
-            format: { type: 'json_schema', schema },
+      let answer: PromptResponse;
+      try {
+        answer = await requestJson<PromptResponse>(
+          'OpenCode',
+          `${base}/session/${encodeURIComponent(session.id)}/message`,
+          {
+            body: {
+              ...(model ? { model } : {}),
+              system,
+              tools: TOOLS_OFF,
+              parts: [{ type: 'text', text: prompt }],
+              format: { type: 'json_schema', schema },
+            },
+            headers,
+            signal,
           },
-          headers,
-          signal,
-        },
-      );
+        );
+      } finally {
+        // Our sessions are one question each: stop it if we gave up, then delete it, so
+        // they don't pile up in the player's OpenCode. Best effort.
+        const sessionUrl = `${base}/session/${encodeURIComponent(session.id)}`;
+        const cleanup = AbortSignal.timeout(5000);
+        if (signal.aborted) {
+          await fetch(`${sessionUrl}/abort`, { method: 'POST', headers, signal: cleanup }).catch(
+            () => undefined,
+          );
+        }
+        await fetch(sessionUrl, { method: 'DELETE', headers, signal: cleanup }).catch(
+          () => undefined,
+        );
+      }
       const error = answer.info?.error;
       if (error) {
         throw new AiProviderError(`OpenCode: ${error.data?.message ?? error.name ?? 'error'}`);

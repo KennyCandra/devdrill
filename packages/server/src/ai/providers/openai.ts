@@ -33,22 +33,41 @@ export function createOpenAiCompatibleProvider(
   return {
     id: kind,
     async complete({ system, prompt, schema, signal }: AiRequest): Promise<string> {
-      try {
-        const response = await client.chat.completions.create(
+      const ask = (format: 'schema' | 'json' | 'none') =>
+        client.chat.completions.create(
           {
             model: config.model,
             messages: [
               { role: 'system', content: system },
               { role: 'user', content: prompt },
             ],
-            response_format:
-              kind === 'openai'
-                ? { type: 'json_schema', json_schema: { name: 'answer', schema, strict: false } }
-                : { type: 'json_object' },
+            ...(format === 'schema'
+              ? {
+                  response_format: {
+                    type: 'json_schema' as const,
+                    json_schema: { name: 'answer', schema, strict: false },
+                  },
+                }
+              : format === 'json'
+                ? { response_format: { type: 'json_object' as const } }
+                : {}),
           },
           { signal },
         );
+      try {
+        let response;
+        try {
+          response = await ask(kind === 'openai' ? 'schema' : 'json');
+        } catch (err) {
+          // Some OpenAI-compatible servers (LM Studio…) refuse JSON mode: ask again without
+          // it; the prompt still asks for JSON and the service checks it.
+          if (kind !== 'custom' || !(err instanceof OpenAI.BadRequestError)) throw err;
+          response = await ask('none');
+        }
         const choice = response.choices[0];
+        if (choice?.message.refusal) {
+          throw new AiProviderError(`${name} declined to answer this request.`);
+        }
         if (choice?.finish_reason === 'length') {
           throw new AiProviderError(`${name}'s answer was cut off. Try again.`);
         }

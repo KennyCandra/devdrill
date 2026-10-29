@@ -17,6 +17,21 @@ const FALLBACK_MODELS = new Set([
   'claude-sonnet-5-5',
 ]);
 
+/** Models that take `output_config.effort`; others (older ones) would answer 400. */
+const EFFORT_MODELS = new Set([
+  'claude-fable-5-1',
+  'claude-fable-5',
+  'claude-opus-5-5',
+  'claude-opus-5',
+  'claude-opus-4-8',
+  'claude-opus-4-7',
+  'claude-opus-4-6',
+  'claude-sonnet-5-5',
+  'claude-sonnet-5',
+  'claude-sonnet-4-6',
+  'claude-haiku-5-5',
+]);
+
 /** Claude, through the official Anthropic SDK, with JSON-schema structured output. */
 export function createClaudeProvider(config: ProviderConfig): AiProvider {
   if (!config.apiKey) {
@@ -34,7 +49,10 @@ export function createClaudeProvider(config: ProviderConfig): AiProvider {
             max_tokens: 16000,
             system,
             messages: [{ role: 'user', content: prompt }],
-            output_config: { effort: 'medium', format: { type: 'json_schema', schema } },
+            output_config: {
+              format: { type: 'json_schema', schema },
+              ...(EFFORT_MODELS.has(config.model) ? { effort: 'medium' as const } : {}),
+            },
             ...(FALLBACK_MODELS.has(config.model)
               ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
               : {}),
@@ -64,6 +82,11 @@ function explain(err: unknown): unknown {
   }
   if (err instanceof Anthropic.NotFoundError) {
     return new AiProviderError('Anthropic does not know that model name. Check it in Settings.');
+  }
+  if (err instanceof Anthropic.BadRequestError) {
+    return new AiProviderError(
+      'Anthropic rejected the request. This model may not support structured answers: try claude-opus-5-5.',
+    );
   }
   if (err instanceof Anthropic.RateLimitError) {
     return new AiProviderError('Anthropic says too many requests. Wait a moment and try again.');

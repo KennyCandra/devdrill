@@ -53,6 +53,29 @@ describe('AiConfigStore', () => {
     expect(removed.providers.claude.hasKey).toBe(false);
   });
 
+  it("drops a saved key when the server URL changes, so it can't be sent somewhere else", async () => {
+    const store = AiConfigStore.inDataDir(path.join(dir, 'moved'));
+    await store.update({
+      provider: 'custom',
+      baseUrl: 'https://api.deepseek.com/v1',
+      apiKey: 'sk-1',
+    });
+    // Saving the same URL again (the form always sends it) keeps the key.
+    const same = await store.update({ provider: 'custom', baseUrl: 'https://api.deepseek.com/v1' });
+    expect(same.providers.custom.hasKey).toBe(true);
+    const moved = await store.update({ provider: 'custom', baseUrl: 'https://evil.example/v1' });
+    expect(moved.providers.custom.hasKey).toBe(false);
+    const both = await store.update({
+      provider: 'custom',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      apiKey: 'sk-2',
+    });
+    expect(both.providers.custom.hasKey).toBe(true);
+    await expect(
+      store.update({ provider: 'custom', baseUrl: 'https://me:pw@host.example/v1' }),
+    ).rejects.toThrow('plain URL');
+  });
+
   it('rejects unknown providers, bad URLs and keys with spaces', async () => {
     const store = AiConfigStore.inDataDir(path.join(dir, 'bad'));
     await expect(store.update({ active: 'skynet' })).rejects.toThrow('"active"');
@@ -96,6 +119,22 @@ describe('AiService', () => {
   it('extracts the JSON object from around it', () => {
     expect(extractJson('x {"a": {"b": 1}} y')).toBe('{"a": {"b": 1}}');
     expect(() => extractJson('nothing')).toThrow();
+  });
+
+  it('skips think blocks, braces in prose and braces inside strings', () => {
+    const answer =
+      '<think>maybe {"n": 0}?</think>Use {braces} like this: {"n": 3, "s": "a } b"} ok';
+    expect(JSON.parse(extractJson(answer))).toEqual({ n: 3, s: 'a } b' });
+  });
+
+  it('shows the AI buttons only when the chosen provider is set up', async () => {
+    const store = AiConfigStore.inDataDir(path.join(dir, 'enabled'));
+    const ai = new AiService(store);
+    expect(await ai.enabled()).toBe(false);
+    await store.update({ active: 'claude' }); // no key yet
+    expect(await ai.enabled()).toBe(false);
+    await store.update({ provider: 'claude', apiKey: 'sk-ant-x' });
+    expect(await ai.enabled()).toBe(true);
   });
 });
 

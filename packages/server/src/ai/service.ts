@@ -35,9 +35,15 @@ export class AiService {
     return this.config.update(raw);
   }
 
-  /** True when a provider is chosen, so the UI can show the AI buttons. */
+  /** True when a provider is chosen and set up enough to try, so the UI shows the AI buttons. */
   async enabled(): Promise<boolean> {
-    return this.override !== undefined || (await this.config.get()).active !== null;
+    if (this.override) return true;
+    try {
+      await this.provider();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Runs a feature on the active provider. `abort` stops it (e.g. the player left). */
@@ -117,12 +123,51 @@ export class AiService {
   }
 }
 
-/** The JSON object in an answer, without the Markdown fences some models add. */
+/**
+ * The JSON object in a model's answer. Models add things around it: Markdown fences,
+ * `<think>` blocks from reasoning models, a sentence before or after. Tries the whole text,
+ * then each `{` in turn up to its matching `}` (strings are skipped, so braces inside them
+ * don't count), and returns the first that parses as an object.
+ */
 export function extractJson(text: string): string {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end < start) throw new Error('no JSON object');
-  return text.slice(start, end + 1);
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  if (isJsonObject(cleaned)) return cleaned;
+  for (let start = cleaned.indexOf('{'); start !== -1; start = cleaned.indexOf('{', start + 1)) {
+    const end = matchingBrace(cleaned, start);
+    if (end !== -1 && isJsonObject(cleaned.slice(start, end + 1))) {
+      return cleaned.slice(start, end + 1);
+    }
+  }
+  throw new Error('no JSON object');
+}
+
+function isJsonObject(text: string): boolean {
+  try {
+    const value: unknown = JSON.parse(text);
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  } catch {
+    return false;
+  }
+}
+
+/** The index of the `}` closing the `{` at `start`, or -1. */
+function matchingBrace(text: string, start: number): number {
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') i++;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') {
+      inString = true;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}' && --depth === 0) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 const CONNECTION_TEST: AiFeature<{ reply: string }> = {

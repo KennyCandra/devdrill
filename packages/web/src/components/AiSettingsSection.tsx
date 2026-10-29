@@ -167,6 +167,13 @@ export function AiSettingsSection() {
             </label>
           )}
 
+          {info.needsBaseUrl && saved.hasKey && !apiKey && baseUrl !== (saved.baseUrl ?? '') && (
+            <p className="text-[12px] text-warning">
+              Saving a different URL removes the saved key, so it's never sent to a server it wasn't
+              meant for. Enter the key again if this server needs it.
+            </p>
+          )}
+
           <label htmlFor={keyId} className="flex flex-col gap-1">
             <span className="text-[12px] text-muted">
               {info.needsKey

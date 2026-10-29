@@ -16,6 +16,8 @@ export class JsonStore<T> {
     private readonly file: string,
     private readonly parse: (raw: unknown) => T,
     private readonly fallback: () => T,
+    /** File mode, e.g. 0o600 for a file holding secrets: set when the file is created. */
+    private readonly mode?: number,
   ) {}
 
   async get(): Promise<T> {
@@ -57,7 +59,11 @@ export class JsonStore<T> {
   private async save(value: T): Promise<void> {
     await mkdir(path.dirname(this.file), { recursive: true });
     const tmp = `${this.file}.${process.pid}.tmp`;
-    await writeFile(tmp, JSON.stringify(value, null, 2) + '\n');
+    // The temp file gets the mode when it's created, so a secret is never readable by
+    // others, not even between writing and renaming.
+    await writeFile(tmp, JSON.stringify(value, null, 2) + '\n', {
+      ...(this.mode !== undefined ? { mode: this.mode } : {}),
+    });
     await renameWithRetry(tmp, this.file);
   }
 }

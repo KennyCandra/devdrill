@@ -1,4 +1,3 @@
-import { chmod } from 'node:fs/promises';
 import path from 'node:path';
 import type {
   AiProviderId,
@@ -43,8 +42,9 @@ export function defaultAiConfig(): AiConfigFile {
 export class AiConfigStore {
   private readonly store: JsonStore<AiConfigFile>;
 
-  constructor(private readonly file: string) {
-    this.store = new JsonStore(file, parseAiConfig, defaultAiConfig);
+  constructor(file: string) {
+    // Owner-only from the first byte: it holds API keys.
+    this.store = new JsonStore(file, parseAiConfig, defaultAiConfig, 0o600);
   }
 
   static inDataDir(dataDir: string): AiConfigStore {
@@ -61,10 +61,7 @@ export class AiConfigStore {
 
   async update(raw: unknown): Promise<AiSettings> {
     const patch = parsePatch(raw);
-    const next = await this.store.update((config) => applyPatch(config, patch));
-    // JsonStore writes with the default mode; a file holding API keys is owner-only.
-    await chmod(this.file, 0o600).catch(() => undefined);
-    return toPublic(next);
+    return toPublic(await this.store.update((config) => applyPatch(config, patch)));
   }
 }
 
@@ -91,7 +88,12 @@ function applyPatch(config: AiConfigFile, patch: AiSettingsPatch): AiConfigFile 
   if (patch.provider) {
     const p = config.providers[patch.provider];
     if (patch.model !== undefined) p.model = patch.model;
-    if (patch.baseUrl !== undefined) p.baseUrl = patch.baseUrl;
+    if (patch.baseUrl !== undefined && patch.baseUrl !== p.baseUrl) {
+      p.baseUrl = patch.baseUrl;
+      // The key was given for the old server. Keeping it would send it to the new URL, which
+      // anyone who can open the app could point at their own server to collect it.
+      if (patch.apiKey === undefined) p.apiKey = null;
+    }
     if (patch.apiKey !== undefined) p.apiKey = patch.apiKey;
   }
   return config;
@@ -168,6 +170,11 @@ function parseBaseUrl(value: unknown): string {
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new HttpError(400, '"baseUrl" must start with http:// or https://.');
+  }
+  // A password in the URL would be stored in the open and shown in Settings: keys go in the
+  // key field. Queries and fragments aren't part of an API base URL.
+  if (url.username || url.password || url.search || url.hash) {
+    throw new HttpError(400, '"baseUrl" must be a plain URL: no user:password@, ?query or #part.');
   }
   // Keep a path (e.g. /v1) but drop a trailing slash, so joining paths is predictable.
   return url.toString().replace(/\/+$/, '');

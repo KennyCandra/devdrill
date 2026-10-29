@@ -40,3 +40,8 @@ Each: build → a fresh reviewer agent checks it → fix → commit. Commit afte
 - **A5 — Hints, docs, release** (~3 h): an AI hint that nudges without giving the answer; README/CONTRIBUTING/plan; release smoke test with the fake provider.
 
 **Done when:** with any one provider configured, a player gets an AI judgement of their review and AI feedback on a solved challenge; with none configured, nothing changes.
+
+## 5. Notes from building
+
+- **OpenCode runs tools.** Our requests switch off every tool OpenCode ships with. Tools from MCP servers a player added to OpenCode aren't covered by that list; players using OpenCode with MCP servers should know the model could call them.
+- **Changing a provider's URL drops its saved key**, so a key can't be redirected to another server (in hosted mode anyone with the link can edit Settings).
