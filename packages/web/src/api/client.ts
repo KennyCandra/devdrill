@@ -187,6 +187,8 @@ export const api = {
   },
 
   aiStatus: () => request<AiStatus>('GET', '/ai/status'),
+  aiHint: (id: string, shownHints: string[], lang?: Language) =>
+    request<{ hint: string }>('POST', `/workspaces/${enc(id)}/hint`, { shownHints }, lang),
   solutionFeedback: (id: string, lang?: Language) =>
     request<SolutionFeedback>('POST', `/workspaces/${enc(id)}/feedback`, {}, lang),
   judgeReview: (id: string, lang?: Language) =>

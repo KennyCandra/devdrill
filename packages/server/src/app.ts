@@ -29,6 +29,7 @@ import type {
 } from '@devdrill/shared';
 import { AiConfigStore } from './ai/config.js';
 import type { AiProvider } from './ai/provider.js';
+import { hint } from './ai/features/hint.js';
 import { judgeReview } from './ai/features/judgeReview.js';
 import { solutionFeedback } from './ai/features/solutionFeedback.js';
 import { AiService } from './ai/service.js';
@@ -376,6 +377,31 @@ export function createApp(options: AppOptions) {
           changes: await workspaces.changes(target),
           reference: await workspaces.solution(target),
         }),
+        abortWhenClosed(res),
+      ),
+    );
+  });
+
+  // A hint for a stuck player. The AI sees the task and their code, never the solution.
+  api.post('/workspaces/:id/hint', async (req, res: Response<{ hint: string }>) => {
+    const target = codeTargetOf(req);
+    const body = (req.body ?? {}) as { shownHints?: unknown };
+    const known = new Set(target.challenge.meta.hints);
+    // Only the challenge's own hints count, so the request can't smuggle text into the prompt.
+    const shownHints = Array.isArray(body.shownHints)
+      ? body.shownHints.filter((h): h is string => typeof h === 'string' && known.has(h))
+      : [];
+    const files = await Promise.all(
+      (await workspaces.files(target))
+        .filter((f) => /\.(?:[cm]?[jt]s|json|md)$/.test(f))
+        .map(async (f) => {
+          const { content } = await workspaces.readFile(target, f);
+          return { path: f, content };
+        }),
+    );
+    res.json(
+      await ai.run(
+        hint({ task: target.challenge.readme, files, shownHints }),
         abortWhenClosed(res),
       ),
     );

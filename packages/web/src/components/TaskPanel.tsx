@@ -1,9 +1,9 @@
-import { Bug, GitPullRequest, Lightbulb, Sparkles } from 'lucide-react';
+import { Bot, Bug, GitPullRequest, Lightbulb, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChallengeDetail } from '@devdrill/shared';
-import { Button } from './ui';
+import { Button, Spinner } from './ui';
 
 // Links leave the app in a new tab, so leaving never drops unsaved work.
 const markdownComponents: Components = {
@@ -30,10 +30,37 @@ function readShownHints(id: string): number {
   }
 }
 
-/** The challenge's README, with hints revealed one at a time pinned underneath. */
-export function TaskPanel({ challenge }: { challenge: ChallengeDetail }) {
+/**
+ * The challenge's README, with hints revealed one at a time pinned underneath. With an AI
+ * provider set up (`askAi`), the AI can add a hint based on the player's code.
+ */
+export function TaskPanel({
+  challenge,
+  askAi,
+}: {
+  challenge: ChallengeDetail;
+  /** Gets an AI hint, given the written hints already shown. */
+  askAi?: (shownHints: string[]) => Promise<string>;
+}) {
   const { id, hints } = challenge;
   const [shownHints, setShownHints] = useState(() => Math.min(readShownHints(id), hints.length));
+  const [aiHints, setAiHints] = useState<string[]>([]);
+  const [asking, setAsking] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const askForHint = async () => {
+    if (!askAi) return;
+    setAsking(true);
+    setAiError(null);
+    try {
+      const hint = await askAi(hints.slice(0, shownHints));
+      setAiHints((prev) => [...prev, hint]);
+    } catch (err) {
+      setAiError((err as Error).message);
+    } finally {
+      setAsking(false);
+    }
+  };
 
   const showNext = () => {
     const next = shownHints + 1;
@@ -69,12 +96,39 @@ export function TaskPanel({ challenge }: { challenge: ChallengeDetail }) {
             </span>
           </p>
         ))}
-        {shownHints < hints.length && (
-          <Button onClick={showNext} className="self-start">
-            <Lightbulb size={14} aria-hidden="true" />
-            {shownHints === 0 ? 'Need a hint?' : `Next hint (${shownHints + 1} of ${hints.length})`}
-          </Button>
+        {aiHints.map((hint, i) => (
+          <p
+            key={`ai-${i}`}
+            className="animate-fade-in flex gap-2 rounded bg-hover p-2 leading-relaxed"
+          >
+            <Bot size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
+            <span>
+              <span className="text-muted">AI hint: </span>
+              {hint}
+            </span>
+          </p>
+        ))}
+        {aiError && (
+          <p role="alert" className="text-danger">
+            {aiError}
+          </p>
         )}
+        <div className="flex flex-wrap gap-2">
+          {shownHints < hints.length && (
+            <Button onClick={showNext} className="self-start">
+              <Lightbulb size={14} aria-hidden="true" />
+              {shownHints === 0
+                ? 'Need a hint?'
+                : `Next hint (${shownHints + 1} of ${hints.length})`}
+            </Button>
+          )}
+          {askAi && (
+            <Button onClick={() => void askForHint()} disabled={asking} className="self-start">
+              {asking ? <Spinner /> : <Bot size={14} aria-hidden="true" />}
+              {asking ? 'Thinking…' : 'Ask AI for a hint'}
+            </Button>
+          )}
+        </div>
       </div>
     </aside>
   );

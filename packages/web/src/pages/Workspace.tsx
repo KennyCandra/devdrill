@@ -90,6 +90,17 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
   const busy = running || submitting;
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .aiStatus()
+      .then((s) => !cancelled && setAiEnabled(s.enabled))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openFile = useCallback(
     (path: string) => {
@@ -320,7 +331,17 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
         onLayoutChanged={columns.onLayoutChanged}
       >
         <Panel id="task" defaultSize="24" minSize={180}>
-          <TaskPanel challenge={challenge} />
+          <TaskPanel
+            challenge={challenge}
+            askAi={
+              aiEnabled
+                ? async (shown) => {
+                    await store.flush(); // the AI reads the saved code
+                    return (await api.aiHint(id, shown, lang)).hint;
+                  }
+                : undefined
+            }
+          />
         </Panel>
         <ResizeHandle />
         <Panel id="files" defaultSize="16" minSize={120}>
