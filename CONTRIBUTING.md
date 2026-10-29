@@ -135,7 +135,7 @@ Each entry in `issues.json`:
 Make it fair:
 
 - **The README states every rule the issues rely on** ("never send `passwordHash` to the browser", "the original order must stay unchanged"). A reviewer can't be wrong about an unstated rule.
-- **Nothing else in the PR is arguably wrong.** Read it as a picky reviewer: every point you'd comment on is either in the key, or fixed, or explained in the README ("coupons are already validated"). Otherwise careful players get false alarms.
+- **Nothing else in the PR is arguably wrong.** Read it as a picky reviewer: every point you'd comment on is either in the key, or fixed, or explained in the README ("coupons are already validated"). Otherwise careful players' comments end up under "other comments", next to nothing in the key.
 - **The PR's own tests pass**: the issues are what tests and the compiler missed.
 - Some reviews should be clean PRs: approving good code is part of the skill.
 

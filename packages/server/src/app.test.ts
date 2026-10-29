@@ -808,4 +808,38 @@ describe('review challenges', () => {
     const res = await api('get', `/workspaces/${REVIEW}?lang=js`).expect(200);
     expect((res.body as WorkspaceInfo).files).toEqual([]);
   });
+
+  it('keeps no best score for a review with the wrong verdict', async () => {
+    await api('post', `/challenges/${REVIEW}/start?lang=ts`).expect(200);
+    await api('post', `/workspaces/${REVIEW}/reset?lang=ts`).expect(200);
+    await saveDraft({ comments: [], verdict: 'approve' }, 'ts').expect(200);
+    await api('post', `/workspaces/${REVIEW}/review/submit?lang=ts`).send({}).expect(200);
+    const res = await api('put', `/workspaces/${REVIEW}/review/caught?lang=ts`)
+      .send({ caught: ['coupon-mutates-order', 'coupon-test-checks-nothing'] })
+      .expect(200);
+    const result = res.body as ReviewResult;
+    expect(result.score).toBe(83);
+    expect(result.progress.bestScore).toBeUndefined();
+  });
+
+  it('ignores a saved result that was edited into something broken', async () => {
+    await saveDraft({ comments: [MUST], verdict: 'request_changes' }).expect(200);
+    await api('post', `/workspaces/${REVIEW}/review/submit?lang=js`).send({}).expect(200);
+    const file = path.join(dataDir, 'workspaces', 'js', REVIEW, 'review-result.json');
+    await writeFile(file, JSON.stringify({ passed: true, score: 50, issues: [{}], comments: [] }));
+    const app = createApp({
+      challenges: await loadChallenges(appPaths().challenges),
+      dataDir,
+      token: TOKEN,
+    });
+    const other = app.listen(0, '127.0.0.1');
+    await new Promise((resolve) => other.once('listening', resolve));
+    const otherHost = `127.0.0.1:${(other.address() as AddressInfo).port}`;
+    await request(other)
+      .get(`/api/workspaces/${REVIEW}/review/result?lang=js`)
+      .set('Host', otherHost)
+      .set(TOKEN_HEADER, TOKEN)
+      .expect(404);
+    other.close();
+  });
 });

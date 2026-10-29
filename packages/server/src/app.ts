@@ -237,6 +237,9 @@ export function createApp(options: AppOptions) {
 
   api.post('/workspaces/:id/reset', async (req, res: Response<WorkspaceInfo>) => {
     const target = targetOf(req);
+    // Forget cached review files before and after: a tick saved in between then reads the
+    // fresh (empty) workspace instead of writing the old result back into it.
+    reviews.forget(target);
     const files = await workspaces.reset(target);
     reviews.forget(target);
     res.json({ challengeId: target.challenge.meta.id, files: visibleFiles(target, files) });
@@ -303,7 +306,10 @@ export function createApp(options: AppOptions) {
     const elapsedMs = parseElapsed((req.body as ReviewSubmitRequest | undefined)?.elapsedMs);
     const review = await reviews.submit(target);
     const entry = await recordAttempt(target, review.passed, elapsedMs);
-    res.json({ ...review, progress: await recordScore(target, review.score, entry) });
+    res.json({
+      ...review,
+      progress: review.passed ? await recordScore(target, review.score, entry) : entry,
+    });
   });
 
   // The last submitted review, to reopen the results later.
@@ -318,7 +324,11 @@ export function createApp(options: AppOptions) {
   api.put('/workspaces/:id/review/caught', async (req, res: Response<ReviewResult>) => {
     const target = targetOf(req);
     const review = await reviews.setCaught(target, req.body);
-    res.json({ ...review, progress: await recordScore(target, review.score) });
+    // The best score only counts reviews that passed (the right verdict).
+    res.json({
+      ...review,
+      progress: review.passed ? await recordScore(target, review.score) : await progressOf(target),
+    });
   });
 
   // ---- Settings ----
@@ -334,6 +344,7 @@ export function createApp(options: AppOptions) {
 
   // "Reset progress" in Settings: a fresh start, including the code in every workspace.
   api.delete('/progress', async (_req, res: Response<{ ok: true }>) => {
+    reviews.forget();
     await workspaces.removeAll();
     reviews.forget();
     await progress.update(() => ({ challenges: {} }));

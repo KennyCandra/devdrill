@@ -13,6 +13,7 @@ import {
   MAX_COMMENT_CHARS,
   MAX_COMMENT_LINES,
   MAX_REVIEW_COMMENTS,
+  MAX_REVIEW_ISSUES,
 } from '@devdrill/shared/review';
 import { HttpError } from '../httpError.js';
 import { listFiles } from './files.js';
@@ -122,7 +123,11 @@ export class ReviewService {
   /** Saves which issues the player ticked as caught, and returns the new score. */
   async setCaught(t: Target, raw: unknown): Promise<SavedReview> {
     const caught = (raw as { caught?: unknown } | null)?.caught;
-    if (!Array.isArray(caught) || !caught.every((id) => typeof id === 'string')) {
+    if (
+      !Array.isArray(caught) ||
+      caught.length > MAX_REVIEW_ISSUES ||
+      !caught.every((id) => typeof id === 'string')
+    ) {
       throw new HttpError(400, '"caught" must be a list of issue ids.');
     }
     const updated = await this.workspaces.exclusive(t, async () =>
@@ -176,18 +181,30 @@ export class ReviewService {
   }
 }
 
+/** A saved result must have every field the results page reads; otherwise it's ignored. */
 function parseStoredResult(raw: unknown): SavedReview | null {
-  const review = raw as Partial<SavedReview> | null;
-  if (
-    !review ||
-    typeof review.passed !== 'boolean' ||
-    !Array.isArray(review.issues) ||
-    !Array.isArray(review.comments) ||
-    typeof review.score !== 'number'
-  ) {
-    throw new Error('not a review result');
-  }
-  return review as SavedReview;
+  const r = raw as Partial<SavedReview> | null;
+  const isIds = (v: unknown) => Array.isArray(v) && v.every((x) => typeof x === 'string');
+  const ok =
+    r !== null &&
+    typeof r === 'object' &&
+    typeof r.passed === 'boolean' &&
+    typeof r.score === 'number' &&
+    typeof r.submittedAt === 'string' &&
+    typeof r.verdict?.given === 'string' &&
+    typeof r.verdict.expected === 'string' &&
+    isIds(r.others) &&
+    Array.isArray(r.comments) &&
+    Array.isArray(r.issues) &&
+    r.issues.every(
+      (o) =>
+        typeof o?.issue?.id === 'string' &&
+        typeof o.weight === 'number' &&
+        typeof o.caught === 'boolean' &&
+        isIds(o.nearby),
+    );
+  if (!ok) throw new Error('not a review result');
+  return r as SavedReview;
 }
 
 function requireReview(t: Target): NonNullable<Target['challenge']['review']> {

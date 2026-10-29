@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, CircleCheckBig, CircleX } from 'lucide-react';
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type {
   ChallengeDetail,
   ChallengeSummary,
@@ -57,6 +57,10 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [all, setAll] = useState<ChallengeSummary[] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Ticks are saved one request at a time, latest state wins: the server refuses a second
+  // save while one is running, and an older answer must not undo a newer tick.
+  const unsavedTicks = useRef<string[] | null>(null);
+  const saving = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,22 +130,40 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
 
   // Ticking saves at once; the page shows the tick straight away and the server's score
   // when it answers.
+  const showReview = (next: ReviewResult) =>
+    setLoad((l) => (l.state === 'ready' ? { ...l, review: next } : l));
+
+  const saveTicks = async () => {
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      while (unsavedTicks.current) {
+        const ticks = unsavedTicks.current;
+        unsavedTicks.current = null;
+        const updated = await api.setCaught(id, ticks, lang);
+        // Show the server's answer only when nothing newer is waiting to be saved.
+        if (!unsavedTicks.current) showReview(updated);
+      }
+    } catch (err) {
+      unsavedTicks.current = null;
+      setSaveError(`Not saved: ${(err as Error).message}`);
+      // Show what the server really has.
+      api
+        .reviewResult(id, lang)
+        .then(showReview)
+        .catch(() => undefined);
+    } finally {
+      saving.current = false;
+    }
+  };
+
+  // The tick shows at once (with its score); saving follows.
   const toggle = (issueId: string, caught: boolean) => {
-    const ticked = review.issues
-      .filter((o) => (o.issue.id === issueId ? caught : o.caught))
-      .map((o) => o.issue.id);
+    const issues = review.issues.map((o) => (o.issue.id === issueId ? { ...o, caught } : o));
     setSaveError(null);
-    setLoad({
-      ...load,
-      review: {
-        ...review,
-        issues: review.issues.map((o) => (o.issue.id === issueId ? { ...o, caught } : o)),
-      },
-    });
-    api
-      .setCaught(id, ticked, lang)
-      .then((updated) => setLoad((l) => (l.state === 'ready' ? { ...l, review: updated } : l)))
-      .catch((err: Error) => setSaveError(`Not saved: ${err.message}`));
+    showReview({ ...review, issues, score: scoreOf(issues, review) });
+    unsavedTicks.current = issues.filter((o) => o.caught).map((o) => o.issue.id);
+    void saveTicks();
   };
 
   return (
@@ -259,6 +281,7 @@ function IssueCard({
   onToggle: (caught: boolean) => void;
 }) {
   const checkId = useId();
+  const titleId = useId();
   const { issue, caught, weight } = outcome;
   return (
     <article
@@ -272,7 +295,9 @@ function IssueCard({
         </span>
         <span className="text-[12px] text-muted">{Math.round(weight)}% of the score</span>
       </div>
-      <h3 className="mt-2 font-semibold">{issue.title}</h3>
+      <h3 id={titleId} className="mt-2 font-semibold">
+        {issue.title}
+      </h3>
       <p className="text-[12px] text-muted">
         {issue.file} · {lineLabel(issue.lines)} · {typeLabel(issue.type)}
       </p>
@@ -295,6 +320,7 @@ function IssueCard({
       >
         <input
           id={checkId}
+          aria-describedby={titleId}
           type="checkbox"
           checked={caught}
           onChange={(e) => onToggle(e.target.checked)}
@@ -315,4 +341,10 @@ function CommentQuote({ comment }: { comment: ReviewComment }): ReactNode {
       <p className="leading-relaxed whitespace-pre-wrap">{comment.why}</p>
     </blockquote>
   );
+}
+
+/** The score the server will compute for these ticks, to show it before it answers. */
+function scoreOf(issues: IssueOutcome[], review: ReviewResult): number {
+  if (issues.length === 0) return review.score;
+  return Math.round(issues.reduce((sum, o) => sum + (o.caught ? o.weight : 0), 0));
 }
