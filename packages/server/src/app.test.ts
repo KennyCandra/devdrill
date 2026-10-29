@@ -796,4 +796,27 @@ describe('review challenges', () => {
     expect(result.issues.filter((i) => i.severity === 'must').every((i) => i.found)).toBe(true);
     expect(result.solved).toBe(true);
   });
+
+  it('counts a password-hash comment on line 47 as the leak, not the missing owner check', async () => {
+    const ACCOUNT = 'review-002-account-settings';
+    await api('post', `/challenges/${ACCOUNT}/start?lang=ts`).expect(200);
+    await api('put', `/workspaces/${ACCOUNT}/review?lang=ts`)
+      .send({
+        comments: [
+          {
+            id: 'leak',
+            file: 'src/users.ts',
+            lines: [47, 47],
+            type: 'data-exposure',
+            why: 'You return the password hash with the data.',
+          },
+        ],
+        verdict: 'request_changes',
+      })
+      .expect(200);
+    const res = await api('post', `/workspaces/${ACCOUNT}/review/submit?lang=ts`).send({});
+    const result = res.body as ReviewResult;
+    const found = result.issues.filter((i) => i.found).map((i) => i.id);
+    expect(found).toEqual(['account-leaks-password-hash']);
+  });
 });
