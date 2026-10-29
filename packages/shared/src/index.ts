@@ -277,3 +277,53 @@ export interface ReviewSubmitRequest {
 export interface ReviewCaughtRequest {
   caught: string[];
 }
+
+// ---- AI ----
+
+export type AiProviderId = 'claude' | 'openai' | 'ollama' | 'opencode' | 'custom';
+
+/** What Settings needs to know to show a provider's form. */
+export interface AiProviderInfo {
+  id: AiProviderId;
+  label: string;
+  /** One line under the name, e.g. where to get a key. */
+  description: string;
+  needsKey: boolean;
+  needsBaseUrl: boolean;
+  defaultModel: string;
+  defaultBaseUrl: string | null;
+}
+
+/** One provider's saved settings, as the browser sees them: the key itself never leaves the server. */
+export interface AiProviderSettings {
+  model: string;
+  baseUrl: string | null;
+  hasKey: boolean;
+}
+
+export interface AiSettings {
+  /** The provider the AI features use, or null: AI is off. */
+  active: AiProviderId | null;
+  providers: Record<AiProviderId, AiProviderSettings>;
+  /** Every provider DevDrill knows, in the order Settings shows them. */
+  available: AiProviderInfo[];
+}
+
+/**
+ * A change to the AI settings. `apiKey`: a new key, or null to remove the saved one;
+ * leave it out to keep the current key.
+ */
+export interface AiSettingsPatch {
+  active?: AiProviderId | null;
+  provider?: AiProviderId;
+  model?: string;
+  baseUrl?: string | null;
+  apiKey?: string | null;
+}
+
+export interface AiTestResult {
+  ok: boolean;
+  /** What the provider answered, or why it failed, in words for the player. */
+  message: string;
+  durationMs: number;
+}

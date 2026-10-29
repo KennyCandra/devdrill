@@ -1,6 +1,8 @@
 import path from 'node:path';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type {
+  AiSettings,
+  AiTestResult,
   ApiError,
   ChallengeDetail,
   ChallengeSummary,
@@ -23,6 +25,9 @@ import type {
   TestRunResult,
   WorkspaceInfo,
 } from '@devdrill/shared';
+import { AiConfigStore } from './ai/config.js';
+import type { AiProvider } from './ai/provider.js';
+import { AiService } from './ai/service.js';
 import { APP_NAME } from './config.js';
 import { HttpError } from './httpError.js';
 import { apiSecurity, uiSecurity } from './security.js';
@@ -48,6 +53,8 @@ export interface AppOptions {
   uiDir?: string | null;
   /** Hosted mode: the public URL, allowed by the Host and Origin checks. */
   publicUrl?: string;
+  /** Tests: answer every AI request with this provider instead of the configured one. */
+  aiProvider?: AiProvider;
 }
 
 export function createApp(options: AppOptions) {
@@ -56,6 +63,7 @@ export function createApp(options: AppOptions) {
   const progress = createProgressStore(dataDir);
   const settings = createSettingsStore(dataDir);
   const reviews = new ReviewService(workspaces);
+  const ai = new AiService(AiConfigStore.inDataDir(dataDir), options.aiProvider);
 
   const app = express();
   app.disable('x-powered-by');
@@ -329,6 +337,21 @@ export function createApp(options: AppOptions) {
       ...review,
       progress: review.passed ? await recordScore(target, review.score) : await progressOf(target),
     });
+  });
+
+  // ---- AI ----
+
+  // Keys never come back: the browser only learns whether each provider has one.
+  api.get('/ai/settings', async (_req, res: Response<AiSettings>) => {
+    res.json(await ai.settings());
+  });
+
+  api.put('/ai/settings', async (req, res: Response<AiSettings>) => {
+    res.json(await ai.update(req.body));
+  });
+
+  api.post('/ai/test', async (req, res: Response<AiTestResult>) => {
+    res.json(await ai.test(req.body));
   });
 
   // ---- Settings ----
