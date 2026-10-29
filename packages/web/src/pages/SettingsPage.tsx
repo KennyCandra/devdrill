@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Settings } from '@devdrill/shared';
 import { api } from '../api/client';
+import { AiSettingsSection } from '../components/AiSettingsSection';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TopBar } from '../components/TopBar';
 import { LanguageSwitch } from '../components/LanguageSwitch';
@@ -107,6 +108,10 @@ export function SettingsPage() {
               </span>
             </span>
           </label>
+        </Section>
+
+        <Section title="AI">
+          <AiSettingsSection />
         </Section>
 
         <Section title="Progress">

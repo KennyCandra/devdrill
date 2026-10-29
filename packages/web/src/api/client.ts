@@ -1,4 +1,7 @@
 import type {
+  AiSettings,
+  AiSettingsPatch,
+  AiTestResult,
   ApiError,
   ChallengeDetail,
   ChallengeSummary,
@@ -180,6 +183,11 @@ export const api = {
       body: JSON.stringify(draft),
     }).catch(() => undefined);
   },
+
+  aiSettings: () => request<AiSettings>('GET', '/ai/settings'),
+  saveAiSettings: (patch: AiSettingsPatch) => request<AiSettings>('PUT', '/ai/settings', patch),
+  testAi: (provider: AiSettingsPatch['provider']) =>
+    request<AiTestResult>('POST', '/ai/test', { provider }),
 
   settings: () => request<Settings>('GET', '/settings'),
   saveSettings: (patch: Partial<Settings>) => request<Settings>('PUT', '/settings', patch),
