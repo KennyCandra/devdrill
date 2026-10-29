@@ -1,6 +1,7 @@
-import { ArrowLeft, ArrowRight, CircleCheckBig, CircleX } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleCheckBig, CircleX, Sparkles } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type {
+  AiIssueVerdict,
   ChallengeDetail,
   ChallengeSummary,
   IssueOutcome,
@@ -32,6 +33,18 @@ const SEVERITY_STYLE: Record<ReviewSeverity, string> = {
   nit: 'text-muted bg-hover',
 };
 
+const AI_VERDICT_LABELS: Record<AiIssueVerdict, string> = {
+  caught: 'caught',
+  partly: 'partly',
+  missed: 'missed',
+};
+
+const AI_VERDICT_STYLE: Record<AiIssueVerdict, string> = {
+  caught: 'text-success',
+  partly: 'text-warning',
+  missed: 'text-danger',
+};
+
 const VERDICT_LABELS: Record<ReviewVerdict, string> = {
   approve: 'Approve',
   request_changes: 'Request changes',
@@ -61,6 +74,9 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
   // save while one is running, and an older answer must not undo a newer tick.
   const unsavedTicks = useRef<string[] | null>(null);
   const saving = useRef(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [judging, setJudging] = useState(false);
+  const [judgeError, setJudgeError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +103,10 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
     api
       .challenges()
       .then((list) => !cancelled && setAll(list))
+      .catch(() => undefined);
+    api
+      .aiStatus()
+      .then((s) => !cancelled && setAiEnabled(s.enabled))
       .catch(() => undefined);
     return () => {
       cancelled = true;
@@ -154,6 +174,19 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
         .catch(() => undefined);
     } finally {
       saving.current = false;
+    }
+  };
+
+  // The AI judges every issue and pre-ticks the caught ones; a slow local model can take a minute.
+  const askAi = async () => {
+    setJudging(true);
+    setJudgeError(null);
+    try {
+      showReview(await api.judgeReview(id, lang));
+    } catch (err) {
+      setJudgeError((err as Error).message);
+    } finally {
+      setJudging(false);
     }
   };
 
@@ -239,6 +272,45 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
                 {saveError}
               </p>
             )}
+            {review.issues.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-line bg-side p-3">
+                <Sparkles size={16} className="shrink-0 text-accent" aria-hidden="true" />
+                {aiEnabled ? (
+                  <>
+                    <span className="mr-auto">
+                      {review.ai
+                        ? 'The AI judged your comments and ticked what you caught. You can still change every tick.'
+                        : 'Let the AI read your comments and judge each issue: caught, partly or missed.'}
+                    </span>
+                    <Button onClick={() => void askAi()} disabled={judging}>
+                      {judging ? <Spinner /> : null}
+                      {judging
+                        ? 'Judging… (can take a minute)'
+                        : review.ai
+                          ? 'Judge again'
+                          : 'Ask AI to judge'}
+                    </Button>
+                  </>
+                ) : (
+                  <span className="mr-auto text-muted">
+                    Set up an AI provider in{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/settings')}
+                      className="underline underline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+                    >
+                      Settings
+                    </button>{' '}
+                    to have your comments judged.
+                  </span>
+                )}
+                {judgeError && (
+                  <p role="alert" className="w-full text-danger">
+                    {judgeError}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           {review.issues.map((outcome) => (
             <IssueCard
@@ -246,6 +318,7 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
               outcome={outcome}
               typeLabel={typeLabel}
               nearby={outcome.nearby.flatMap((cid) => commentById.get(cid) ?? [])}
+              ai={review.ai?.issues.find((j) => j.issueId === outcome.issue.id)}
               onToggle={(caught) => toggle(outcome.issue.id, caught)}
             />
           ))}
@@ -273,11 +346,13 @@ function IssueCard({
   outcome,
   typeLabel,
   nearby,
+  ai,
   onToggle,
 }: {
   outcome: IssueOutcome;
   typeLabel: (type: string) => string;
   nearby: ReviewComment[];
+  ai: { verdict: AiIssueVerdict; reason: string } | undefined;
   onToggle: (caught: boolean) => void;
 }) {
   const checkId = useId();
@@ -311,6 +386,18 @@ function IssueCard({
           <p className="text-muted italic">None.</p>
         )}
       </div>
+
+      {ai && (
+        <p className="mt-3 flex gap-2 rounded bg-hover p-2 leading-relaxed">
+          <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
+          <span>
+            <strong className={`font-semibold ${AI_VERDICT_STYLE[ai.verdict]}`}>
+              AI: {AI_VERDICT_LABELS[ai.verdict]}.
+            </strong>{' '}
+            {ai.reason}
+          </span>
+        </p>
+      )}
 
       <label
         htmlFor={checkId}

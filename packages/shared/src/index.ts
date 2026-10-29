@@ -266,7 +266,22 @@ export interface ReviewResult {
   /** 0–100, from the ticks. A PR with no issues scores 100 when passed. */
   score: number;
   submittedAt: string;
+  /** The AI's judgement of the comments, once the player asked for it. */
+  ai?: AiReviewJudgement;
   progress: ProgressEntry;
+}
+
+export type AiIssueVerdict = 'caught' | 'partly' | 'missed';
+
+/** What the AI made of the player's comments, issue by issue. */
+export interface AiReviewJudgement {
+  issues: { issueId: string; verdict: AiIssueVerdict; reason: string }[];
+  judgedAt: string;
+}
+
+/** Whether AI features can be used right now (a provider is chosen and set up). */
+export interface AiStatus {
+  enabled: boolean;
 }
 
 export interface ReviewSubmitRequest {

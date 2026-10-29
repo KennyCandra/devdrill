@@ -2,6 +2,7 @@ import path from 'node:path';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type {
   AiSettings,
+  AiStatus,
   AiTestResult,
   ApiError,
   ChallengeDetail,
@@ -27,6 +28,7 @@ import type {
 } from '@devdrill/shared';
 import { AiConfigStore } from './ai/config.js';
 import type { AiProvider } from './ai/provider.js';
+import { judgeReview } from './ai/features/judgeReview.js';
 import { AiService } from './ai/service.js';
 import { APP_NAME } from './config.js';
 import { HttpError } from './httpError.js';
@@ -354,6 +356,37 @@ export function createApp(options: AppOptions) {
     res.json(await ai.test(req.body));
   });
 
+  api.get('/ai/status', async (_req, res: Response<AiStatus>) => {
+    res.json({ enabled: await ai.enabled() });
+  });
+
+  // The AI judges each issue against the player's comments and pre-ticks what was caught.
+  api.post('/workspaces/:id/review/judge', async (req, res: Response<ReviewResult>) => {
+    const target = targetOf(req);
+    const review = await reviews.result(target);
+    if (!review) throw new HttpError(404, 'Submit the review first.');
+    const judgement = await ai.run(
+      judgeReview({
+        description: target.challenge.readme,
+        files: await reviews.files(target),
+        issues: reviews.issues(target),
+        comments: review.comments,
+        verdict: review.verdict.given,
+      }),
+      abortWhenClosed(res),
+    );
+    const updated = await reviews.applyAiJudgement(target, {
+      ...judgement,
+      judgedAt: new Date().toISOString(),
+    });
+    res.json({
+      ...updated,
+      progress: updated.passed
+        ? await recordScore(target, updated.score)
+        : await progressOf(target),
+    });
+  });
+
   // ---- Settings ----
 
   api.get('/settings', async (_req, res: Response<Settings>) => {
@@ -409,6 +442,15 @@ export function createApp(options: AppOptions) {
   }
 
   return app;
+}
+
+/** Aborts when the browser goes away before the answer is sent (e.g. the player left). */
+function abortWhenClosed(res: Response): AbortSignal {
+  const controller = new AbortController();
+  res.on('close', () => {
+    if (!res.writableFinished) controller.abort();
+  });
+  return controller.signal;
 }
 
 /** A review's workspace only holds its draft, which isn't a file to edit. */

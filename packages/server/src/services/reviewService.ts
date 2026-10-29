@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type {
+  AiReviewJudgement,
   IssueType,
   ReviewComment,
   ReviewDraft,
@@ -132,6 +133,22 @@ export class ReviewService {
     }
     const updated = await this.workspaces.exclusive(t, async () =>
       (await this.resultStore(t)).update((saved) => (saved ? withCaught(saved, caught) : null)),
+    );
+    if (!updated) throw new HttpError(404, 'Submit the review first.');
+    return updated;
+  }
+
+  /**
+   * Saves the AI's judgement with the review and ticks what it says was caught. The player
+   * can still change every tick afterwards.
+   */
+  async applyAiJudgement(t: Target, judgement: AiReviewJudgement): Promise<SavedReview> {
+    const updated = await this.workspaces.exclusive(t, async () =>
+      (await this.resultStore(t)).update((saved) => {
+        if (!saved) return null;
+        const caught = judgement.issues.filter((j) => j.verdict === 'caught').map((j) => j.issueId);
+        return { ...withCaught(saved, caught), ai: judgement };
+      }),
     );
     if (!updated) throw new HttpError(404, 'Submit the review first.');
     return updated;

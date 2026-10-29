@@ -1,5 +1,6 @@
 import type {
   AiSettings,
+  AiStatus,
   AiSettingsPatch,
   AiTestResult,
   ApiError,
@@ -184,6 +185,9 @@ export const api = {
     }).catch(() => undefined);
   },
 
+  aiStatus: () => request<AiStatus>('GET', '/ai/status'),
+  judgeReview: (id: string, lang?: Language) =>
+    request<ReviewResult>('POST', `/workspaces/${enc(id)}/review/judge`, {}, lang),
   aiSettings: () => request<AiSettings>('GET', '/ai/settings'),
   saveAiSettings: (patch: AiSettingsPatch) => request<AiSettings>('PUT', '/ai/settings', patch),
   testAi: (provider: AiSettingsPatch['provider']) =>
