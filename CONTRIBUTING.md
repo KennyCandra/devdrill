@@ -145,6 +145,10 @@ The validator checks the layout, that the PR compiles and its tests pass, that e
 
 Challenge code runs on players' machines. Every challenge PR is reviewed by a maintainer before merging: look for anything that reads or writes outside the project, touches the network, or spawns processes.
 
+## Adding an AI provider
+
+All AI code lives in `packages/server/src/ai/`. A provider is one file in `providers/` exporting a factory that returns an `AiProvider` (`complete(request) → text`); add its id to `AiProviderId` in `packages/shared` and an entry in `registry.ts` (label, description, defaults). Settings, the routes and every feature pick it up from there. Prompts live in `prompts/`, one file per feature; tests use `providers/fake.ts`, never a real model.
+
 ## Code contributions
 
 ```bash

@@ -36,6 +36,14 @@ Hints come one at a time, from "where to look" to "almost the answer". A timer r
 - **Then you grade yourself:** the answer key appears next to your review, with your comments under each issue they're on. Tick the issues you really caught; your score is the share you ticked, and must-fix issues count most (must 3, should 2, nit 1).
 - Without AI there's no fair way to judge free-text comments automatically, so DevDrill doesn't pretend to. Your results, ticks and best score are saved, so you can come back to them.
 
+**AI (optional):** connect an AI provider in Settings and DevDrill can:
+
+- **judge your review:** read your comments against the answer key and say, per issue, caught / partly / missed (it pre-ticks; every tick stays yours);
+- **give feedback on your code** after you solve a challenge: risks the tests miss, readability, a simpler way;
+- **give a hint** when you're stuck: a nudge, never the answer (it never sees the solution).
+
+Pick **Claude**, **OpenAI**, **Ollama** (local models: free, offline, nothing leaves your machine), **OpenCode** (your local OpenCode server and whatever it's connected to), or **Custom** (any OpenAI-compatible API: DeepSeek, OpenRouter, LM Studio…). Keys are saved in `~/.devdrill/ai.json`, readable only by you, and never sent to the browser. The AI gives feedback; it never decides pass or fail. Without a provider, nothing changes.
+
 **Languages:** every challenge comes in JavaScript and TypeScript. Pick one on the challenge list, in Settings, or inside a challenge. Your code and progress are kept separately per language. In TypeScript, type errors are underlined like in VS Code, but they don't stop the tests from running.
 
 **Honor system:** the hidden tests and solutions ship with the app, and you can read them if you go looking. It's practice; the only person you'd be fooling is yourself.

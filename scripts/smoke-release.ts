@@ -156,6 +156,14 @@ try {
   })) as { score: number };
   check(scored.score === 50, `ticking the must-fix issue scores 50% (${scored.score}%)`);
 
+  // AI: off by default, five providers on offer, and its routes answer.
+  const aiStatus = (await api('GET', '/ai/status')) as { enabled: boolean };
+  const aiSettings = (await api('GET', '/ai/settings')) as { available: unknown[] };
+  check(
+    !aiStatus.enabled && aiSettings.available.length === 5,
+    'AI is off by default, with five providers to choose from',
+  );
+
   console.log('Smoke test passed.');
 } catch (err) {
   console.error((err as Error).message);

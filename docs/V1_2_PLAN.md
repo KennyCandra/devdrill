@@ -1,6 +1,6 @@
 # DevDrill — Version 1.2 Plan: the AI module
 
-> Status: agreed with Ahmed on 2026-10-29. Built milestone by milestone with a fresh reviewer after each.
+> Status: built (A0–A5) on 2026-10-29, each milestone checked by a fresh reviewer. Tried against a local Ollama model (qwen3.5:4b); Claude, OpenAI, OpenCode and Custom are covered by tests with fakes, not yet by a real key.
 
 ## 1. Goal
 
