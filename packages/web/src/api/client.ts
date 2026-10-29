@@ -17,6 +17,7 @@ import type {
   SaveFileRequest,
   SessionInfo,
   Settings,
+  SolutionFeedback,
   SolutionFile,
   SubmitRequest,
   SubmitResult,
@@ -186,6 +187,8 @@ export const api = {
   },
 
   aiStatus: () => request<AiStatus>('GET', '/ai/status'),
+  solutionFeedback: (id: string, lang?: Language) =>
+    request<SolutionFeedback>('POST', `/workspaces/${enc(id)}/feedback`, {}, lang),
   judgeReview: (id: string, lang?: Language) =>
     request<ReviewResult>('POST', `/workspaces/${enc(id)}/review/judge`, {}, lang),
   aiSettings: () => request<AiSettings>('GET', '/ai/settings'),

@@ -18,6 +18,7 @@ import { challengePath, navigate } from '../router';
 import { clearResult, loadResult, nextChallenge, type StoredResult } from '../workspace/results';
 import { HiddenTestsView } from '../workspace/HiddenTestsView';
 import { SolutionView } from '../workspace/SolutionView';
+import { AiFeedback } from '../workspace/AiFeedback';
 import { formatDuration } from '../workspace/timer';
 
 type Load =
@@ -194,6 +195,8 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
             </Button>
           )}
         </div>
+
+        {progressSolved && <AiFeedback id={id} lang={lang} />}
 
         {showSolution && <SolutionView id={id} lang={lang} />}
 
