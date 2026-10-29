@@ -344,7 +344,6 @@ describe('AI judges a review', () => {
         },
       ],
       comments: [],
-      verdict: 'approve',
     });
     expect(() => feature.parse({ issues: [] })).toThrow('no verdict for a');
   });
@@ -407,5 +406,75 @@ describe('AI feedback on a solution', () => {
       server.close();
       await rm(dataDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('AI judgement and a changing review', () => {
+  it('keeps your own ticks, and refuses a judgement of a review you resubmitted meanwhile', async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), 'devdrill-ai-stale-'));
+    let duringAnswer: (() => Promise<void>) | null = null;
+    const fake = createFakeProvider(async () => {
+      await duringAnswer?.();
+      return JSON.stringify({
+        issues: [
+          { id: 'coupon-mutates-order', verdict: 'caught', reason: 'Yes.' },
+          { id: 'coupon-test-checks-nothing', verdict: 'partly', reason: 'Sort of.' },
+          { id: 'free-shipping-magic-number', verdict: 'missed', reason: 'No.' },
+        ],
+      });
+    });
+    const app = createApp({
+      challenges: await loadChallenges(appPaths().challenges),
+      dataDir,
+      token: 'test-token-0123456789abcdef',
+      aiProvider: fake,
+    });
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise((resolve) => server.once('listening', resolve));
+    const host = `127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const call = (method: 'get' | 'put' | 'post', url: string) => {
+      const agent = request(server);
+      return agent[method](`/api${url}`)
+        .set('Host', host)
+        .set(TOKEN_HEADER, 'test-token-0123456789abcdef');
+    };
+    const R = 'review-001-order-coupons';
+    const draft = {
+      verdict: 'request_changes',
+      comments: [{ id: 'c1', file: 'src/orders.js', lines: [20, 20], why: 'Mutates.' }],
+    };
+    try {
+      await call('post', `/challenges/${R}/start`).expect(200);
+      await call('put', `/workspaces/${R}/review`).send(draft).expect(200);
+      await call('post', `/workspaces/${R}/review/submit`).send({}).expect(200);
+      // Your own tick on the nit stays, though the AI says "missed".
+      await call('put', `/workspaces/${R}/review/caught`)
+        .send({ caught: ['free-shipping-magic-number'] })
+        .expect(200);
+      const judged = await call('post', `/workspaces/${R}/review/judge`).send({}).expect(200);
+      expect(
+        (judged.body as ReviewResult).issues.filter((o) => o.caught).map((o) => o.issue.id),
+      ).toEqual(['coupon-mutates-order', 'free-shipping-magic-number']);
+
+      // Resubmitting while the AI thinks: its verdict is about the old review.
+      duringAnswer = async () => {
+        duringAnswer = null;
+        await new Promise((resolve) => setTimeout(resolve, 5)); // a new submittedAt
+        await call('post', `/workspaces/${R}/review/submit`).send({}).expect(200);
+      };
+      const stale = await call('post', `/workspaces/${R}/review/judge`).send({}).expect(409);
+      expect((stale.body as { error: string }).error).toContain('changed while the AI');
+      const now = await call('get', `/workspaces/${R}/review/result`).expect(200);
+      expect((now.body as ReviewResult).ai).toBeUndefined();
+    } finally {
+      server.close();
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("tries each JSON object until one fits, so a repeated schema isn't taken for the answer", async () => {
+    const fake = createFakeProvider(() => 'Schema: {"type": "object"} Answer: {"n": 3}');
+    const ai = new AiService(AiConfigStore.inDataDir(path.join(dir, 'repeat')), fake);
+    await expect(ai.run(ECHO)).resolves.toEqual({ n: 3 });
   });
 });

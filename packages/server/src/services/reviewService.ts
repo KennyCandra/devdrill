@@ -139,19 +139,41 @@ export class ReviewService {
   }
 
   /**
-   * Saves the AI's judgement with the review and ticks what it says was caught. The player
-   * can still change every tick afterwards.
+   * Saves the AI's judgement with the review that was judged (`submittedAt` says which) and
+   * adds a tick to every issue it says was caught. The player's own ticks are kept, and every
+   * tick can still be changed afterwards.
    */
-  async applyAiJudgement(t: Target, judgement: AiReviewJudgement): Promise<SavedReview> {
-    const updated = await this.workspaces.exclusive(t, async () =>
-      (await this.resultStore(t)).update((saved) => {
-        if (!saved) return null;
-        const caught = judgement.issues.filter((j) => j.verdict === 'caught').map((j) => j.issueId);
-        return { ...withCaught(saved, caught), ai: judgement };
-      }),
-    );
-    if (!updated) throw new HttpError(404, 'Submit the review first.');
-    return updated;
+  async applyAiJudgement(
+    t: Target,
+    judgement: AiReviewJudgement,
+    submittedAt: string,
+  ): Promise<SavedReview> {
+    // The AI took a while; a tick being saved right now holds the workspace for a moment.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const updated = await this.workspaces.exclusive(t, async () =>
+          (await this.resultStore(t)).update((saved) => {
+            if (!saved) return null;
+            if (saved.submittedAt !== submittedAt) {
+              throw new HttpError(
+                409,
+                'Your review changed while the AI was judging it. Ask again.',
+              );
+            }
+            const caught = new Set(saved.issues.filter((o) => o.caught).map((o) => o.issue.id));
+            for (const j of judgement.issues) if (j.verdict === 'caught') caught.add(j.issueId);
+            return { ...withCaught(saved, [...caught]), ai: judgement };
+          }),
+        );
+        if (!updated) throw new HttpError(404, 'Submit the review first.');
+        return updated;
+      } catch (err) {
+        const busy =
+          err instanceof HttpError && err.status === 409 && !err.message.startsWith('Your review');
+        if (!busy || attempt >= 10) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
   }
 
   private async workspaceDir(t: Target): Promise<string> {
@@ -221,6 +243,21 @@ function parseStoredResult(raw: unknown): SavedReview | null {
         isIds(o.nearby),
     );
   if (!ok) throw new Error('not a review result');
+  const ai = r.ai as Partial<AiReviewJudgement> | undefined;
+  const aiOk =
+    ai === undefined ||
+    (Array.isArray(ai.issues) &&
+      ai.issues.every(
+        (j) =>
+          typeof j?.issueId === 'string' &&
+          ['caught', 'partly', 'missed'].includes(j.verdict) &&
+          typeof j.reason === 'string',
+      ));
+  // A broken judgement is dropped rather than break the page; the player can ask again.
+  if (!aiOk) {
+    const { ai: _ai, ...rest } = r as SavedReview;
+    return rest;
+  }
   return r as SavedReview;
 }
 

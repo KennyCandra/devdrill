@@ -96,7 +96,7 @@ export function createOpenCodeProvider(config: ProviderConfig): AiProvider {
             () => undefined,
           );
         }
-        await fetch(sessionUrl, { method: 'DELETE', headers, signal: cleanup }).catch(
+        void fetch(sessionUrl, { method: 'DELETE', headers, signal: cleanup }).catch(
           () => undefined,
         );
       }

@@ -17,6 +17,12 @@ export interface AiFeature<T> {
 const TIMEOUT_MS = 120_000;
 
 /**
+ * About 30,000 tokens: more than any challenge needs, and within the context the local
+ * providers are given. Past it, models silently drop the start of the prompt.
+ */
+const MAX_PROMPT_CHARS = 100_000;
+
+/**
  * The AI features' way in: picks the provider from the settings, runs a feature on it,
  * and checks the answer. Errors come out as HttpErrors with messages for the player.
  */
@@ -90,6 +96,9 @@ export class AiService {
     feature: AiFeature<T>,
     abort?: AbortSignal,
   ): Promise<T> {
+    if (feature.system.length + feature.prompt.length > MAX_PROMPT_CHARS) {
+      throw new HttpError(413, 'This is too much code to send to the AI at once.');
+    }
     const timeout = AbortSignal.timeout(TIMEOUT_MS);
     const signal = abort ? AbortSignal.any([timeout, abort]) : timeout;
     let text: string;
@@ -115,11 +124,16 @@ export class AiService {
       throw new HttpError(502, 'The AI request failed. Check the AI settings and try again.');
     }
 
-    try {
-      return feature.parse(JSON.parse(extractJson(text)));
-    } catch {
-      throw new HttpError(502, "The AI's answer didn't make sense. Try again.");
+    // The first JSON object that fits the feature is the answer (a model may, say, repeat
+    // the schema before answering).
+    for (const candidate of jsonObjects(text)) {
+      try {
+        return feature.parse(JSON.parse(candidate));
+      } catch {
+        // Try the next one.
+      }
     }
+    throw new HttpError(502, "The AI's answer didn't make sense. Try again.");
   }
 }
 
@@ -130,15 +144,22 @@ export class AiService {
  * don't count), and returns the first that parses as an object.
  */
 export function extractJson(text: string): string {
+  const [first] = jsonObjects(text);
+  if (first === undefined) throw new Error('no JSON object');
+  return first;
+}
+
+/** Every JSON object in the text, in order: the whole text, then each `{…}` that parses. */
+function jsonObjects(text: string): string[] {
   const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-  if (isJsonObject(cleaned)) return cleaned;
+  const found: string[] = isJsonObject(cleaned) ? [cleaned] : [];
   for (let start = cleaned.indexOf('{'); start !== -1; start = cleaned.indexOf('{', start + 1)) {
     const end = matchingBrace(cleaned, start);
     if (end !== -1 && isJsonObject(cleaned.slice(start, end + 1))) {
-      return cleaned.slice(start, end + 1);
+      found.push(cleaned.slice(start, end + 1));
     }
   }
-  throw new Error('no JSON object');
+  return found;
 }
 
 function isJsonObject(text: string): boolean {

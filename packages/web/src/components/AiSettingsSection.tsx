@@ -1,5 +1,5 @@
 import { CircleCheck, CircleX, KeyRound, PlugZap } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { AiProviderId, AiSettings, AiTestResult } from '@devdrill/shared';
 import { api } from '../api/client';
 import { Dropdown } from './Dropdown';
@@ -24,6 +24,10 @@ export function AiSettingsSection() {
   const modelId = useId();
   const urlId = useId();
   const keyId = useId();
+  // What was typed for other providers, so looking at another one doesn't lose it.
+  const drafts = useRef<
+    Partial<Record<AiProviderId, { model: string; baseUrl: string; apiKey: string }>>
+  >({});
 
   // Fills the form from the saved settings of one provider.
   const show = (next: AiSettings, provider: Choice) => {
@@ -73,8 +77,18 @@ export function AiSettingsSection() {
               ...(apiKey ? { apiKey } : {}),
             },
       );
+      const switched = choice !== 'off' && settings?.active !== choice;
+      if (choice !== 'off') delete drafts.current[choice];
       show(next, choice);
-      setMessage({ ok: true, text: choice === 'off' ? 'AI is off.' : 'Saved.' });
+      setMessage({
+        ok: true,
+        text:
+          choice === 'off'
+            ? 'AI is off.'
+            : switched
+              ? `Saved. The AI now uses ${info?.label ?? choice}.`
+              : 'Saved.',
+      });
       return next;
     } catch (err) {
       setMessage({ ok: false, text: (err as Error).message });
@@ -86,7 +100,7 @@ export function AiSettingsSection() {
 
   const test = async () => {
     if (choice === 'off') return;
-    // Test what's on screen: save first if it changed.
+    // Test what's on screen: save first if it changed (that also makes it the active one).
     if (dirty && !(await save())) return;
     setBusy('test');
     setMessage(null);
@@ -107,7 +121,10 @@ export function AiSettingsSection() {
     if (choice === 'off') return;
     setBusy('save');
     try {
-      show(await api.saveAiSettings({ provider: choice, apiKey: null }), choice);
+      const next = await api.saveAiSettings({ provider: choice, apiKey: null });
+      // Keep what's typed in the other fields; only the key goes.
+      setSettings(next);
+      setApiKey('');
       setMessage({ ok: true, text: 'Key removed.' });
     } catch (err) {
       setMessage({ ok: false, text: (err as Error).message });
@@ -133,7 +150,14 @@ export function AiSettingsSection() {
         ]}
         onChange={(next) => {
           setMessage(null);
+          if (choice !== 'off') drafts.current[choice] = { model, baseUrl, apiKey };
           show(settings, next);
+          const draft = next === 'off' ? undefined : drafts.current[next];
+          if (draft) {
+            setModel(draft.model);
+            setBaseUrl(draft.baseUrl);
+            setApiKey(draft.apiKey);
+          }
         }}
       />
 

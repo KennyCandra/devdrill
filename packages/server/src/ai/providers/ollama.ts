@@ -21,7 +21,7 @@ export function createOllamaProvider(config: ProviderConfig): AiProvider {
             stream: false,
             format: schema,
             // Ollama's default context is small and cuts long prompts (a whole diff) silently.
-            options: { num_ctx: 16384 },
+            options: { num_ctx: 32768 },
             messages: [
               { role: 'system', content: system },
               { role: 'user', content: prompt },

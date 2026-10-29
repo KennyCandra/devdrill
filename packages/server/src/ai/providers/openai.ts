@@ -61,7 +61,13 @@ export function createOpenAiCompatibleProvider(
         } catch (err) {
           // Some OpenAI-compatible servers (LM Studio…) refuse JSON mode: ask again without
           // it; the prompt still asks for JSON and the service checks it.
-          if (kind !== 'custom' || !(err instanceof OpenAI.BadRequestError)) throw err;
+          if (
+            kind !== 'custom' ||
+            !(err instanceof OpenAI.BadRequestError) ||
+            !/response_format|json/i.test(err.message)
+          ) {
+            throw err;
+          }
           response = await ask('none');
         }
         const choice = response.choices[0];

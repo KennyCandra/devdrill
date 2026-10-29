@@ -88,7 +88,7 @@ function applyPatch(config: AiConfigFile, patch: AiSettingsPatch): AiConfigFile 
   if (patch.provider) {
     const p = config.providers[patch.provider];
     if (patch.model !== undefined) p.model = patch.model;
-    if (patch.baseUrl !== undefined && patch.baseUrl !== p.baseUrl) {
+    if (patch.baseUrl !== undefined && patch.baseUrl !== normalUrl(p.baseUrl)) {
       p.baseUrl = patch.baseUrl;
       // The key was given for the old server. Keeping it would send it to the new URL, which
       // anyone who can open the app could point at their own server to collect it.
@@ -145,7 +145,7 @@ export function parsePatch(raw: unknown): AiSettingsPatch {
   }
 
   if ('apiKey' in body) {
-    if (body.apiKey === null || body.apiKey === '') {
+    if (body.apiKey === null || (typeof body.apiKey === 'string' && body.apiKey.trim() === '')) {
       patch.apiKey = null;
     } else if (
       typeof body.apiKey !== 'string' ||
@@ -158,6 +158,16 @@ export function parsePatch(raw: unknown): AiSettingsPatch {
     }
   }
   return patch;
+}
+
+/** A stored URL as parseBaseUrl() would write it, so a hand-edited one compares equal. */
+function normalUrl(url: string | null): string | null {
+  if (url === null) return null;
+  try {
+    return parseBaseUrl(url);
+  } catch {
+    return url;
+  }
 }
 
 function parseBaseUrl(value: unknown): string {

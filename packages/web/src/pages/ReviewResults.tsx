@@ -279,7 +279,7 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
                   <>
                     <span className="mr-auto">
                       {review.ai
-                        ? 'The AI judged your comments and ticked what you caught. You can still change every tick.'
+                        ? 'The AI judged your comments and ticked what it says you caught ("partly" adds no tick). Your own ticks stay, and you can change every one.'
                         : 'Let the AI read your comments and judge each issue: caught, partly or missed.'}
                     </span>
                     <Button onClick={() => void askAi()} disabled={judging}>
@@ -319,6 +319,7 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
               typeLabel={typeLabel}
               nearby={outcome.nearby.flatMap((cid) => commentById.get(cid) ?? [])}
               ai={review.ai?.issues.find((j) => j.issueId === outcome.issue.id)}
+              locked={judging}
               onToggle={(caught) => toggle(outcome.issue.id, caught)}
             />
           ))}
@@ -347,12 +348,15 @@ function IssueCard({
   typeLabel,
   nearby,
   ai,
+  locked,
   onToggle,
 }: {
   outcome: IssueOutcome;
   typeLabel: (type: string) => string;
   nearby: ReviewComment[];
   ai: { verdict: AiIssueVerdict; reason: string } | undefined;
+  /** While the AI judges: it's about to set the ticks. */
+  locked: boolean;
   onToggle: (caught: boolean) => void;
 }) {
   const checkId = useId();
@@ -410,6 +414,7 @@ function IssueCard({
           aria-describedby={titleId}
           type="checkbox"
           checked={caught}
+          disabled={locked}
           onChange={(e) => onToggle(e.target.checked)}
           className="size-4 accent-[var(--success)]"
         />

@@ -392,14 +392,14 @@ export function createApp(options: AppOptions) {
         files: await reviews.files(target),
         issues: reviews.issues(target),
         comments: review.comments,
-        verdict: review.verdict.given,
       }),
       abortWhenClosed(res),
     );
-    const updated = await reviews.applyAiJudgement(target, {
-      ...judgement,
-      judgedAt: new Date().toISOString(),
-    });
+    const updated = await reviews.applyAiJudgement(
+      target,
+      { ...judgement, judgedAt: new Date().toISOString() },
+      review.submittedAt,
+    );
     res.json({
       ...updated,
       progress: updated.passed
