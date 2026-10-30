@@ -63,6 +63,7 @@ Pick **Claude**, **OpenAI**, **Ollama** (local models: free, offline, nothing le
 | Review  | Coupons and free shipping       | Easy       |
 | Review  | Account settings endpoints      | Medium     |
 | Review  | "Last seen" times               | Medium     |
+| Review  | Cache product prices            | Medium     |
 
 New challenges are very welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 

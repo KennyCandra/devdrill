@@ -1,0 +1,39 @@
+[
+  {
+    "id": "failed-price-cached-forever",
+    "file": "src/prices.js",
+    "lines": [
+      12,
+      13
+    ],
+    "type": "wrong-error-handling",
+    "severity": "must",
+    "title": "A price that fails to load stays failed for an hour",
+    "explanation": "The cache stores the promise from fetchPrice before it settles. If the service is down, that rejected promise is cached and every call for the next hour gets the same failure, though the PR promises a failed price is asked for again. Remove the entry when the promise rejects (or cache only resolved prices)."
+  },
+  {
+    "id": "cart-total-waits-one-by-one",
+    "file": "src/prices.js",
+    "lines": [
+      17,
+      24
+    ],
+    "function": "cartTotal",
+    "type": "sequential-awaits",
+    "severity": "should",
+    "title": "cartTotal now waits for each price in turn",
+    "explanation": "The loop awaits one price before asking for the next, so a 50-item cart with cold prices takes about 50 \u00d7 200 ms = 10 s; the old Promise.all asked for them all at once (~200 ms). Keep the readable loop if you like, but start every getPrice first and await them together."
+  },
+  {
+    "id": "unnamed-hour",
+    "file": "src/prices.js",
+    "lines": [
+      9,
+      9
+    ],
+    "type": "magic-value",
+    "severity": "nit",
+    "title": "3600000 is an unnamed hour",
+    "explanation": "Name it (e.g. CACHE_FOR_MS = 60 * 60 * 1000) so the rule \"cache for one hour\" is readable at a glance and lives in one place."
+  }
+]

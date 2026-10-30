@@ -1,0 +1,13 @@
+{
+  "id": "review-004-price-cache",
+  "mode": "review",
+  "title": "Cache product prices",
+  "difficulty": "medium",
+  "estimatedMinutes": 15,
+  "tags": ["async", "caching", "performance"],
+  "hints": [
+    "Follow what happens when fetchPrice rejects: what is in the cache afterwards, and what does the next call get?",
+    "Compare how the old cartTotal waited for its prices with how the new one does. How long does a 50-item cart take now?",
+    "Is every number in the change easy to understand at a glance?"
+  ]
+}
