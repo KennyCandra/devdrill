@@ -14,10 +14,12 @@ import { requestJson } from './http.js';
  * "default" for OpenCode's default model. Key: the server password, if you set
  * OPENCODE_SERVER_PASSWORD.
  *
- * OpenCode is an agent that can run tools (edit files, run commands) in its folder. Our
- * requests contain a player's code, so every tool it ships with is switched off: we only
- * want an answer. (Tools from MCP servers the player added to OpenCode aren't in this
- * list; see docs/V1_2_PLAN.md.)
+ * OpenCode is an agent that can run tools in its folder, and our requests contain a
+ * player's code. So every tool that can change something, run something, reach the web or
+ * wait for a person is switched off. The read-only ones (read, list, glob, grep…) stay on:
+ * checked against OpenCode 1.18, switching `read` off makes structured answers hang (they go
+ * through an internal tool). Tools from MCP servers the player added to OpenCode aren't in
+ * this list; see docs/V1_2_PLAN.md.
  */
 const TOOLS_OFF = Object.fromEntries(
   [
@@ -26,19 +28,13 @@ const TOOLS_OFF = Object.fromEntries(
     'write',
     'patch',
     'multiedit',
-    'read',
-    'list',
-    'glob',
-    'grep',
+    'apply_patch',
     'webfetch',
     'websearch',
+    'task',
     'todowrite',
     'todoread',
-    'task',
     'skill',
-    'lsp',
-    'codesearch',
-    'apply_patch',
     'question',
   ].map((tool) => [tool, false]),
 );

@@ -55,7 +55,7 @@ export const PROVIDERS: Record<
       id: 'opencode',
       label: 'OpenCode',
       description:
-        'Your OpenCode server (`opencode serve`) and the providers connected to it. Model: provider/model, or "default".',
+        'Your OpenCode server (`opencode serve`), with its free models and any provider you connected. Model: provider/model (e.g. opencode/deepseek-v4.1-flash-free), or "default".',
       needsKey: false,
       needsBaseUrl: true,
       defaultModel: 'default',
