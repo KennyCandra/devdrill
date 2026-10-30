@@ -22,7 +22,22 @@
     "type": "sequential-awaits",
     "severity": "should",
     "title": "cartTotal now waits for each price in turn",
-    "explanation": "The loop awaits one price before asking for the next, so a 50-item cart with cold prices takes about 50 \u00d7 200 ms = 10 s; the old Promise.all asked for them all at once (~200 ms). Keep the readable loop if you like, but start every getPrice first and await them together."
+    "explanation": "The loop awaits one price before asking for the next, so a 50-item cart with cold prices takes about 50 \u00d7 200 ms = 10 s; the old Promise.all asked for them all at once (~200 ms). Keep the readable loop if you like, but start every getPrice first and await them together. It's a should, not a must: nothing breaks, and it only bites when the cache is cold."
+  },
+  {
+    "id": "no-test-for-a-failed-price",
+    "file": "tests/prices.test.js",
+    "lines": [
+      15,
+      44
+    ],
+    "type": "missing-test",
+    "alsoAccept": [
+      "weak-test"
+    ],
+    "severity": "should",
+    "title": "No test tries a price that fails to load",
+    "explanation": "The PR promises that a failed price is asked for again, but no test makes fetchPrice reject once and then succeed. That test would have caught the must-fix bug above."
   },
   {
     "id": "unnamed-hour",

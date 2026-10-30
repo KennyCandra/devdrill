@@ -10,7 +10,7 @@ The price service is slow (about **200 ms per call**) and checkout asks it for e
 
 Good to know:
 
-- Carts have up to **50 items**, and checkout must stay fast.
+- Carts have up to **50 items**, and checkout should stay fast.
 - There are a few hundred products, so the cache stays small; no size limit is needed.
 - `fetchPrice(productId)` resolves to a price in cents, or rejects when the service is down.
 - `now` can be passed in so tests control time.
