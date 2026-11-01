@@ -1260,7 +1260,7 @@
         add(
           props,
           new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cablePts), 180, 0.22, 10),
-          std('#d7d7da', 0.5),
+          std('#8d8d93', 0.5),
         );
 
         // A window frame out of shot: the sun falls through it onto desk and wall.
@@ -1384,11 +1384,11 @@
           });
           const spark = add(
             inner,
-            new THREE.SphereGeometry(EYE_R * 0.24, 12, 8),
+            new THREE.SphereGeometry(EYE_R * 0.18, 12, 8),
             sparkMat,
             side * -0.035,
             0.05,
-            EYE_R * 0.92,
+            EYE_R * 0.83,
             {
               cast: false,
               receive: false,
@@ -1400,7 +1400,7 @@
           slant.add(lidPivot);
           const lidMesh = add(
             lidPivot,
-            new THREE.SphereGeometry(EYE_R * 1.1, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+            new THREE.SphereGeometry(EYE_R * 1.16, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2),
             new THREE.MeshPhysicalMaterial({
               color: '#ffcc20',
               roughness: 0.42,
@@ -1814,14 +1814,14 @@
           const breath = Math.sin((t / DUR) * Math.PI * 2 * 6);
           p.breath = breath;
           p.crouch = crouchT(t);
-          p.squash = 1 - 0.17 * squash - p.crouch * 0.06;
+          p.squash = 1 - 0.17 * squash - p.crouch * 0.06 - 0.13 * flopT(t);
           p.nod = nod;
           p.anticip = lift;
           p.footSide = nextFootSide;
 
           p.yaw = bodyYawT(t) + sway * 13 + shuffle * 7 * Math.sin(shufflePhase * 0.5);
           p.roll = sway * 11 - (p.liftL - p.liftR) * 22 + shuffle * 6 * Math.sin(shufflePhase);
-          p.pitch = 15 * p.crouch + 84 * p.flop + 6 * squash * (1 - p.flop);
+          p.pitch = 15 * p.crouch + 5 * p.flop + 6 * squash * (1 - p.flop);
 
           // Eyes first: they read the look curve now, the head 7 frames later.
           p.lookYaw = lookYawT(t);
@@ -1834,7 +1834,7 @@
           p.headPitch =
             -clamp(latePitch * 0.72, -46, 36) * flopHead -
             11 * p.crouch -
-            62 * p.flop * 0.5 +
+            34 * p.flop +
             12 * nod -
             p.pitch * 0.55 * (1 - p.flop);
           p.headRoll = tiltT(t) - sway * 15;
@@ -1979,6 +1979,7 @@
           pelvis.position.set(0, pelvisY, 0);
           pelvis.rotation.set(p.pitch * DEG, 0, p.roll * DEG);
 
+          neck.position.set(0, lerp(0.5, 0.26, p.flop), lerp(0.14, 0.42, p.flop));
           neck.rotation.set(-p.headPitch * DEG, p.headYaw * DEG, p.headRoll * DEG, 'YXZ');
           beakJaw.rotation.x = 0.55 * p.beak;
           beakTop.rotation.x = -0.1 * p.beak;
@@ -2007,13 +2008,13 @@
           for (const f of feet) {
             const liftNow = f.side < 0 ? p.liftL : p.liftR;
             const standY = liftNow;
-            const tuckY = 0.72 + 0.28;
-            const tuckZ = -0.88;
+            const tuckY = 0.42;
+            const tuckZ = -1.02;
             const fy = lerp(standY, tuckY, p.flop);
             const fz = lerp(0.02 + 0.22 * liftNow, tuckZ, p.flop);
             const fx = f.side * lerp(0.255, 0.3, p.flop);
             f.foot.position.set(fx, fy, fz);
-            f.foot.rotation.set(lerp(-0.55 * liftNow, -1.75, p.flop), 0, 0);
+            f.foot.rotation.set(lerp(-0.55 * liftNow, -1.3, p.flop), 0, 0);
           }
 
           duck.position.y = 0;
@@ -2043,8 +2044,7 @@
             const start = f.foot.position.clone();
             start.y += 0.09;
             const hip = new THREE.Vector3(f.side * 0.25, pelvisY - 0.36, 0.0);
-            if (p.flop > 0)
-              hip.lerp(new THREE.Vector3(f.side * 0.25, pelvisY + 0.12, -0.5), p.flop);
+            if (p.flop > 0) hip.lerp(new THREE.Vector3(f.side * 0.25, pelvisY - 0.2, -0.5), p.flop);
             _v.copy(hip).sub(start);
             const len = Math.max(_v.length(), 0.02);
             f.leg.position.copy(start);
@@ -2586,7 +2586,7 @@
       }
 
       // ---------------------------------------------------------------- sound
-      const MASTER_GAIN = 7.6;
+      const MASTER_GAIN = 8.1;
       const SR = 48000;
 
       async function renderAudio() {
@@ -2734,7 +2734,7 @@
         }
 
         // Master: fixed gain into a look-ahead limiter that runs round the loop, so the seam stays clean.
-        const CEIL = 0.69;
+        const CEIL = 0.655;
         const LOOK = 144;
         const want = new Float32Array(n);
         for (let i = 0; i < n; i++) {

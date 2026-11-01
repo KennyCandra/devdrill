@@ -40,9 +40,9 @@ const run = (args) => {
 run([
   '-framerate', '60', '-i', `${FRAMES}%04d.png`,
   '-i', `${OUT}read-the-code.wav`,
-  '-vf', 'scale=1920:1080:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p',
+  '-vf', 'scale=1920:1080:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv',
   '-c:v', 'libx264', '-profile:v', 'high', '-preset', 'slow', '-crf', '14',
-  '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
+  '-x264-params', 'colorprim=bt709:transfer=bt709:colormatrix=bt709',
   '-c:a', 'aac', '-b:a', '192k',
   '-movflags', '+faststart',
   FILM,
