@@ -23,7 +23,11 @@ const SUBMIT2_AT = EVENTS.find((e) => e.type === 'submit').t;
 const WS2_AT = SCREENS.find((s) => s.name === 'workspace2').at;
 const NQY_AT = SCREENS.find((s) => s.name === 'notQuiteYet').at;
 const SOLVED_AT = SCREENS.find((s) => s.name === 'solved').at;
-const REPORT_OPEN_AT = EVENTS.find((e) => e.type === 'click' && e.t > WS2_AT).t;
+const REPORT_CLICK_AT = EVENTS.find((e) => e.type === 'click' && e.t > WS2_AT).t;
+// The tab and the code change on one frame: the first recorded frame that shows report.js.
+const REPORT_OPEN_AT = KEYS.find(
+  (k) => k.t > REPORT_CLICK_AT && k.f.some((n) => FRAGS[n].includes('buildDailyReport')),
+).t;
 const TIMER_START_MS = 11 * 60_000 + 40_000;
 // The timer only counts on the workspace, so it stands still on the results page.
 const WS2_MOUNT = 14.94;
@@ -298,7 +302,7 @@ function fillResults(name) {
 
 function renderWorkspace(name, t) {
   const second = name === 'workspace2';
-  const opened = second ? t >= REPORT_OPEN_AT + 0.03 : true;
+  const opened = second ? t >= REPORT_OPEN_AT : true;
   const active = opened ? 'report.js' : 'orders.js';
   const save = saveState(t);
   const unsaved = save !== 'saved';

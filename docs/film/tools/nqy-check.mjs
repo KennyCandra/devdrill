@@ -113,6 +113,14 @@ for (const s of STATES) {
   );
 }
 
+{
+  const popups = CAPTURE.rec.filter((r) => r.t >= 14.88 && r.t < 20.1 && /hover-row/.test(r.html));
+  verdict(
+    popups.length === 0,
+    `no hover popup while the mouse rests by rows.push: ${popups.length} recorded frames with one`,
+  );
+}
+
 // -------------------------------------------------------------- purity
 console.log('--- renderAt is a pure function of t');
 const hash = async (t) => {
