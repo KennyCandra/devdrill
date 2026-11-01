@@ -517,7 +517,7 @@ const SOFT_KEY = {
   tickTau: 0.0032,
   body: 0.62,
   bodyHz: 196,
-  bodyTau: 0.017,
+  bodyTau: 0.028,
   ring: 0.14,
   ringHz: 1240,
 };
@@ -535,7 +535,7 @@ const SPACE_KEY = {
   tickTau: 0.004,
   body: 0.84,
   bodyHz: 128,
-  bodyTau: 0.026,
+  bodyTau: 0.038,
   ring: 0.1,
   ringHz: 820,
 };
@@ -544,7 +544,7 @@ const MOD_KEY = {
   tickTau: 0.003,
   body: 0.42,
   bodyHz: 170,
-  bodyTau: 0.015,
+  bodyTau: 0.024,
   ring: 0.1,
   ringHz: 1060,
 };
@@ -553,7 +553,7 @@ const CLICK_DOWN = {
   tickTau: 0.0014,
   body: 0.52,
   bodyHz: 104,
-  bodyTau: 0.011,
+  bodyTau: 0.018,
   ring: 0.1,
   ringHz: 2300,
 };
@@ -603,15 +603,15 @@ function soundEvents() {
 }
 
 // The master level, set from what ffmpeg's ebur128 measures on the result (nqy-check.mjs).
-const MASTER_DB = 0;
+const MASTER_DB = 9;
 const ROOM_DB = -52;
-const CEILING = 10 ** (-2.6 / 20);
+const CEILING = 10 ** (-3.4 / 20);
 
-window.renderAudio = async () => {
+window.renderAudio = async (masterDb = MASTER_DB) => {
   const length = Math.round(DURATION * SR);
   const ctx = new OfflineAudioContext(2, length, SR);
   const bus = ctx.createGain();
-  bus.gain.value = 10 ** (MASTER_DB / 20);
+  bus.gain.value = 10 ** (masterDb / 20);
   bus.connect(ctx.destination);
 
   // A small room around the hits, so they sit somewhere.
@@ -628,7 +628,7 @@ window.renderAudio = async () => {
   }
   room.buffer = ir;
   const wet = ctx.createGain();
-  wet.gain.value = 0.55;
+  wet.gain.value = 0.85;
   room.connect(wet).connect(bus);
 
   const r = seeded(20261101);
@@ -690,8 +690,8 @@ window.renderAudio = async () => {
   return [left, right];
 };
 
-window.renderAudioWavBase64 = async () => {
-  const [l, r] = await window.renderAudio();
+window.renderAudioWavBase64 = async (masterDb) => {
+  const [l, r] = await window.renderAudio(masterDb);
   const n = l.length;
   const buf = new ArrayBuffer(44 + n * 8);
   const v = new DataView(buf);

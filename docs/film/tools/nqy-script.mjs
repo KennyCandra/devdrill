@@ -87,7 +87,7 @@ const MOVES = [
   { to: POINTS.forEach, t0: 5.17, t1: 5.19, over: 0, bend: 0 },
   { to: POINTS.line14, t0: 5.66, t1: 6.03, over: 3, bend: -8 },
   { to: POINTS.submit, t0: 8.34, t1: 9.38, over: 7, bend: -38 },
-  { to: POINTS.back, t0: 14.3, t1: 14.84, over: 9, bend: 30 },
+  { to: POINTS.back, t0: 13.95, t1: 14.84, over: 9, bend: 30 },
   { to: POINTS.reportFile, t0: 15.22, t1: 15.59, over: 4, bend: 10 },
   { to: POINTS.push, t0: 15.72, t1: 16.14, over: 4, bend: -10 },
   { to: POINTS.rowsStart, t0: 16.84, t1: 17, over: 1.5, bend: 2 },

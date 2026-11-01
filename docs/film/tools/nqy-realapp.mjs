@@ -249,7 +249,7 @@ try {
   }
   if (!/Solved/.test(seen['5-solved']?.text ?? '')) trouble.push('no Solved page');
   writeFileSync(
-    `${DIR}capture.json`,
+    `${DIR}capture.dat`,
     JSON.stringify({ rec, pages, css: Object.keys(css), seen, late }),
   );
   log(`recorded ${rec.length} editor snapshots; latest event ${(late * 1000).toFixed(0)} ms late`);

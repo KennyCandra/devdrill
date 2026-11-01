@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
-const capture = JSON.parse(readFileSync(here('../out/nqy-real/capture.json'), 'utf8'));
+const capture = JSON.parse(readFileSync(here('../out/nqy-real/capture.dat'), 'utf8'));
 const session = JSON.parse(readFileSync(here('../session.json'), 'utf8'));
 const script = readFileSync(here('./nqy-script.mjs'), 'utf8').replace(/^export /gm, '');
 const film = readFileSync(here('./nqy-film.js'), 'utf8');
@@ -143,10 +143,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #1e1e1e; }
 <script type="text/plain" id="frags">${asJson(frags)}</script>
 <script type="text/plain" id="keys">${asJson(keys)}</script>
 <script type="text/plain" id="icons">${asJson(icons)}</script>
-<script type="text/plain" id="appcss">${css.replace(/<\//g, '<\\/')}</script>
+<script type="text/plain" id="appcss">${css}</script>
 <script>
 const appStyle = document.createElement('style');
-appStyle.textContent = document.getElementById('appcss').textContent.replace(/<\\\//g, '</');
+appStyle.textContent = document.getElementById('appcss').textContent;
 document.head.prepend(appStyle);
 const read = (id) => JSON.parse(document.getElementById(id).textContent);
 const SESSION = read('session');
