@@ -1,0 +1,329 @@
+{
+  "ranOn": "2026-11-01",
+  "challenge": "challenges/debug/004-async-report",
+  "bug": {
+    "code": "import { fetchOrders } from './orders.js';\n\n// One row per store, in the order the stores were given, plus the day's total.\nexport async function buildDailyReport(storeIds, date) {\n  const rows = [];\n\n  storeIds.forEach(async (storeId) => {\n    const orders = await fetchOrders(storeId, date);\n    rows.push({\n      storeId,\n      orderCount: orders.length,\n      revenueCents: orders.reduce((sum, order) => sum + order.totalCents, 0),\n    });\n  });\n\n  return {\n    date,\n    rows,\n    totalRevenueCents: rows.reduce((sum, row) => sum + row.revenueCents, 0),\n  };\n}\n\nexport function formatCents(cents) {\n  return `$${(cents / 100).toFixed(2)}`;\n}\n",
+    "visible": {
+      "status": "failed",
+      "passed": 1,
+      "failed": 2,
+      "total": 3,
+      "tests": [
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > has a row for every store",
+          "status": "failed",
+          "hidden": false,
+          "message": "AssertionError: expected [] to have a length of 2 but got +0\n    at tests/report.test.js:6:25",
+          "durationMs": 4
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > adds up the revenue for the day",
+          "status": "failed",
+          "hidden": false,
+          "message": "AssertionError: expected +0 to be 3700 // Object.is equality\n    at tests/report.test.js:11:38",
+          "durationMs": 1
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "formatCents > formats cents as dollars",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 0
+        }
+      ],
+      "fileErrors": [],
+      "durationMs": 312
+    },
+    "submitted": {
+      "status": "failed",
+      "passed": 2,
+      "failed": 6,
+      "total": 8,
+      "tests": [
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > keeps the rows in the same order as the stores given, even when some answer faster",
+          "status": "failed",
+          "hidden": true,
+          "durationMs": 4,
+          "rule": "One row for every store you ask for, in the same order as storeIds, no matter which store answers first.",
+          "detailsHidden": true
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > counts orders and revenue per store",
+          "status": "failed",
+          "hidden": true,
+          "durationMs": 1,
+          "rule": "Each row has exactly these fields: storeId, orderCount, revenueCents.",
+          "detailsHidden": true
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > only counts orders from the requested day",
+          "status": "failed",
+          "hidden": true,
+          "durationMs": 1,
+          "rule": "Only orders from the requested date count.",
+          "detailsHidden": true
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > gives a store with no orders a zero row",
+          "status": "failed",
+          "hidden": true,
+          "durationMs": 0,
+          "rule": "A store with no orders that day still gets a row, with orderCount: 0 and revenueCents: 0.",
+          "detailsHidden": true
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > regression: no stores means an empty report",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 0,
+          "rule": "No stores means rows: [] and totalRevenueCents: 0."
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > has a row for every store",
+          "status": "failed",
+          "hidden": false,
+          "message": "AssertionError: expected [] to have a length of 2 but got +0\n    at tests/report.test.js:6:25",
+          "durationMs": 4
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > adds up the revenue for the day",
+          "status": "failed",
+          "hidden": false,
+          "message": "AssertionError: expected +0 to be 3700 // Object.is equality\n    at tests/report.test.js:11:38",
+          "durationMs": 1
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "formatCents > formats cents as dollars",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 0
+        }
+      ],
+      "fileErrors": [],
+      "durationMs": 315
+    }
+  },
+  "firstFix": {
+    "code": "import { fetchOrders } from './orders.js';\n\n// One row per store, in the order the stores were given, plus the day's total.\nexport async function buildDailyReport(storeIds, date) {\n  const rows = [];\n\n  await Promise.all(storeIds.map(async (storeId) => {\n    const orders = await fetchOrders(storeId, date);\n    rows.push({\n      storeId,\n      orderCount: orders.length,\n      revenueCents: orders.reduce((sum, order) => sum + order.totalCents, 0),\n    });\n  }));\n\n  return {\n    date,\n    rows,\n    totalRevenueCents: rows.reduce((sum, row) => sum + row.revenueCents, 0),\n  };\n}\n\nexport function formatCents(cents) {\n  return `$${(cents / 100).toFixed(2)}`;\n}\n",
+    "visible": {
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "tests": [
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > has a row for every store",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 18
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > adds up the revenue for the day",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 17
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "formatCents > formats cents as dollars",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 0
+        }
+      ],
+      "fileErrors": [],
+      "durationMs": 313
+    },
+    "submitted": {
+      "status": "failed",
+      "passed": 6,
+      "failed": 2,
+      "total": 8,
+      "tests": [
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > keeps the rows in the same order as the stores given, even when some answer faster",
+          "status": "failed",
+          "hidden": true,
+          "durationMs": 129,
+          "rule": "One row for every store you ask for, in the same order as storeIds, no matter which store answers first.",
+          "detailsHidden": true
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > counts orders and revenue per store",
+          "status": "failed",
+          "hidden": true,
+          "durationMs": 10,
+          "rule": "Each row has exactly these fields: storeId, orderCount, revenueCents.",
+          "detailsHidden": true
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > only counts orders from the requested day",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 11,
+          "rule": "Only orders from the requested date count."
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > gives a store with no orders a zero row",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 17,
+          "rule": "A store with no orders that day still gets a row, with orderCount: 0 and revenueCents: 0."
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > regression: no stores means an empty report",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 0,
+          "rule": "No stores means rows: [] and totalRevenueCents: 0."
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > has a row for every store",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 18
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > adds up the revenue for the day",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 17
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "formatCents > formats cents as dollars",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 0
+        }
+      ],
+      "fileErrors": [],
+      "durationMs": 452
+    }
+  },
+  "realFix": {
+    "code": "import { fetchOrders } from './orders.js';\n\n// One row per store, in the order the stores were given, plus the day's total.\nexport async function buildDailyReport(storeIds, date) {\n  const rows = await Promise.all(storeIds.map(async (storeId) => {\n    const orders = await fetchOrders(storeId, date);\n    return {\n      storeId,\n      orderCount: orders.length,\n      revenueCents: orders.reduce((sum, order) => sum + order.totalCents, 0),\n    };\n  }));\n\n  return {\n    date,\n    rows,\n    totalRevenueCents: rows.reduce((sum, row) => sum + row.revenueCents, 0),\n  };\n}\n\nexport function formatCents(cents) {\n  return `$${(cents / 100).toFixed(2)}`;\n}\n",
+    "visible": {
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "tests": [
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > has a row for every store",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 18
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > adds up the revenue for the day",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 17
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "formatCents > formats cents as dollars",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 0
+        }
+      ],
+      "fileErrors": [],
+      "durationMs": 313
+    },
+    "submitted": {
+      "status": "passed",
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "tests": [
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > keeps the rows in the same order as the stores given, even when some answer faster",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 124,
+          "rule": "One row for every store you ask for, in the same order as storeIds, no matter which store answers first."
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > counts orders and revenue per store",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 9,
+          "rule": "Each row has exactly these fields: storeId, orderCount, revenueCents."
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > only counts orders from the requested day",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 11,
+          "rule": "Only orders from the requested date count."
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > gives a store with no orders a zero row",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 17,
+          "rule": "A store with no orders that day still gets a row, with orderCount: 0 and revenueCents: 0."
+        },
+        {
+          "file": "tests/report.hidden.test.js",
+          "name": "buildDailyReport > regression: no stores means an empty report",
+          "status": "passed",
+          "hidden": true,
+          "durationMs": 0,
+          "rule": "No stores means rows: [] and totalRevenueCents: 0."
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > has a row for every store",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 18
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "buildDailyReport > adds up the revenue for the day",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 17
+        },
+        {
+          "file": "tests/report.test.js",
+          "name": "formatCents > formats cents as dollars",
+          "status": "passed",
+          "hidden": false,
+          "durationMs": 0
+        }
+      ],
+      "fileErrors": [],
+      "durationMs": 444
+    }
+  }
+}
