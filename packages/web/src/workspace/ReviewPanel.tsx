@@ -203,14 +203,15 @@ function CommentForm({
         if (ready) onSave();
       }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="mono min-w-0 truncate text-[12.5px]">
+      {/* The button drops under a long location instead of squeezing it. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+        <span className="mono min-w-0 break-words text-[12.5px]">
           {edit.file} · {lineLabel(edit.lines)}
         </span>
         <Button
           variant="ghost"
           size="sm"
-          className="shrink-0"
+          className="ml-auto shrink-0"
           onClick={() => void wholeFunction()}
           disabled={snapping}
           title="Widen the comment to the whole function around these lines"
@@ -242,7 +243,7 @@ function CommentForm({
         className="textarea leading-relaxed"
       />
       <div className="flex items-center gap-2">
-        <span className="mono subtle mr-auto text-[12px]">
+        <span className="mono subtle mr-auto text-[12px] whitespace-nowrap">
           {edit.why.length} / {MAX_COMMENT_CHARS}
         </span>
         <Button variant="ghost" onClick={onCancel}>

@@ -380,15 +380,6 @@ function summaryText({ submit }: StoredResult): string {
   return `The visible tests pass, but ${hiddenFailed} hidden ${plural(hiddenFailed, 'test')} ${hiddenFailed === 1 ? 'fails' : 'fail'}. Hidden tests check edge cases the visible ones don't; re-read the task for clues.`;
 }
 
-export function Stat({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="rounded bg-side px-3 py-2">
-      <dt className="text-[11px] text-muted">{label}</dt>
-      <dd className="mt-0.5 font-mono text-[18px] tabular-nums">{children}</dd>
-    </div>
-  );
-}
-
 function plural(n: number, word: string): string {
   return n === 1 ? word : `${word}s`;
 }

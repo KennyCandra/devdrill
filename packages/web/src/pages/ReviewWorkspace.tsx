@@ -487,7 +487,9 @@ function VerdictButton({
       aria-pressed={selected}
       disabled={disabled}
       onClick={onClick}
-      className={`seg-item disabled:opacity-60 ${selected ? 'on' : ''}`}
+      className={`seg-item disabled:opacity-60 ${
+        selected ? 'on bg-accent-soft text-accent shadow-[0_0_0_1px_var(--accent)]' : ''
+      }`}
     >
       {icon}
       {children}
