@@ -1,6 +1,15 @@
-import { ArrowLeft, FilePlus, RotateCcw, Send } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
+import {
+  ArrowLeft,
+  Check,
+  FilePlus,
+  MessageSquare,
+  Pencil,
+  RotateCcw,
+  Send,
+  TriangleAlert,
+} from 'lucide-react';
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels';
 import type {
   ChallengeDetail,
   Language,
@@ -14,16 +23,16 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { TaskPanel } from '../components/TaskPanel';
 import { TopBar } from '../components/TopBar';
-import { Button, DifficultyBadge, Spinner, StatusScreen } from '../components/ui';
+import { Button, DifficultyBadge, ModeBadge, Spinner, StatusScreen } from '../components/ui';
 import type { monaco } from '../editor/monacoSetup';
 import { navigate, resultsPath } from '../router';
 import { useResolvedTheme } from '../theme';
-import { DiffView, functionAround, lineLabel } from '../workspace/DiffView';
+import { DiffView, functionAround, lineLabel, type LineCounts } from '../workspace/DiffView';
 import { ReviewDraftStore } from '../workspace/reviewDraft';
 import { ReviewPanel, type CommentEdit } from '../workspace/ReviewPanel';
 import { ActiveTimer } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
-import { layoutStorage } from './Workspace';
+import { layoutStorage, TASK_RAIL, TaskRail } from './Workspace';
 
 function newCommentId(): string {
   return typeof crypto.randomUUID === 'function'
@@ -37,6 +46,7 @@ function newCommentId(): string {
  */
 export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   const theme = useResolvedTheme();
+  const verdictLabelId = useId();
   const [store] = useState(() => new ReviewDraftStore((d) => api.saveReview(id, d, lang)));
   const {
     draft,
@@ -65,6 +75,10 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   /** Bumped to clear the selection in the diff, e.g. after a comment is added. */
   const [clearSelection, setClearSelection] = useState(0);
   const models = useRef(new Map<string, monaco.editor.ITextModel>());
+  const taskRef = usePanelRef();
+  const [taskCollapsed, setTaskCollapsed] = useState(false);
+  /** Lines added and removed in the file on screen. */
+  const [lineCounts, setLineCounts] = useState<LineCounts | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -238,39 +252,45 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   }
 
   const countIn = (path: string) => draft.comments.filter((c) => c.file === path).length;
+  // What the footer says, after any message: the comment being written, else the verdict.
+  const status = editing
+    ? `Writing a comment on ${lineLabel(editing.lines)}…`
+    : draft.verdict
+      ? null
+      : 'Pick a verdict to submit';
 
   return (
     <div className="flex h-full min-w-[720px] flex-col">
       <TopBar
+        iconOnly
         right={
           <>
             <SaveState state={saveState} error={saveError} />
+            {challenge.progress.attempts > 0 && (
+              <button
+                type="button"
+                onClick={() => navigate(resultsPath(id))}
+                className="btn btn-ghost btn-sm shrink-0"
+              >
+                Results
+              </button>
+            )}
+            <LanguageSwitch available={challenge.languages} beforeChange={() => store.flush()} />
             <TimerDisplay timer={timer} />
           </>
         }
       >
-        <span className="text-muted">/</span>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex shrink-0 items-center gap-1 rounded px-1 text-muted hover:bg-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+          className="crumb shrink-0 hover:bg-hover"
         >
-          <ArrowLeft size={14} aria-hidden="true" /> Challenges
+          <ArrowLeft className="i i-sm" aria-hidden="true" /> Challenges
         </button>
-        <span className="text-muted">/</span>
-        <h1 className="min-w-0 truncate">{challenge.title}</h1>
+        <span className="crumb-sep">/</span>
+        <h1 className="min-w-0 truncate text-[14px] leading-5 font-semibold">{challenge.title}</h1>
+        <ModeBadge mode={challenge.mode} />
         <DifficultyBadge difficulty={challenge.difficulty} />
-        <span className="shrink-0 text-muted">Review</span>
-        <LanguageSwitch available={challenge.languages} beforeChange={() => store.flush()} />
-        {challenge.progress.attempts > 0 && (
-          <button
-            type="button"
-            onClick={() => navigate(resultsPath(id))}
-            className="shrink-0 rounded px-1 text-muted underline-offset-2 hover:bg-hover hover:text-fg hover:underline focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            Results
-          </button>
-        )}
       </TopBar>
 
       <Group
@@ -279,8 +299,27 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
         defaultLayout={columns.defaultLayout}
         onLayoutChanged={columns.onLayoutChanged}
       >
-        <Panel id="task" defaultSize="22" minSize={180}>
-          <TaskPanel challenge={challenge} />
+        <Panel
+          id="task"
+          panelRef={taskRef}
+          defaultSize="22"
+          minSize={180}
+          collapsible
+          collapsedSize={TASK_RAIL}
+          // Only the panel's size is needed: it is TASK_RAIL exactly when folded.
+          onResize={(size) => setTaskCollapsed(size.inPixels <= TASK_RAIL)}
+        >
+          {taskCollapsed && (
+            <TaskRail label="Pull request" onExpand={() => taskRef.current?.expand()} />
+          )}
+          {/* Hidden, not unmounted, when folded: the hints keep their state. */}
+          <div hidden={taskCollapsed} className="h-full">
+            <TaskPanel
+              challenge={challenge}
+              title="Pull request"
+              onCollapse={() => taskRef.current?.collapse()}
+            />
+          </div>
         </Panel>
         <ResizeHandle />
         <Panel id="diff" minSize={320}>
@@ -289,27 +328,37 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
               aria-label="Changed files"
               className="flex shrink-0 overflow-x-auto border-b border-line bg-bar"
             >
-              {pr.files.map((f) => (
-                <button
-                  key={f.path}
-                  type="button"
-                  aria-current={f.path === activePath ? 'page' : undefined}
-                  onClick={() => setActivePath(f.path)}
-                  className={`flex h-9 shrink-0 items-center gap-1.5 border-r border-line px-3 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent ${
-                    f.path === activePath ? 'bg-bg text-fg' : 'text-muted hover:bg-hover'
-                  }`}
-                >
-                  {f.base === null && (
-                    <FilePlus size={12} className="text-success" aria-label="New file" />
-                  )}
-                  {f.path}
-                  {countIn(f.path) > 0 && (
-                    <span className="rounded bg-accent-bg px-1 text-[10px] text-on-accent">
-                      {countIn(f.path)}
-                    </span>
-                  )}
-                </button>
-              ))}
+              {pr.files.map((f) => {
+                const on = f.path === activePath;
+                const comments = countIn(f.path);
+                return (
+                  <button
+                    key={f.path}
+                    type="button"
+                    aria-current={on ? 'page' : undefined}
+                    onClick={() => setActivePath(f.path)}
+                    className={`ftab shrink-0 focus-visible:outline-2 focus-visible:outline-accent ${on ? 'on' : ''}`}
+                  >
+                    {f.base === null && (
+                      <FilePlus className="i i-sm text-success" aria-label="New file" />
+                    )}
+                    {f.path}
+                    {comments > 0 && (
+                      <span className="mono inline-flex items-center gap-1 text-[11px] text-accent">
+                        <MessageSquare className="i i-sm" aria-hidden="true" />
+                        {comments}
+                        <span className="sr-only">comments</span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {lineCounts && (
+                <span className="mono ml-auto flex shrink-0 items-center gap-2.5 self-center px-3.5 text-[12px]">
+                  <span className="text-success">+{lineCounts.added}</span>
+                  <span className="text-danger">−{lineCounts.removed}</span>
+                </span>
+              )}
             </nav>
             <div className="min-h-0 flex-1">
               <DiffView
@@ -322,10 +371,12 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                 onCommentShortcut={startComment}
                 onAddComment={openComment}
                 focusedId={focusedId}
+                editingId={editing?.id ?? null}
                 theme={theme}
                 onSelect={setSelection}
                 onCommentClick={setFocusedId}
                 onModels={onModels}
+                onLineCounts={setLineCounts}
               />
             </div>
           </div>
@@ -336,7 +387,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
             activePath={activePath}
             selection={selection}
             comments={draft.comments}
-            verdict={draft.verdict}
             editing={editing}
             focusedId={focusedId}
             disabled={busy}
@@ -355,27 +405,51 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
               if (focusedId === commentId) setFocusedId(null);
             }}
             onFocusComment={focusComment}
-            onVerdict={(v) => store.setVerdict(v)}
           />
         </Panel>
       </Group>
 
-      <footer className="flex h-11 shrink-0 items-center gap-2 border-t border-line bg-bar px-3">
+      <footer className="bottombar shrink-0">
         <Button variant="ghost" onClick={() => setConfirmReset(true)} disabled={busy}>
-          <RotateCcw size={14} aria-hidden="true" /> Reset
+          <RotateCcw className="i i-sm" aria-hidden="true" /> Start over
         </Button>
-        {message && (
-          <span role="alert" className="min-w-0 truncate text-danger">
+        {message ? (
+          <span role="alert" className="min-w-0 flex-1 truncate text-[13px] text-danger">
             {message}
           </span>
+        ) : (
+          <span className="muted min-w-0 flex-1 truncate text-[13px]">{status}</span>
         )}
-        {editing && !message && (
-          <span className="min-w-0 truncate text-muted">
-            Writing a comment on {lineLabel(editing.lines)}…
+        <div className="flex shrink-0 items-center gap-2">
+          <span id={verdictLabelId} className="text-[13px] font-semibold text-fg-2">
+            Verdict
           </span>
-        )}
-        <Button variant="primary" className="ml-auto" onClick={() => void submit()} disabled={busy}>
-          {submitting ? <Spinner /> : <Send size={14} aria-hidden="true" />}
+          <div role="group" aria-labelledby={verdictLabelId} className="seg">
+            <VerdictButton
+              selected={draft.verdict === 'approve'}
+              disabled={busy}
+              onClick={() => store.setVerdict('approve')}
+              icon={<Check className="i i-sm" aria-hidden="true" />}
+            >
+              Approve
+            </VerdictButton>
+            <VerdictButton
+              selected={draft.verdict === 'request_changes'}
+              disabled={busy}
+              onClick={() => store.setVerdict('request_changes')}
+              icon={<Pencil className="i i-sm text-warning" aria-hidden="true" />}
+            >
+              Request changes
+            </VerdictButton>
+          </div>
+        </div>
+        <Button
+          variant="primary"
+          className="shrink-0"
+          onClick={() => void submit()}
+          disabled={busy || !draft.verdict}
+        >
+          {submitting ? <Spinner /> : <Send className="i i-sm" aria-hidden="true" />}
           {submitting ? 'Submitting…' : 'Submit review'}
         </Button>
       </footer>
@@ -393,23 +467,59 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   );
 }
 
+/** The verdict, one of two; `aria-pressed` says which is chosen. */
+function VerdictButton({
+  selected,
+  disabled,
+  onClick,
+  icon,
+  children,
+}: {
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onClick}
+      className={`seg-item disabled:opacity-60 ${selected ? 'on' : ''}`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
 function SaveState({ state, error }: { state: string; error: string | null }) {
   if (state === 'error') {
     return (
-      <span role="alert" className="text-danger" title={error ?? undefined}>
+      <span
+        role="alert"
+        className="flex items-center gap-1.5 text-[12px] whitespace-nowrap text-danger"
+        title={error ?? undefined}
+      >
+        <TriangleAlert className="i i-sm" aria-hidden="true" />
         Not saved
       </span>
     );
   }
+  const saving = state === 'saving';
   return (
-    <span className="text-muted" aria-live="polite">
-      {state === 'saving' ? 'Saving…' : 'Saved'}
+    <span
+      className="muted flex items-center gap-1.5 text-[12px] whitespace-nowrap"
+      aria-live="polite"
+    >
+      {saving ? <Spinner /> : <Check className="i i-sm" aria-hidden="true" />}
+      {saving ? 'Saving…' : 'Saved'}
     </span>
   );
 }
 
 function ResizeHandle() {
-  return (
-    <Separator className="w-px bg-line transition-colors duration-100 hover:bg-accent focus-visible:bg-accent data-[separator=active]:bg-accent" />
-  );
+  return <Separator className="resize" />;
 }

@@ -64,9 +64,9 @@ monaco.editor.defineTheme('devdrill-dark', {
     'editorCursor.foreground': '#a3a1ff',
     'editorIndentGuide.background1': '#20242d',
     'diffEditor.insertedLineBackground': '#5fd08f1a',
-    'diffEditor.insertedTextBackground': '#5fd08f42',
+    'diffEditor.insertedTextBackground': '#5fd08f33',
     'diffEditor.removedLineBackground': '#ff8a7a1a',
-    'diffEditor.removedTextBackground': '#ff8a7a42',
+    'diffEditor.removedTextBackground': '#ff8a7a33',
     'scrollbarSlider.background': '#ffffff14',
   },
 });
@@ -93,9 +93,9 @@ monaco.editor.defineTheme('devdrill-light', {
     'editorCursor.foreground': '#4b46d6',
     'editorIndentGuide.background1': '#ecece6',
     'diffEditor.insertedLineBackground': '#1d734114',
-    'diffEditor.insertedTextBackground': '#1d734133',
+    'diffEditor.insertedTextBackground': '#1d734124',
     'diffEditor.removedLineBackground': '#b3261e12',
-    'diffEditor.removedTextBackground': '#b3261e2e',
+    'diffEditor.removedTextBackground': '#b3261e24',
     'scrollbarSlider.background': '#16181d1a',
   },
 });

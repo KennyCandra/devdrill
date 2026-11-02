@@ -28,6 +28,8 @@ export function DiffView({
   onCommentShortcut,
   onAddComment,
   onModels,
+  editingId,
+  onLineCounts,
 }: {
   /** Unique per challenge and language, for model URIs. */
   reviewId: string;
@@ -37,6 +39,8 @@ export function DiffView({
   /** Lines being commented on right now, highlighted. */
   pending: LineRange | null;
   focusedId: string | null;
+  /** The comment being changed, if any: its label says so. */
+  editingId?: string | null;
   theme: ResolvedTheme;
   onSelect: (lines: LineRange | null) => void;
   onCommentClick: (id: string) => void;
@@ -48,6 +52,8 @@ export function DiffView({
   onAddComment?: (lines: LineRange) => void;
   /** The new-code model of each file, for "whole function". */
   onModels?: (models: Map<string, monaco.editor.ITextModel>) => void;
+  /** Lines added and removed in the file on screen, after each diff. */
+  onLineCounts?: (counts: LineCounts) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneDiffEditor | null>(null);
@@ -58,10 +64,20 @@ export function DiffView({
   /** Cleanups run in either order on unmount; a disposed editor must not be touched. */
   const editorDisposed = useRef(false);
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  // Comment zones are sized to the editor's width and font, so they're measured again when
+  // either changes. Only the values that trigger that are kept as state.
+  const [layoutWidth, setLayoutWidth] = useState(0);
+  const [fontsReady, setFontsReady] = useState(false);
 
-  const callbacks = useRef({ onSelect, onCommentClick, onCommentShortcut, onAddComment });
+  const callbacks = useRef({
+    onSelect,
+    onCommentClick,
+    onCommentShortcut,
+    onAddComment,
+    onLineCounts,
+  });
   useLayoutEffect(() => {
-    callbacks.current = { onSelect, onCommentClick, onCommentShortcut, onAddComment };
+    callbacks.current = { onSelect, onCommentClick, onCommentShortcut, onAddComment, onLineCounts };
   });
 
   // The editor, once.
@@ -138,6 +154,12 @@ export function DiffView({
         s && !s.isEmpty() && end !== undefined && s.startLineNumber <= line && line <= end;
       callbacks.current.onAddComment?.(inSelection ? [s.startLineNumber, end] : [line, line]);
     });
+    const layout = modified.onDidLayoutChange((info) => setLayoutWidth(info.contentWidth));
+    const counts = diff.onDidUpdateDiff(() =>
+      callbacks.current.onLineCounts?.(countChanges(diff.getLineChanges())),
+    );
+    void document.fonts.ready.then(() => setFontsReady(true));
+
     editorDisposed.current = false;
     setEditor(diff);
     return () => {
@@ -145,6 +167,8 @@ export function DiffView({
       move.dispose();
       leave.dispose();
       down.dispose();
+      layout.dispose();
+      counts.dispose();
       diff.setModel(null);
       diff.dispose();
       editorDisposed.current = true;
@@ -198,6 +222,8 @@ export function DiffView({
     if (!editor || !models.current.get(activePath)) return;
     const modified = editor.getModifiedEditor();
     const here = comments.filter((c) => c.file === activePath);
+    // A zone is as wide as the visible code, so its text wraps inside the editor.
+    const { contentWidth } = modified.getLayoutInfo();
 
     decorations.current?.set([
       ...here.map((c) => ({
@@ -218,18 +244,37 @@ export function DiffView({
         : []),
     ]);
 
-    modified.changeViewZones((zones) => {
-      for (const id of zoneIds.current) zones.removeZone(id);
-      zoneIds.current = here.map((c) =>
-        zones.addZone({
-          afterLineNumber: c.lines[1],
-          heightInLines: 2 + Math.min(3, Math.ceil(c.why.length / 90)),
-          domNode: commentNode(c, c.id === focusedId, () => callbacks.current.onCommentClick(c.id)),
+    // Each comment is measured where it will sit, at the width it wraps to, so the whole
+    // text shows. Monaco takes the node once it's measured.
+    const probe = document.createElement('div');
+    probe.style.cssText = `position:absolute;left:-10000px;top:0;visibility:hidden;width:${contentWidth}px`;
+    document.body.append(probe);
+    const zones = here.map((c) => {
+      const node = commentNode(
+        c,
+        { focused: c.id === focusedId, editing: c.id === editingId },
+        () => callbacks.current.onCommentClick(c.id),
+      );
+      node.style.maxWidth = `${contentWidth}px`;
+      probe.append(node);
+      const heightInPx = Math.ceil(node.getBoundingClientRect().height);
+      node.remove();
+      return { node, heightInPx, line: c.lines[1] };
+    });
+    probe.remove();
+
+    modified.changeViewZones((accessor) => {
+      for (const id of zoneIds.current) accessor.removeZone(id);
+      zoneIds.current = zones.map(({ node, heightInPx, line }) =>
+        accessor.addZone({
+          afterLineNumber: line,
+          heightInPx,
+          domNode: node,
           suppressMouseDown: true,
         }),
       );
     });
-  }, [editor, files, activePath, comments, pending, focusedId]);
+  }, [editor, files, activePath, comments, pending, focusedId, editingId, layoutWidth, fontsReady]);
 
   useEffect(() => {
     if (!editor || clearSelection === undefined || clearSelection === 0) return;
@@ -253,18 +298,46 @@ export function DiffView({
 }
 
 /** A comment shown inside the editor. Plain DOM (Monaco owns it); text only, no HTML. */
-function commentNode(comment: ReviewComment, focused: boolean, onClick: () => void): HTMLElement {
+function commentNode(
+  comment: ReviewComment,
+  state: { focused: boolean; editing: boolean },
+  onClick: () => void,
+): HTMLElement {
   const node = document.createElement('div');
-  node.className = focused ? 'review-zone review-zone-focused' : 'review-zone';
+  node.className = state.focused ? 'review-zone review-zone-focused' : 'review-zone';
+  const card = document.createElement('div');
+  card.className = 'review-zone-card';
   const head = document.createElement('div');
   head.className = 'review-zone-head';
-  head.textContent = `Your comment · ${lineLabel(comment.lines)}`;
+  head.textContent = `You · ${lineLabel(comment.lines)}${state.editing ? ' · editing' : ''}`;
   const why = document.createElement('div');
   why.className = 'review-zone-why';
   why.textContent = comment.why;
-  node.append(head, why);
+  card.append(head, why);
+  node.append(card);
   node.addEventListener('click', onClick);
   return node;
+}
+
+export interface LineCounts {
+  added: number;
+  removed: number;
+}
+
+/** Lines added and removed, from the editor's own diff of the file. */
+function countChanges(changes: monaco.editor.ILineChange[] | null): LineCounts {
+  let added = 0;
+  let removed = 0;
+  for (const change of changes ?? []) {
+    // An end line of 0 means that side has no lines in this change (a pure insertion or removal).
+    if (change.modifiedEndLineNumber > 0) {
+      added += change.modifiedEndLineNumber - change.modifiedStartLineNumber + 1;
+    }
+    if (change.originalEndLineNumber > 0) {
+      removed += change.originalEndLineNumber - change.originalStartLineNumber + 1;
+    }
+  }
+  return { added, removed };
 }
 
 export function lineLabel([first, last]: LineRange): string {

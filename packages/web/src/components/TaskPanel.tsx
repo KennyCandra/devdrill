@@ -38,12 +38,15 @@ export function TaskPanel({
   challenge,
   askAi,
   onCollapse,
+  title = 'Task',
 }: {
   challenge: ChallengeDetail;
   /** Gets an AI hint, given the written hints already shown. */
   askAi?: (shownHints: string[]) => Promise<string>;
   /** Shows a collapse button in the header when the panel can be folded away. */
   onCollapse?: () => void;
+  /** The panel's name in its header: "Task", or "Pull request" in a review. */
+  title?: string;
 }) {
   const { id, hints } = challenge;
   const [shownHints, setShownHints] = useState(() => Math.min(readShownHints(id), hints.length));
@@ -78,13 +81,13 @@ export function TaskPanel({
   return (
     <aside className="panel flex h-full flex-col">
       <div className="panel-header">
-        <span className="panel-title">Task</span>
+        <span className="panel-title">{title}</span>
         {onCollapse && (
           <button
             type="button"
             onClick={onCollapse}
-            aria-label="Collapse task panel"
-            title="Collapse task panel"
+            aria-label={`Collapse ${title.toLowerCase()} panel`}
+            title={`Collapse ${title.toLowerCase()} panel`}
             className="btn btn-ghost btn-icon btn-sm"
           >
             <ChevronLeft className="i i-sm" aria-hidden="true" />

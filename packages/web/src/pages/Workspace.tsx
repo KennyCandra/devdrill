@@ -62,7 +62,7 @@ export const layoutStorage: LayoutStorage = {
 };
 
 /** The task panel folded to this many pixels: a strip with one button to bring it back. */
-const TASK_RAIL = 44;
+export const TASK_RAIL = 44;
 
 /** The file to open first: the first source file, else the first file. */
 function defaultFile(files: string[]): string | undefined {
@@ -477,20 +477,20 @@ function ResizeHandle({ vertical = false }: { vertical?: boolean }) {
 }
 
 /** The task panel folded away: one button to open it again, and its name running down the strip. */
-function TaskRail({ onExpand }: { onExpand: () => void }) {
+export function TaskRail({ onExpand, label = 'Task' }: { onExpand: () => void; label?: string }) {
   return (
     <div className="panel flex h-full flex-col items-center gap-3 py-2">
       <Button
         variant="ghost"
         size="sm"
         onClick={onExpand}
-        aria-label="Expand task panel"
-        title="Expand task panel"
+        aria-label={`Expand ${label.toLowerCase()} panel`}
+        title={`Expand ${label.toLowerCase()} panel`}
         className="btn-icon"
       >
         <ChevronRight className="i i-sm" aria-hidden="true" />
       </Button>
-      <span className="panel-title [writing-mode:vertical-rl]">Task</span>
+      <span className="panel-title [writing-mode:vertical-rl]">{label}</span>
     </div>
   );
 }
