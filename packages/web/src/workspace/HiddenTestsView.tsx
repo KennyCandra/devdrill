@@ -55,32 +55,31 @@ export function HiddenTestsView({ id, lang }: { id: string; lang: Language }) {
   }, [theme]);
 
   if (error) return <p className="text-danger">Couldn't load the hidden tests: {error}</p>;
-  if (!files || !file) return <Spinner className="text-muted" />;
+  if (!files || !file) return <Spinner className="subtle" />;
 
   const height = Math.min(MAX_HEIGHT, (file.content.split('\n').length + 1) * LINE_HEIGHT);
 
   return (
-    <section aria-label="Hidden tests" className="animate-fade-in flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {files.map((f, i) => (
-          <button
-            key={f.path}
-            type="button"
-            aria-pressed={i === selected}
-            onClick={() => setSelected(i)}
-            className={`rounded px-2 py-1 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent ${
-              i === selected ? 'bg-active' : 'text-muted hover:bg-hover'
-            }`}
-          >
-            {f.path}
-          </button>
-        ))}
+    <section aria-label="Hidden tests" className="animate-fade-in flex flex-col gap-3">
+      <div className="flex justify-end">
+        <span className="tag tag-nit font-medium">Read only</span>
       </div>
-      <div
-        ref={container}
-        style={{ height }}
-        className="overflow-hidden rounded border border-line"
-      />
+      <div className="card overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-line bg-bar">
+          {files.map((f, i) => (
+            <button
+              key={f.path}
+              type="button"
+              aria-pressed={i === selected}
+              onClick={() => setSelected(i)}
+              className={`ftab ${i === selected ? 'on' : ''}`}
+            >
+              {f.path}
+            </button>
+          ))}
+        </div>
+        <div ref={container} style={{ height }} className="overflow-hidden" />
+      </div>
     </section>
   );
 }

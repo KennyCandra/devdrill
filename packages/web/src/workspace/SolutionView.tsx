@@ -80,62 +80,65 @@ export function SolutionView({ id, lang }: { id: string; lang: Language }) {
   }, [theme]);
 
   if (error) return <p className="text-danger">Couldn't load the solution: {error}</p>;
-  if (!files) return <Spinner className="text-muted" />;
+  if (!files) return <Spinner className="subtle" />;
 
   const label = compare === 'yours' ? 'Your code' : 'Starter code';
+  const identical = file && (compare === 'yours' ? file.yours : file.starter) === file.solution;
 
   return (
-    <section aria-label="Reference solution" className="animate-fade-in flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {files.length > 1 &&
-          files.map((f, i) => (
+    <section aria-label="Reference solution" className="animate-fade-in flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="muted text-[13px]">Compare</span>
+          <div className="seg" role="group" aria-label="Compare">
+            {(['yours', 'starter'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={compare === value}
+                onClick={() => setCompare(value)}
+                className={`seg-item ${compare === value ? 'on' : ''}`}
+              >
+                {value === 'yours' ? 'Your code' : 'Starter'}
+              </button>
+            ))}
+          </div>
+          <span className="muted text-[13px]">with the reference</span>
+        </div>
+        <span className="tag tag-nit font-medium">Read only</span>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-line bg-bar">
+          {files.map((f, i) => (
             <button
               key={f.path}
               type="button"
               aria-pressed={i === selected}
               onClick={() => setSelected(i)}
-              className={`rounded px-2 py-1 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent ${
-                i === selected ? 'bg-active' : 'text-muted hover:bg-hover'
-              }`}
+              className={`ftab ${i === selected ? 'on' : ''}`}
             >
               {f.path}
             </button>
           ))}
-        {files.length === 1 && <span className="font-mono text-[12px]">{file?.path}</span>}
-
-        <div role="group" aria-label="Compare" className="ml-auto flex rounded border border-line">
-          {(['yours', 'starter'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={compare === value}
-              onClick={() => setCompare(value)}
-              className={`px-2 py-1 text-[12px] focus-visible:outline-2 focus-visible:outline-accent ${
-                compare === value ? 'bg-active' : 'text-muted hover:bg-hover'
-              }`}
-            >
-              {value === 'yours' ? 'Your code' : 'Starter'}
-            </button>
-          ))}
         </div>
-      </div>
 
-      <div className="flex justify-between px-1 text-[11px] text-muted">
-        <span>
-          {label}
-          {compare === 'yours' && file?.yours === null && ' (you deleted this file)'}
-        </span>
-        <span>Reference solution</span>
+        {identical ? (
+          <p className="muted p-4">
+            {compare === 'yours'
+              ? 'Your code matches the reference solution exactly.'
+              : 'This file is the same in the starter and the solution.'}
+          </p>
+        ) : (
+          <>
+            <p className="subtle border-b border-line px-3 py-1.5 text-[12px]">
+              {label}
+              {compare === 'yours' && file?.yours === null && ' (you deleted this file)'}
+            </p>
+            <div ref={container} className="h-[360px] overflow-hidden" />
+          </>
+        )}
       </div>
-      {file && (compare === 'yours' ? file.yours : file.starter) === file.solution ? (
-        <p className="rounded border border-line p-3 text-muted">
-          {compare === 'yours'
-            ? 'Your code matches the reference solution exactly.'
-            : 'This file is the same in the starter and the solution.'}
-        </p>
-      ) : (
-        <div ref={container} className="h-[360px] overflow-hidden rounded border border-line" />
-      )}
     </section>
   );
 }

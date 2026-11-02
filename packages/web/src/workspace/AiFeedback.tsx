@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { FileCode, RotateCcw, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FeedbackKind, Language, SolutionFeedback } from '@devdrill/shared';
 import { api } from '../api/client';
@@ -12,11 +12,11 @@ const KIND_LABELS: Record<FeedbackKind, string> = {
   simpler: 'Simpler',
 };
 
-const KIND_STYLE: Record<FeedbackKind, string> = {
-  good: 'text-success bg-success-bg',
-  risk: 'text-danger bg-danger-bg',
-  readability: 'text-warning bg-warning-bg',
-  simpler: 'text-accent bg-hover',
+const KIND_TAG: Record<FeedbackKind, string> = {
+  good: 'tag-good',
+  risk: 'tag-risk',
+  readability: 'tag-readability',
+  simpler: 'tag-simpler',
 };
 
 /**
@@ -57,75 +57,91 @@ export function AiFeedback({ id, lang }: { id: string; lang: Language }) {
   return (
     <section
       aria-label="AI feedback"
-      className="flex flex-col gap-3 rounded border border-line bg-side p-3"
+      className="card animate-fade-in flex flex-col overflow-hidden"
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <Sparkles size={16} className="shrink-0 text-accent" aria-hidden="true" />
-        {enabled ? (
-          <>
-            <span className="mr-auto">
+      {enabled ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="tag tag-ai">
+              <Sparkles className="i" aria-hidden="true" />
+              AI
+            </span>
+            <span className="muted text-[13px]">
               Passing is step one. Ask the AI how your code could be better: risks the tests miss,
               readability, a simpler way.
             </span>
-            <Button onClick={() => void ask()} disabled={busy}>
-              {busy ? <Spinner /> : null}
-              {busy
-                ? 'Reading your code… (can take a minute)'
-                : feedback
-                  ? 'Ask again'
-                  : 'Get AI feedback on your code'}
-            </Button>
-          </>
-        ) : (
-          <span className="mr-auto text-muted">
+          </div>
+          <Button size="sm" onClick={() => void ask()} disabled={busy}>
+            {busy ? <Spinner /> : feedback && <RotateCcw className="i i-sm" aria-hidden="true" />}
+            {busy
+              ? 'Reading your code… (can take a minute)'
+              : feedback
+                ? 'Ask again'
+                : 'Get AI feedback on your code'}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2.5 px-4 py-3">
+          <span className="tag tag-nit">
+            <Sparkles className="i" aria-hidden="true" />
+            AI feedback · off
+          </span>
+          <span className="muted text-[13px]">
             Set up an AI provider in{' '}
-            <button
-              type="button"
-              onClick={() => navigate('/settings')}
-              className="underline underline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-            >
+            <button type="button" onClick={() => navigate('/settings')} className="link">
               Settings
             </button>{' '}
             to get feedback on your code.
           </span>
-        )}
-      </div>
+        </div>
+      )}
+
       {error && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="px-4 pt-3 text-danger">
           {error}
         </p>
       )}
       {/* Mounted before the answer arrives, so screen readers announce it. */}
       <div aria-live="polite">
         {feedback && (
-          <div className="animate-fade-in flex flex-col gap-2">
-            <p className="leading-relaxed">{feedback.summary}</p>
+          <div className="animate-fade-in">
+            <p className="px-4 pt-4 pb-2 text-[16px] leading-[25px] font-medium">
+              {feedback.summary}
+            </p>
             {feedback.points.length === 0 && (
-              <p className="text-muted">Nothing to add: the AI had no points.</p>
+              <p className="muted px-4 pb-4">Nothing to add: the AI had no points.</p>
             )}
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col px-4 pb-2">
               {feedback.points.map((p, i) => (
-                <li key={i} className="flex gap-2 rounded bg-bg p-2 leading-relaxed">
-                  <span
-                    className={`h-fit shrink-0 rounded px-1.5 py-px text-[11px] font-medium ${KIND_STYLE[p.kind]}`}
-                  >
-                    {KIND_LABELS[p.kind]}
-                  </span>
+                <li
+                  key={i}
+                  className="grid grid-cols-[112px_minmax(0,1fr)] gap-3 border-t border-line py-3.5"
+                >
                   <span>
+                    <span className={`tag ${KIND_TAG[p.kind]}`}>{KIND_LABELS[p.kind]}</span>
+                  </span>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-[15px] leading-[23px]">{p.text}</span>
                     {p.file && (
-                      <span className="block font-mono text-[12px] text-muted">
+                      <span className="mono subtle inline-flex items-center gap-1.5 text-[12.5px]">
+                        <FileCode className="i i-sm" aria-hidden="true" />
                         {p.file}
                         {p.line ? `:${p.line}` : ''}
                       </span>
                     )}
-                    {p.text}
-                  </span>
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
         )}
       </div>
+
+      {enabled && (
+        <p className="subtle border-t border-line bg-surface-2 px-4 py-2.5 text-[12.5px]">
+          The AI comments on your code; it never decides pass or fail.
+        </p>
+      )}
     </section>
   );
 }
