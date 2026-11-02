@@ -1,11 +1,19 @@
-import { CircleCheck, CircleX, KeyRound, PlugZap } from 'lucide-react';
+import { Check, CircleCheck, CircleX, KeyRound, PlugZap, TriangleAlert } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { AiProviderId, AiSettings, AiTestResult } from '@devdrill/shared';
 import { api } from '../api/client';
-import { Dropdown } from './Dropdown';
 import { Button, Spinner } from './ui';
 
 type Choice = AiProviderId | 'off';
+
+/** The short line each provider card shows. The detail form shows the server's fuller description. */
+const CARD_SUMMARY: Partial<Record<AiProviderId, string>> = {
+  claude: 'Anthropic API key',
+  openai: 'OpenAI API key',
+  ollama: 'Local models, stays on your machine',
+  opencode: 'A local OpenCode server',
+  custom: 'Any OpenAI-compatible API',
+};
 
 /**
  * Settings → AI: which provider the AI features use, and its model, URL and key.
@@ -21,6 +29,7 @@ export function AiSettingsSection() {
   const [apiKey, setApiKey] = useState('');
   const [busy, setBusy] = useState<'save' | 'test' | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const groupName = useId();
   const modelId = useId();
   const urlId = useId();
   const keyId = useId();
@@ -52,7 +61,7 @@ export function AiSettingsSection() {
   }, []);
 
   if (loadError) return <p className="text-danger">Couldn't load the AI settings: {loadError}</p>;
-  if (!settings) return <Spinner className="text-muted" />;
+  if (!settings) return <Spinner className="subtle" />;
 
   const info = choice === 'off' ? null : settings.available.find((p) => p.id === choice);
   const saved = choice === 'off' ? null : settings.providers[choice];
@@ -61,6 +70,25 @@ export function AiSettingsSection() {
     !isActive ||
     (saved !== null && (model !== saved.model || baseUrl !== (saved.baseUrl ?? ''))) ||
     apiKey !== '';
+
+  // Off first, then every provider the server offers, in its order.
+  const cards: { id: Choice; label: string; summary?: string }[] = [
+    { id: 'off', label: 'Off', summary: 'No AI. Everything else works.' },
+    ...settings.available.map((p) => ({ id: p.id, label: p.label, summary: CARD_SUMMARY[p.id] })),
+  ];
+
+  // Picking a card: what was typed for the provider you leave is kept as a draft.
+  const choose = (next: Choice) => {
+    setMessage(null);
+    if (choice !== 'off') drafts.current[choice] = { model, baseUrl, apiKey };
+    show(settings, next);
+    const draft = next === 'off' ? undefined : drafts.current[next];
+    if (draft) {
+      setModel(draft.model);
+      setBaseUrl(draft.baseUrl);
+      setApiKey(draft.apiKey);
+    }
+  };
 
   const save = async (): Promise<AiSettings | null> => {
     setBusy('save');
@@ -134,78 +162,100 @@ export function AiSettingsSection() {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-muted">
+    <div className="flex flex-col gap-5">
+      <p className="muted text-[14px] leading-[21px]">
         Optional. With a provider, the AI can judge your review comments and give feedback on your
         solutions. It never decides pass or fail. What you send goes to the provider you pick; with
         Ollama it stays on your machine.
       </p>
 
-      <Dropdown<Choice>
-        label="AI provider"
-        value={choice}
-        options={[
-          { value: 'off', label: 'Off' },
-          ...settings.available.map((p) => ({ value: p.id, label: p.label })),
-        ]}
-        onChange={(next) => {
-          setMessage(null);
-          if (choice !== 'off') drafts.current[choice] = { model, baseUrl, apiKey };
-          show(settings, next);
-          const draft = next === 'off' ? undefined : drafts.current[next];
-          if (draft) {
-            setModel(draft.model);
-            setBaseUrl(draft.baseUrl);
-            setApiKey(draft.apiKey);
-          }
-        }}
-      />
+      <fieldset className="flex min-w-0 flex-col">
+        <legend className="mb-2 text-[13px] font-medium">AI provider</legend>
+        <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(min(100%,170px),1fr))]">
+          {cards.map((card) => {
+            const selected = choice === card.id;
+            return (
+              <label
+                key={card.id}
+                className={`flex cursor-pointer flex-col gap-0.5 rounded-lg border p-3 transition-colors duration-100 has-focus-visible:outline-2 has-focus-visible:outline-accent ${
+                  selected
+                    ? 'border-accent bg-accent-soft shadow-[0_0_0_1px_var(--accent)]'
+                    : 'border-border-strong bg-surface hover:bg-surface-hover'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={groupName}
+                  value={card.id}
+                  checked={selected}
+                  onChange={() => choose(card.id)}
+                  className="sr-only"
+                />
+                <span className="flex items-center justify-between gap-2 text-[14px] font-semibold">
+                  {card.label}
+                  {selected && <Check className="i i-sm text-accent" aria-hidden="true" />}
+                </span>
+                {card.summary && (
+                  <span className="muted text-[12px] leading-4">{card.summary}</span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
 
       {info && saved && (
-        <div className="flex flex-col gap-3 rounded border border-line p-3">
-          <p className="text-muted">{info.description}</p>
+        <div className="flex flex-col gap-4 rounded-lg border border-border bg-surface-2 p-4">
+          <p className="muted text-[14px] leading-[21px]">{info.description}</p>
 
-          <label htmlFor={modelId} className="flex flex-col gap-1">
-            <span className="text-[12px] text-muted">Model</span>
+          <div>
+            <label htmlFor={modelId} className="field-label">
+              Model
+            </label>
             <input
               id={modelId}
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder={info.defaultModel}
               spellCheck={false}
-              className="h-8 rounded border border-line-strong bg-bg px-2 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent"
+              className="input mono"
             />
-          </label>
+          </div>
 
           {info.needsBaseUrl && (
-            <label htmlFor={urlId} className="flex flex-col gap-1">
-              <span className="text-[12px] text-muted">Server URL</span>
+            <div>
+              <label htmlFor={urlId} className="field-label">
+                Server URL
+              </label>
               <input
                 id={urlId}
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder={info.defaultBaseUrl ?? 'https://…'}
                 spellCheck={false}
-                className="h-8 rounded border border-line-strong bg-bg px-2 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent"
+                className="input mono"
               />
-            </label>
+            </div>
           )}
 
           {info.needsBaseUrl && saved.hasKey && !apiKey && baseUrl !== (saved.baseUrl ?? '') && (
-            <p className="text-[12px] text-warning">
-              Saving a different URL removes the saved key, so it's never sent to a server it wasn't
-              meant for. Enter the key again if this server needs it.
+            <p className="flex items-start gap-2 rounded-md bg-warning-bg px-2.5 py-2 text-[13px] leading-[19px] text-warning">
+              <TriangleAlert className="i i-sm mt-0.5" aria-hidden="true" />
+              <span>
+                Saving a different URL removes the saved key, so it's never sent to a server it
+                wasn't meant for. Enter the key again if this server needs it.
+              </span>
             </p>
           )}
 
-          <label htmlFor={keyId} className="flex flex-col gap-1">
-            <span className="text-[12px] text-muted">
+          <div>
+            <label htmlFor={keyId} className="field-label">
               {info.needsKey
                 ? 'API key'
                 : info.id === 'opencode'
                   ? 'Server password (only if you set one)'
                   : 'API key (only if the server needs one)'}
-            </span>
+            </label>
             <input
               id={keyId}
               type="password"
@@ -214,17 +264,13 @@ export function AiSettingsSection() {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={saved.hasKey ? 'Saved. Type a new one to replace it.' : ''}
               spellCheck={false}
-              className="h-8 rounded border border-line-strong bg-bg px-2 font-mono text-[12px] focus-visible:outline-2 focus-visible:outline-accent"
+              className="input mono"
             />
-          </label>
+          </div>
           {saved.hasKey && (
-            <p className="flex items-center gap-2 text-[12px] text-muted">
-              <KeyRound size={13} aria-hidden="true" /> A key is saved on this computer.
-              <button
-                type="button"
-                onClick={() => void removeKey()}
-                className="underline underline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-              >
+            <p className="flex flex-wrap items-center gap-2 text-[13px] text-fg-2">
+              <KeyRound className="i i-sm" aria-hidden="true" /> A key is saved on this computer.
+              <button type="button" onClick={() => void removeKey()} className="link">
                 Remove it
               </button>
             </p>
@@ -245,7 +291,7 @@ export function AiSettingsSection() {
         {message && (
           <span
             role={message.ok ? 'status' : 'alert'}
-            className={`flex items-center gap-1.5 ${message.ok ? 'text-success' : 'text-danger'}`}
+            className={`flex items-center gap-1.5 text-[13px] ${message.ok ? 'text-success' : 'text-danger'}`}
           >
             {message.ok ? (
               <CircleCheck size={14} aria-hidden="true" />
