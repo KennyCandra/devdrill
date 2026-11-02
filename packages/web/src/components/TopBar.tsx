@@ -1,5 +1,6 @@
 import { Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { CLI_NAME } from '../brand';
 import { navigate } from '../router';
 import { Logo } from './ui';
 
@@ -26,7 +27,7 @@ export function TopBar({
         className="flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 hover:bg-surface-hover"
       >
         <Logo />
-        {!iconOnly && <span className="mono text-[15px] font-semibold">devdrill</span>}
+        {!iconOnly && <span className="mono text-[15px] font-semibold">{CLI_NAME}</span>}
       </button>
       {children}
       <div className="ml-auto flex min-w-0 shrink items-center gap-2">{right}</div>

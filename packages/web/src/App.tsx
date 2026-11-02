@@ -72,7 +72,7 @@ export function App({ hasToken }: { hasToken: boolean }) {
         >
           For your safety, {PRODUCT_NAME} only works through the link it prints when it starts (the
           one ending in <code className="font-mono">#token=…</code>). Copy it from the terminal, or
-          run <code className="font-mono">{RUN_COMMAND}</code> again.
+          start {PRODUCT_NAME} again:
         </StatusScreen>
       );
     case 'offline':

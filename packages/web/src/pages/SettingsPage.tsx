@@ -148,8 +148,9 @@ export function SettingsPage() {
             <Section id="language" title="Language">
               <LanguageSwitch />
               <p className="muted text-[14px] leading-[21px]">
-                Every challenge comes in both. Your code, progress and results are kept separately
-                for each language, so you can practice the same challenge in both.
+                Every challenge comes in JavaScript and TypeScript. Your code, progress and results
+                are kept separately for each language, so you can practice the same challenge in
+                both.
               </p>
             </Section>
 

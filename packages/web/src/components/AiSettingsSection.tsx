@@ -10,7 +10,7 @@ type Choice = AiProviderId | 'off';
 const CARD_SUMMARY: Partial<Record<AiProviderId, string>> = {
   claude: 'Anthropic API key',
   openai: 'OpenAI API key',
-  ollama: 'Local models, stays on your machine',
+  ollama: 'Runs on your own Ollama server',
   opencode: 'A local OpenCode server',
   custom: 'Any OpenAI-compatible API',
 };
@@ -164,9 +164,9 @@ export function AiSettingsSection() {
   return (
     <div className="flex flex-col gap-5">
       <p className="muted text-[14px] leading-[21px]">
-        Optional. With a provider, the AI can judge your review comments and give feedback on your
-        solutions. It never decides pass or fail. What you send goes to the provider you pick; with
-        Ollama it stays on your machine.
+        Optional. With a provider, the AI can give hints, judge your review comments and give
+        feedback on your solutions. It never decides pass or fail. What you send goes to the
+        provider you pick; a local Ollama server keeps it on your machine.
       </p>
 
       <fieldset className="flex min-w-0 flex-col">
