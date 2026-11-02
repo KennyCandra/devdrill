@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type Ref,
 } from 'react';
 import {
   Group,
@@ -102,8 +103,7 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
   const busy = running || submitting;
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
-  const taskRef = usePanelRef();
-  const [taskCollapsed, setTaskCollapsed] = useState(false);
+  const task = useTaskFold();
   const [aiEnabled, setAiEnabled] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -346,20 +346,20 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
       >
         <Panel
           id="task"
-          panelRef={taskRef}
+          panelRef={task.panelRef}
           defaultSize="24"
           minSize={180}
           collapsible
           collapsedSize={TASK_RAIL}
-          // Only the panel's size is needed: it is TASK_RAIL exactly when folded.
-          onResize={(size) => setTaskCollapsed(size.inPixels <= TASK_RAIL)}
+          onResize={task.onResize}
         >
-          {taskCollapsed && <TaskRail onExpand={() => taskRef.current?.expand()} />}
+          {task.collapsed && <TaskRail expandRef={task.expandRef} onExpand={task.expand} />}
           {/* Hidden, not unmounted, when folded: the hints and AI answers keep their state. */}
-          <div hidden={taskCollapsed} className="h-full">
+          <div hidden={task.collapsed} className="h-full">
             <TaskPanel
               challenge={challenge}
-              onCollapse={() => taskRef.current?.collapse()}
+              collapseRef={task.collapseRef}
+              onCollapse={task.collapse}
               askAi={
                 aiEnabled
                   ? async (shown) => {
@@ -477,10 +477,19 @@ function ResizeHandle({ vertical = false }: { vertical?: boolean }) {
 }
 
 /** The task panel folded away: one button to open it again, and its name running down the strip. */
-export function TaskRail({ onExpand, label = 'Task' }: { onExpand: () => void; label?: string }) {
+export function TaskRail({
+  onExpand,
+  expandRef,
+  label = 'Task',
+}: {
+  onExpand: () => void;
+  expandRef?: Ref<HTMLButtonElement>;
+  label?: string;
+}) {
   return (
     <div className="panel flex h-full flex-col items-center gap-3 py-2">
       <Button
+        ref={expandRef}
         variant="ghost"
         size="sm"
         onClick={onExpand}
@@ -493,4 +502,42 @@ export function TaskRail({ onExpand, label = 'Task' }: { onExpand: () => void; l
       <span className="panel-title [writing-mode:vertical-rl]">{label}</span>
     </div>
   );
+}
+
+/**
+ * The task panel folds to a rail. A click on either toggle moves focus to the toggle still on
+ * screen, since the one pressed is now hidden or gone. Restoring the layout on load and
+ * dragging the separator don't move focus, because nothing was clicked.
+ */
+export function useTaskFold() {
+  const panel = usePanelRef();
+  const [collapsed, setCollapsed] = useState(false);
+  const expandRef = useRef<HTMLButtonElement>(null);
+  const collapseRef = useRef<HTMLButtonElement>(null);
+  // Set by a click, and read once the fold has changed.
+  const focusNext = useRef<'expand' | 'collapse' | null>(null);
+
+  useEffect(() => {
+    const target = focusNext.current;
+    focusNext.current = null;
+    if (target === 'expand') expandRef.current?.focus();
+    else if (target === 'collapse') collapseRef.current?.focus();
+  }, [collapsed]);
+
+  return {
+    panelRef: panel,
+    collapsed,
+    expandRef,
+    collapseRef,
+    // Only the panel's size is needed: it is TASK_RAIL exactly when folded.
+    onResize: (size: { inPixels: number }) => setCollapsed(size.inPixels <= TASK_RAIL),
+    collapse: () => {
+      focusNext.current = 'expand';
+      panel.current?.collapse();
+    },
+    expand: () => {
+      focusNext.current = 'collapse';
+      panel.current?.expand();
+    },
+  };
 }

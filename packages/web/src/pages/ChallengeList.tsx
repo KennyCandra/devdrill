@@ -316,7 +316,14 @@ export function ChallengeList() {
                         <span className="mono muted text-right text-[13px]">
                           {c.estimatedMinutes}m
                         </span>
-                        <span className="mono text-fg text-right text-[13px]">{bestOf(c)}</span>
+                        <span className="mono text-fg text-right text-[13px]">
+                          {bestOf(c) ?? (
+                            <>
+                              <span aria-hidden="true">–</span>
+                              <span className="sr-only">None yet</span>
+                            </>
+                          )}
+                        </span>
                       </a>
                     </li>
                   ))}
@@ -476,11 +483,11 @@ function tally(list: ChallengeSummary[], mode: ModeFilter) {
   };
 }
 
-/** Your best result: a solve time, or a self-graded score for a review. */
-function bestOf(c: ChallengeSummary): string {
+/** Your best result: a solve time, or a self-graded score for a review. Undefined if none yet. */
+function bestOf(c: ChallengeSummary): string | undefined {
   const { bestTimeMs, bestScore } = c.progress;
-  if (c.mode === 'review') return bestScore === undefined ? '—' : `${bestScore}%`;
-  return bestTimeMs === undefined ? '—' : formatDuration(bestTimeMs);
+  if (c.mode === 'review') return bestScore === undefined ? undefined : `${bestScore}%`;
+  return bestTimeMs === undefined ? undefined : formatDuration(bestTimeMs);
 }
 
 function StatusIcon({ status }: { status: ChallengeStatus }) {

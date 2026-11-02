@@ -9,7 +9,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
-import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels';
+import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import type {
   ChallengeDetail,
   Language,
@@ -32,7 +32,7 @@ import { ReviewDraftStore } from '../workspace/reviewDraft';
 import { ReviewPanel, type CommentEdit } from '../workspace/ReviewPanel';
 import { ActiveTimer } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
-import { layoutStorage, TASK_RAIL, TaskRail } from './Workspace';
+import { layoutStorage, TASK_RAIL, TaskRail, useTaskFold } from './Workspace';
 
 function newCommentId(): string {
   return typeof crypto.randomUUID === 'function'
@@ -47,6 +47,7 @@ function newCommentId(): string {
 export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   const theme = useResolvedTheme();
   const verdictLabelId = useId();
+  const statusId = useId();
   const [store] = useState(() => new ReviewDraftStore((d) => api.saveReview(id, d, lang)));
   const {
     draft,
@@ -75,8 +76,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   /** Bumped to clear the selection in the diff, e.g. after a comment is added. */
   const [clearSelection, setClearSelection] = useState(0);
   const models = useRef(new Map<string, monaco.editor.ITextModel>());
-  const taskRef = usePanelRef();
-  const [taskCollapsed, setTaskCollapsed] = useState(false);
+  const task = useTaskFold();
   /** Lines added and removed in the file on screen. */
   const [lineCounts, setLineCounts] = useState<LineCounts | null>(null);
 
@@ -185,10 +185,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
 
   const submit = async () => {
     if (submitting) return;
-    if (!draft.verdict) {
-      setMessage('Pick a verdict first: approve, or request changes.');
-      return;
-    }
     if (editing) {
       setMessage('Add or cancel the comment you are writing first.');
       return;
@@ -301,23 +297,23 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
       >
         <Panel
           id="task"
-          panelRef={taskRef}
+          panelRef={task.panelRef}
           defaultSize="22"
           minSize={180}
           collapsible
           collapsedSize={TASK_RAIL}
-          // Only the panel's size is needed: it is TASK_RAIL exactly when folded.
-          onResize={(size) => setTaskCollapsed(size.inPixels <= TASK_RAIL)}
+          onResize={task.onResize}
         >
-          {taskCollapsed && (
-            <TaskRail label="Pull request" onExpand={() => taskRef.current?.expand()} />
+          {task.collapsed && (
+            <TaskRail label="Pull request" expandRef={task.expandRef} onExpand={task.expand} />
           )}
           {/* Hidden, not unmounted, when folded: the hints keep their state. */}
-          <div hidden={taskCollapsed} className="h-full">
+          <div hidden={task.collapsed} className="h-full">
             <TaskPanel
               challenge={challenge}
               title="Pull request"
-              onCollapse={() => taskRef.current?.collapse()}
+              collapseRef={task.collapseRef}
+              onCollapse={task.collapse}
             />
           </div>
         </Panel>
@@ -414,11 +410,17 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
           <RotateCcw className="i i-sm" aria-hidden="true" /> Start over
         </Button>
         {message ? (
-          <span role="alert" className="min-w-0 flex-1 truncate text-[13px] text-danger">
+          <span
+            id={statusId}
+            role="alert"
+            className="min-w-0 flex-1 truncate text-[13px] text-danger"
+          >
             {message}
           </span>
         ) : (
-          <span className="muted min-w-0 flex-1 truncate text-[13px]">{status}</span>
+          <span id={statusId} className="muted min-w-0 flex-1 truncate text-[13px]">
+            {status}
+          </span>
         )}
         <div className="flex shrink-0 items-center gap-2">
           <span id={verdictLabelId} className="text-[13px] font-semibold text-fg-2">
@@ -448,6 +450,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
           className="shrink-0"
           onClick={() => void submit()}
           disabled={busy || !draft.verdict}
+          aria-describedby={statusId}
         >
           {submitting ? <Spinner /> : <Send className="i i-sm" aria-hidden="true" />}
           {submitting ? 'Submitting…' : 'Submit review'}

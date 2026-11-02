@@ -70,9 +70,15 @@ export function SettingsPage() {
     <div className="flex h-full flex-col">
       <TopBar
         right={
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-            <ArrowLeft className="i i-sm" aria-hidden="true" />
-            Back to challenges
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+            aria-label="Back to challenges"
+          >
+            {/* On a phone the arrow stands alone; from sm up the words take its place. */}
+            <ArrowLeft className="i i-sm sm:hidden" aria-hidden="true" />
+            <span className="hidden sm:inline">Back to challenges</span>
           </Button>
         }
       >

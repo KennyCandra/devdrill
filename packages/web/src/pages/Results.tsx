@@ -9,7 +9,7 @@ import {
   Lock,
   Sparkles,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import type { ChallengeDetail, ChallengeSummary, Language } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -42,6 +42,7 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
   // Once the person has confirmed the dialog, the solution tab opens without asking again.
   const [solutionConfirmed, setSolutionConfirmed] = useState(false);
   const [confirmSolution, setConfirmSolution] = useState(false);
+  const lockedNoteId = useId();
 
   useEffect(() => {
     let cancelled = false;
@@ -271,6 +272,7 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
               className={`tab disabled:cursor-not-allowed disabled:opacity-50 ${tab === 'hidden' ? 'on' : ''}`}
               aria-pressed={tab === 'hidden'}
               disabled={!progressSolved}
+              aria-describedby={progressSolved ? undefined : lockedNoteId}
               title={progressSolved ? undefined : LOCKED_HINT}
               onClick={() => setTab('hidden')}
             >
@@ -287,6 +289,7 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
               className={`tab disabled:cursor-not-allowed disabled:opacity-50 ${tab === 'ai' ? 'on' : ''}`}
               aria-pressed={tab === 'ai'}
               disabled={!progressSolved}
+              aria-describedby={progressSolved ? undefined : lockedNoteId}
               title={progressSolved ? undefined : LOCKED_HINT}
               onClick={() => setTab('ai')}
             >
@@ -299,7 +302,7 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
             </button>
           </div>
           {!progressSolved && (
-            <p className="subtle mt-3 text-[13px]">
+            <p id={lockedNoteId} className="subtle mt-3 text-[13px]">
               Hidden tests and AI feedback open once you solve it. The solution asks first.
             </p>
           )}

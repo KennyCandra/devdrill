@@ -1,5 +1,5 @@
 import { Bot, ChevronLeft, Lightbulb } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChallengeDetail, ChallengeMode } from '@devdrill/shared';
@@ -38,6 +38,7 @@ export function TaskPanel({
   challenge,
   askAi,
   onCollapse,
+  collapseRef,
   title = 'Task',
 }: {
   challenge: ChallengeDetail;
@@ -45,6 +46,8 @@ export function TaskPanel({
   askAi?: (shownHints: string[]) => Promise<string>;
   /** Shows a collapse button in the header when the panel can be folded away. */
   onCollapse?: () => void;
+  /** Lets the page move focus to the collapse button. */
+  collapseRef?: Ref<HTMLButtonElement>;
   /** The panel's name in its header: "Task", or "Pull request" in a review. */
   title?: string;
 }) {
@@ -84,6 +87,7 @@ export function TaskPanel({
         <span className="panel-title">{title}</span>
         {onCollapse && (
           <button
+            ref={collapseRef}
             type="button"
             onClick={onCollapse}
             aria-label={`Collapse ${title.toLowerCase()} panel`}
