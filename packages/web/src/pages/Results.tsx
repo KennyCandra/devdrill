@@ -158,7 +158,7 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
 
   // Opens the solution at once once solved; before that, the dialog asks first.
   const openSolution = () => {
-    if (solved || solutionConfirmed) setTab('solution');
+    if (progressSolved || solutionConfirmed) setTab('solution');
     else setConfirmSolution(true);
   };
 
@@ -260,12 +260,12 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
               aria-pressed={tab === 'solution'}
               onClick={openSolution}
             >
-              {solved || solutionConfirmed ? (
+              {progressSolved || solutionConfirmed ? (
                 <Eye className="i i-sm" aria-hidden="true" />
               ) : (
                 <Lock className="i i-sm" aria-hidden="true" />
               )}
-              {solved ? 'Compare with the solution' : 'Show the solution'}
+              {progressSolved ? 'Compare with the solution' : 'Show the solution'}
             </button>
             <button
               type="button"
