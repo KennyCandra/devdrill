@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CircleCheckBig, CircleX, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Circle, CircleCheckBig, CircleX, Sparkles } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type {
   AiIssueVerdict,
@@ -14,12 +14,11 @@ import type {
 } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { TopBar } from '../components/TopBar';
-import { Button, DifficultyBadge, Spinner, StatusScreen } from '../components/ui';
+import { Button, ModeBadge, Spinner, StatusScreen } from '../components/ui';
 import { challengePath, navigate } from '../router';
 import { lineLabel } from '../workspace/DiffView';
 import { nextChallenge } from '../workspace/results';
 import { formatDuration } from '../workspace/timer';
-import { Stat } from './Results';
 
 const SEVERITY_LABELS: Record<ReviewSeverity, string> = {
   must: 'Must fix',
@@ -27,10 +26,10 @@ const SEVERITY_LABELS: Record<ReviewSeverity, string> = {
   nit: 'Nit',
 };
 
-const SEVERITY_STYLE: Record<ReviewSeverity, string> = {
-  must: 'text-danger bg-danger-bg',
-  should: 'text-warning bg-warning-bg',
-  nit: 'text-muted bg-hover',
+const SEVERITY_TAG: Record<ReviewSeverity, string> = {
+  must: 'tag-must',
+  should: 'tag-should',
+  nit: 'tag-nit',
 };
 
 const AI_VERDICT_LABELS: Record<AiIssueVerdict, string> = {
@@ -39,10 +38,10 @@ const AI_VERDICT_LABELS: Record<AiIssueVerdict, string> = {
   missed: 'missed',
 };
 
-const AI_VERDICT_STYLE: Record<AiIssueVerdict, string> = {
-  caught: 'text-success',
-  partly: 'text-warning',
-  missed: 'text-danger',
+const AI_VERDICT_TAG: Record<AiIssueVerdict, string> = {
+  caught: 'tag-caught',
+  partly: 'tag-partly',
+  missed: 'tag-missed',
 };
 
 const VERDICT_LABELS: Record<ReviewVerdict, string> = {
@@ -147,6 +146,10 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
   const typeLabel = (type: string) => issueTypes.find((t) => t.id === type)?.label ?? type;
   const commentById = new Map(review.comments.map((c) => [c.id, c]));
   const { progress } = review;
+  const caughtCount = review.issues.filter((o) => o.caught).length;
+  // The primary action is Next when the player passed and there is one; otherwise going
+  // back is, and the header has no second copy of it.
+  const nextIsPrimary = review.passed && next !== null;
 
   // Ticking saves at once; the page shows the tick straight away and the server's score
   // when it answers.
@@ -201,143 +204,243 @@ export function ReviewResults({ id, lang }: { id: string; lang: Language }) {
 
   return (
     <div className="flex h-full flex-col">
-      <TopBar>
-        <span className="text-muted">/</span>
-        <span className="min-w-0 truncate">{challenge.title}</span>
-        <DifficultyBadge difficulty={challenge.difficulty} />
+      <TopBar iconOnly>
+        <button type="button" onClick={() => navigate('/')} className="crumb shrink-0">
+          Challenges
+        </button>
+        <span className="crumb-sep">/</span>
+        <button
+          type="button"
+          onClick={() => navigate(challengePath(id))}
+          className="crumb min-w-0 truncate text-fg"
+        >
+          {challenge.title}
+        </button>
+        <span className="crumb-sep">/</span>
+        <span className="muted shrink-0">Results</span>
       </TopBar>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 overflow-auto px-6 py-8">
-        <header className="flex items-start gap-4">
-          {review.passed ? (
-            <CircleCheckBig
-              size={40}
-              className="animate-pop-in shrink-0 text-success"
-              aria-hidden="true"
-            />
-          ) : (
-            <CircleX size={40} className="animate-pop-in shrink-0 text-danger" aria-hidden="true" />
-          )}
-          <div role="status">
-            <h1 className="text-[20px] font-semibold tracking-tight">
-              {review.passed ? 'Passed: the right call' : 'Not passed: the wrong call'}
-            </h1>
-            <p className="mt-1 text-muted">
-              You chose <strong>{VERDICT_LABELS[review.verdict.given]}</strong>.{' '}
-              {review.verdict.expected === 'request_changes'
-                ? 'This pull request has something that must change before it can merge.'
-                : 'Nothing here blocks merging: it deserved an approval.'}
-            </p>
-          </div>
-        </header>
-
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Your score">{review.score}%</Stat>
-          {progress.bestScore !== undefined && (
-            <Stat label="Best score">{progress.bestScore}%</Stat>
-          )}
-          <Stat label="Attempts">{progress.attempts}</Stat>
-          {progress.bestTimeMs !== undefined && (
-            <Stat label="Best time">{formatDuration(progress.bestTimeMs)}</Stat>
-          )}
-        </dl>
-
-        <div className="flex flex-wrap gap-2">
-          {review.passed && next ? (
-            <Button variant="primary" onClick={() => navigate(challengePath(next.id))}>
-              Next: {next.title} <ArrowRight size={14} aria-hidden="true" />
-            </Button>
-          ) : (
-            <Button variant="primary" onClick={() => navigate(challengePath(id))}>
-              <ArrowLeft size={14} aria-hidden="true" /> Back to the review
-            </Button>
-          )}
-          {review.passed && next && (
-            <Button onClick={() => navigate(challengePath(id))}>
-              <ArrowLeft size={14} aria-hidden="true" /> Back to the review
-            </Button>
-          )}
-        </div>
-
-        <section aria-label="Answer key" className="flex flex-col gap-3">
-          <div>
-            <h2 className="font-semibold">Compare with the answer key</h2>
-            <p className="text-muted">
-              {review.issues.length === 0
-                ? 'Nothing to find: this pull request was good to merge.'
-                : 'Read each issue next to your comments, and tick the ones you really caught. Your score is the share you tick; must-fix issues count most.'}
-            </p>
-            {saveError && (
-              <p role="alert" className="mt-1 text-danger">
-                {saveError}
+      <main className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col gap-7 overflow-auto px-6 pt-12 pb-18">
+        <section className="flex flex-wrap items-center justify-between gap-5">
+          <div className="flex min-w-0 items-start gap-4">
+            <span
+              className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${
+                review.passed ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'
+              }`}
+            >
+              {review.passed ? (
+                <CircleCheckBig className="i size-6 stroke-2 animate-pop-in" aria-hidden="true" />
+              ) : (
+                <CircleX className="i size-6 stroke-2 animate-pop-in" aria-hidden="true" />
+              )}
+            </span>
+            <div role="status" className="flex min-w-0 flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-[26px] leading-8 font-semibold tracking-tight">
+                  {review.passed ? 'Passed: the right call' : 'Not passed: the wrong call'}
+                </h1>
+                <ModeBadge mode={challenge.mode} />
+              </div>
+              <p className="muted text-[15px] leading-[22px]">
+                You chose{' '}
+                <strong className="font-semibold text-fg">
+                  {VERDICT_LABELS[review.verdict.given]}
+                </strong>
+                .{' '}
+                {review.verdict.expected === 'request_changes'
+                  ? 'This pull request has something that must change before it can merge.'
+                  : 'Nothing here blocks merging: it deserved an approval.'}
               </p>
-            )}
-            {review.issues.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-3 rounded border border-line bg-side p-3">
-                <Sparkles size={16} className="shrink-0 text-accent" aria-hidden="true" />
-                {aiEnabled ? (
-                  <>
-                    <span className="mr-auto">
-                      {review.ai
-                        ? 'The AI judged your comments and ticked what it says you caught ("partly" adds no tick). Your own ticks stay, and you can change every one.'
-                        : 'Let the AI read your comments and judge each issue: caught, partly or missed.'}
-                    </span>
-                    <Button onClick={() => void askAi()} disabled={judging}>
-                      {judging ? <Spinner /> : null}
-                      {judging
-                        ? 'Judging… (can take a minute)'
-                        : review.ai
-                          ? 'Judge again'
-                          : 'Ask AI to judge'}
-                    </Button>
-                  </>
-                ) : (
-                  <span className="mr-auto text-muted">
-                    Set up an AI provider in{' '}
-                    <button
-                      type="button"
-                      onClick={() => navigate('/settings')}
-                      className="underline underline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-                    >
-                      Settings
-                    </button>{' '}
-                    to have your comments judged.
-                  </span>
-                )}
-                {judgeError && (
-                  <p role="alert" className="w-full text-danger">
-                    {judgeError}
+            </div>
+          </div>
+          {nextIsPrimary && (
+            <Button onClick={() => navigate(challengePath(id))}>
+              <ArrowLeft className="i i-sm" aria-hidden="true" /> Back to the review
+            </Button>
+          )}
+        </section>
+
+        <div className="grid items-start gap-7 min-[900px]:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="flex min-w-0 flex-col gap-7">
+            <section aria-label="Answer key" className="flex min-w-0 flex-col gap-4">
+              <div>
+                <h2 className="text-[20px] leading-7 font-semibold">What the key says</h2>
+                <p className="muted mt-1 text-[14px] leading-[21px]">
+                  {review.issues.length === 0
+                    ? 'Nothing to find: this pull request was good to merge.'
+                    : 'Read each issue next to your comments and tick the ones you really caught. Must-fix issues count most. Comments never lower your score.'}
+                </p>
+                {saveError && (
+                  <p role="alert" className="mt-1 text-danger">
+                    {saveError}
                   </p>
                 )}
               </div>
+
+              {review.issues.length > 0 && (
+                <div
+                  className={`flex flex-wrap items-center gap-3 rounded-lg px-3.5 py-3 ${
+                    aiEnabled ? 'bg-accent-soft' : 'border border-dashed border-line-strong'
+                  }`}
+                >
+                  <Sparkles
+                    className={`i shrink-0 ${aiEnabled ? 'text-accent' : 'text-fg-3'}`}
+                    aria-hidden="true"
+                  />
+                  {aiEnabled ? (
+                    <>
+                      <span className="min-w-0 flex-1 basis-[320px] text-[14px] leading-[21px]">
+                        {review.ai
+                          ? 'The AI judged your comments and ticked what it says you caught ("partly" adds no tick). Your own ticks stay, and you can change every one.'
+                          : 'Let the AI read your comments and judge each issue: caught, partly or missed.'}
+                      </span>
+                      <Button onClick={() => void askAi()} disabled={judging}>
+                        {judging ? <Spinner /> : null}
+                        {judging
+                          ? 'Judging… (can take a minute)'
+                          : review.ai
+                            ? 'Judge again'
+                            : 'Ask AI to judge'}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="muted min-w-0 flex-1 basis-[320px] text-[14px] leading-[21px]">
+                        AI is off. Connect a provider and it can check your comments against the key
+                        for you.
+                      </span>
+                      <Button
+                        variant="ghost"
+                        onClick={() => navigate('/settings')}
+                        className="text-accent"
+                      >
+                        Open Settings <ArrowRight className="i i-sm" aria-hidden="true" />
+                      </Button>
+                    </>
+                  )}
+                  {judgeError && (
+                    <p role="alert" className="w-full text-danger">
+                      {judgeError}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {review.issues.map((outcome) => (
+                <IssueCard
+                  key={outcome.issue.id}
+                  outcome={outcome}
+                  typeLabel={typeLabel}
+                  nearby={outcome.nearby.flatMap((cid) => commentById.get(cid) ?? [])}
+                  ai={review.ai?.issues.find((j) => j.issueId === outcome.issue.id)}
+                  locked={judging}
+                  onToggle={(caught) => toggle(outcome.issue.id, caught)}
+                />
+              ))}
+            </section>
+
+            {review.others.length > 0 && (
+              <section aria-label="Your other comments" className="flex flex-col gap-3">
+                <div>
+                  <h2 className="text-[17px] leading-6 font-semibold">Your other comments</h2>
+                  <p className="muted mt-1 text-[14px] leading-[21px]">
+                    These are near no issue in the key. They may still be good points: the key lists
+                    what the pull request must or should fix, not everything worth saying.
+                  </p>
+                </div>
+                {review.others.flatMap((cid) => {
+                  const c = commentById.get(cid);
+                  return c ? [<CommentQuote key={cid} comment={c} />] : [];
+                })}
+              </section>
             )}
           </div>
-          {review.issues.map((outcome) => (
-            <IssueCard
-              key={outcome.issue.id}
-              outcome={outcome}
-              typeLabel={typeLabel}
-              nearby={outcome.nearby.flatMap((cid) => commentById.get(cid) ?? [])}
-              ai={review.ai?.issues.find((j) => j.issueId === outcome.issue.id)}
-              locked={judging}
-              onToggle={(caught) => toggle(outcome.issue.id, caught)}
-            />
-          ))}
-        </section>
 
-        {review.others.length > 0 && (
-          <section aria-label="Your other comments" className="flex flex-col gap-2">
-            <h2 className="font-semibold">Your other comments</h2>
-            <p className="text-muted">
-              These are near no issue in the key. They may still be good points: the key lists what
-              the pull request must or should fix, not everything worth saying.
-            </p>
-            {review.others.flatMap((cid) => {
-              const c = commentById.get(cid);
-              return c ? [<CommentQuote key={cid} comment={c} />] : [];
-            })}
-          </section>
-        )}
+          <aside
+            aria-label="Your score"
+            className="card card-raised order-first flex flex-col gap-4 p-5 min-[900px]:sticky min-[900px]:top-6 min-[900px]:order-none"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="stat-label">Your score</div>
+                <div
+                  className="mono mt-1 text-[44px] leading-[52px] font-medium tracking-[-0.02em] tabular-nums"
+                  aria-live="polite"
+                >
+                  {review.score}%
+                </div>
+                <div className="muted text-[13px]">
+                  {review.passed ? 'Right verdict' : 'Wrong verdict'}
+                  {review.issues.length > 0 &&
+                    ` · caught ${caughtCount} of ${review.issues.length}`}
+                </div>
+              </div>
+              <span className={`tag mt-1 ${review.passed ? 'tag-good' : 'tag-risk'}`}>
+                {review.passed ? 'Passed' : 'Not passed'}
+              </span>
+            </div>
+
+            {review.issues.length > 0 && (
+              <ul aria-label="Issues" className="flex flex-col">
+                {review.issues.map((o) => (
+                  <li
+                    key={o.issue.id}
+                    className="grid grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-2.5 border-t border-line py-2"
+                  >
+                    {o.caught ? (
+                      <span role="img" aria-label="Caught" className="flex text-success">
+                        <CircleCheckBig className="i size-[18px]" aria-hidden="true" />
+                      </span>
+                    ) : (
+                      <span role="img" aria-label="Not ticked" className="flex text-fg-3">
+                        <Circle className="i size-[18px]" aria-hidden="true" />
+                      </span>
+                    )}
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-[13px] leading-[18px]">{o.issue.title}</span>
+                      <span className="subtle text-[12px]">
+                        {SEVERITY_LABELS[o.issue.severity]} · {o.caught ? 'caught' : 'not ticked'}
+                      </span>
+                    </span>
+                    <span className={`mono text-[12.5px] ${o.caught ? 'text-success' : 'subtle'}`}>
+                      {Math.round(o.weight)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <dl className="grid grid-cols-3 gap-2 border-t border-line pt-4">
+              <Figure label="Best score">
+                {progress.bestScore !== undefined ? `${progress.bestScore}%` : '–'}
+              </Figure>
+              <Figure label="Attempts">{progress.attempts}</Figure>
+              <Figure label="Best time">
+                {progress.bestTimeMs !== undefined ? formatDuration(progress.bestTimeMs) : '–'}
+              </Figure>
+            </dl>
+
+            {nextIsPrimary ? (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={() => navigate(challengePath(next.id))}
+              >
+                Next: {next.title} <ArrowRight className="i i-sm" aria-hidden="true" />
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={() => navigate(challengePath(id))}
+              >
+                <ArrowLeft className="i i-sm" aria-hidden="true" /> Back to the review
+              </Button>
+            )}
+          </aside>
+        </div>
       </main>
     </div>
   );
@@ -364,50 +467,16 @@ function IssueCard({
   const { issue, caught, weight } = outcome;
   return (
     <article
-      className={`rounded border p-3 transition-colors ${caught ? 'border-success/60' : 'border-line'}`}
+      className={`card flex flex-col gap-3 p-4 transition-colors ${caught ? 'border-success-line' : ''}`}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={`rounded px-1.5 py-px text-[11px] font-medium ${SEVERITY_STYLE[issue.severity]}`}
-        >
-          {SEVERITY_LABELS[issue.severity]}
-        </span>
-        <span className="text-[12px] text-muted">{Math.round(weight)}% of the score</span>
-      </div>
-      <h3 id={titleId} className="mt-2 font-semibold">
-        {issue.title}
-      </h3>
-      <p className="text-[12px] text-muted">
-        {issue.file} · {lineLabel(issue.lines)} · {typeLabel(issue.type)}
-      </p>
-      <p className="mt-1 leading-relaxed">{issue.explanation}</p>
-
-      <div className="mt-3 flex flex-col gap-1.5">
-        <span className="text-[12px] text-muted">Your comments on these lines</span>
-        {nearby.length > 0 ? (
-          nearby.map((c) => <CommentQuote key={c.id} comment={c} />)
-        ) : (
-          <p className="text-muted italic">None.</p>
-        )}
-      </div>
-
-      {ai && (
-        <p className="mt-3 flex gap-2 rounded bg-hover p-2 leading-relaxed">
-          <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-          <span>
-            <strong className={`font-semibold ${AI_VERDICT_STYLE[ai.verdict]}`}>
-              AI: {AI_VERDICT_LABELS[ai.verdict]}.
-            </strong>{' '}
-            {ai.reason}
-          </span>
-        </p>
-      )}
-
+      {/* First, and prominent: ticking the issue is the answer. Locked while the AI judges. */}
       <label
         htmlFor={checkId}
-        className={`mt-3 inline-flex cursor-pointer items-center gap-2 rounded border px-2.5 py-1.5 ${
-          caught ? 'border-success/60 bg-success-bg text-success' : 'border-line-strong'
-        }`}
+        className={`flex items-center gap-2.5 self-start rounded-lg border px-3 py-2 ${
+          caught
+            ? 'border-success-line bg-success-bg font-semibold text-success'
+            : 'border-border-strong bg-surface-2'
+        } ${locked ? 'opacity-60' : ''}`}
       >
         <input
           id={checkId}
@@ -420,18 +489,69 @@ function IssueCard({
         />
         I caught this
       </label>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className={`tag ${SEVERITY_TAG[issue.severity]}`}>
+            {SEVERITY_LABELS[issue.severity]}
+          </span>
+          <span className="mono subtle text-[12px]">{Math.round(weight)}% of the score</span>
+        </div>
+        <h3 id={titleId} className="text-[17px] leading-6 font-semibold">
+          {issue.title}
+        </h3>
+        <p className="mono subtle text-[12.5px]">
+          {issue.file} · {lineLabel(issue.lines)} · {typeLabel(issue.type)}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-3">
+        <p className="text-[14px] leading-[21px] text-fg-2">{issue.explanation}</p>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-3">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="subtle text-[12px] font-medium">Your comments on these lines</span>
+            {nearby.length > 0 ? (
+              nearby.map((c) => <CommentQuote key={c.id} comment={c} />)
+            ) : (
+              <div className="quote border-dashed bg-transparent">
+                <p className="subtle text-[14px]">None.</p>
+              </div>
+            )}
+          </div>
+          {ai && (
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <span className="subtle text-[12px] font-medium">AI verdict</span>
+              <div className="quote flex flex-col items-start gap-1.5">
+                <span className={`tag ${AI_VERDICT_TAG[ai.verdict]}`}>
+                  AI: {AI_VERDICT_LABELS[ai.verdict]}
+                </span>
+                <p className="text-[14px] leading-[21px]">{ai.reason}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </article>
   );
 }
 
 function CommentQuote({ comment }: { comment: ReviewComment }): ReactNode {
   return (
-    <blockquote className="rounded border-l-2 border-accent bg-side px-3 py-2">
-      <p className="text-[12px] text-muted">
+    <blockquote className="quote flex flex-col gap-1">
+      <p className="mono muted text-[12px]">
         {comment.file} · {lineLabel(comment.lines)}
       </p>
-      <p className="leading-relaxed whitespace-pre-wrap">{comment.why}</p>
+      <p className="text-[14px] leading-[21px] whitespace-pre-wrap">{comment.why}</p>
     </blockquote>
+  );
+}
+
+function Figure({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="stat-label">{label}</dt>
+      <dd className="mono mt-1 text-[16px] tabular-nums">{children}</dd>
+    </div>
   );
 }
 
