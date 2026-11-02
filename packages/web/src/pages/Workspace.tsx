@@ -372,7 +372,7 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
           </div>
         </Panel>
         <ResizeHandle />
-        <Panel id="files" defaultSize="16" minSize={120}>
+        <Panel id="files" defaultSize="16" minSize={120} maxSize={360}>
           <FileTree files={files} activePath={active} unsaved={unsaved} onOpen={openFile} />
         </Panel>
         <ResizeHandle />

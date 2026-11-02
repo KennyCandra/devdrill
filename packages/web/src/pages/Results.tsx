@@ -227,7 +227,7 @@ export function Results({ id, lang }: { id: string; lang: Language }) {
         </section>
 
         <dl
-          className={`card grid grid-cols-2 gap-px overflow-hidden bg-border ${
+          className={`card grid shrink-0 grid-cols-2 gap-px overflow-hidden bg-border ${
             stats.length === 4 ? 'sm:grid-cols-4' : ''
           }`}
         >
