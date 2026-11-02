@@ -40,7 +40,7 @@ export function HiddenTestsView({ id, lang }: { id: string; lang: Language }) {
       automaticLayout: true,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
-      fontFamily: "'JetBrains Mono Variable', monospace",
+      fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
       fontSize: 12,
       lineHeight: LINE_HEIGHT,
     });

@@ -73,7 +73,7 @@ export function DiffView({
       automaticLayout: true,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
-      fontFamily: "'JetBrains Mono Variable', monospace",
+      fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
       fontSize: 13,
       // Only the changed files are here, so imports can't resolve: errors would be noise.
       renderValidationDecorations: 'off',

@@ -1,6 +1,11 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/400-italic.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
 
 /*
  * Tokens from the "Graphite & Signal" design. Dark is the default; [data-theme] on <html>
@@ -135,7 +140,7 @@
 
 /* Size, space, radius and motion: the same in both themes. */
 :root {
-  --font-ui: 'Inter Variable', system-ui, sans-serif;
+  --font-ui: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --fs-xs: 12px;
   --lh-xs: 16px;
   --fs-sm: 13px;
@@ -241,8 +246,8 @@
   --color-accent-bg-hover: var(--primary-hover);
   --color-on-accent: var(--text-on-primary);
 
-  --font-sans: 'Inter Variable', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 /* Tailwind 4 no longer gives buttons a pointer cursor; anything clickable should show one. */
@@ -1186,7 +1191,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--fs-md);
   -webkit-font-smoothing: antialiased;
 }
 

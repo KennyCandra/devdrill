@@ -64,7 +64,7 @@ export function SolutionView({ id, lang }: { id: string; lang: Language }) {
       useInlineViewWhenSpaceIsLimited: false,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
-      fontFamily: "'JetBrains Mono Variable', monospace",
+      fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
       fontSize: 12,
     });
     diff.setModel({ original, modified });

@@ -52,7 +52,7 @@ export function CodeEditor({
     if (!container.current) return;
     const instance = monaco.editor.create(container.current, {
       model: null,
-      fontFamily: "'JetBrains Mono Variable', monospace",
+      fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
       fontSize: 13,
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
