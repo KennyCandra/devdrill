@@ -1,7 +1,7 @@
-import { Bug, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { navigate } from '../router';
-import { PRODUCT_NAME } from '../brand';
+import { Logo } from './ui';
 
 /**
  * The thin bar at the top of every screen, like VS Code's title bar.
@@ -15,8 +15,8 @@ export function TopBar({ children, right }: { children?: ReactNode; right?: Reac
         onClick={() => navigate('/')}
         className="flex shrink-0 items-center gap-2 rounded px-1 font-semibold hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
       >
-        <Bug size={16} className="text-accent" aria-hidden="true" />
-        {PRODUCT_NAME}
+        <Logo />
+        <span className="font-mono text-[15px] font-semibold">devdrill</span>
       </button>
       {children}
       <div className="ml-auto flex min-w-0 shrink items-center gap-2">{right}</div>

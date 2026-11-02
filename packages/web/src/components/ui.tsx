@@ -76,6 +76,22 @@ export function StatusScreen({
   );
 }
 
+/** The DevDrill mark: a rounded square holding `//`, in the primary colour. Decorative. */
+export function Logo({ size = 22, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <rect width="24" height="24" rx="6" style={{ fill: 'var(--primary)' }} />
+      <path
+        d="M10.4 6.5 7.6 17.5M16.4 6.5l-2.8 11"
+        fill="none"
+        stroke="#fff"
+        strokeWidth={2.3}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 const platform =
   typeof navigator === 'undefined'
     ? ''
