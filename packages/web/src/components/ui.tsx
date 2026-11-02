@@ -78,7 +78,10 @@ export function Spinner({ className = '' }: { className?: string }) {
   return <span aria-hidden="true" className={`spin ${className}`} />;
 }
 
-/** Full-screen message for "can't connect", "reopen the link", "not found" and similar. */
+/**
+ * Full-screen message for "can't connect", "reopen the link", "not found" and similar:
+ * the mark, a heading, the body text and one action.
+ */
 export function StatusScreen({
   title,
   children,
@@ -89,9 +92,10 @@ export function StatusScreen({
   action?: ReactNode;
 }) {
   return (
-    <main className="animate-fade-in flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <h1 className="text-[17px] leading-6 font-semibold">{title}</h1>
-      <div className="muted max-w-md leading-relaxed">{children}</div>
+    <main className="animate-fade-in flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+      <Logo size={40} />
+      <h1 className="text-[22px] leading-[30px] font-semibold tracking-tight">{title}</h1>
+      <div className="muted max-w-[460px] text-[15px] leading-6">{children}</div>
       {action}
     </main>
   );

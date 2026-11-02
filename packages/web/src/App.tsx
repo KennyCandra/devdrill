@@ -1,3 +1,4 @@
+import { Check, Copy } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings } from '@devdrill/shared';
 import { api, ApiRequestError, setLanguage } from './api/client';
@@ -65,7 +66,10 @@ export function App({ hasToken }: { hasToken: boolean }) {
     case 'noToken':
     case 'badToken':
       return (
-        <StatusScreen title="Open the link from your terminal">
+        <StatusScreen
+          title="Open the link from your terminal"
+          action={<CommandBlock command={RUN_COMMAND} />}
+        >
           For your safety, {PRODUCT_NAME} only works through the link it prints when it starts (the
           one ending in <code className="font-mono">#token=…</code>). Copy it from the terminal, or
           run <code className="font-mono">{RUN_COMMAND}</code> again.
@@ -128,4 +132,41 @@ export function App({ hasToken }: { hasToken: boolean }) {
         </SettingsProvider>
       );
   }
+}
+
+/** The run command in a small mono block, with a Copy button that says "Copied" for a moment. */
+function CommandBlock({ command }: { command: string }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+    } catch {
+      // No clipboard here: the command is on screen, so it can be copied by hand.
+    }
+  };
+
+  return (
+    <div className="flex h-11 w-full max-w-[320px] items-center gap-3 rounded-lg border border-border-strong bg-editor pr-1.5 pl-4">
+      <span aria-hidden="true" className="mono subtle text-[14px]">
+        $
+      </span>
+      <code className="mono min-w-0 flex-1 truncate text-left text-[14px]">{command}</code>
+      <Button variant="ghost" size="sm" onClick={() => void copy()}>
+        {copied ? (
+          <Check className="i i-sm" aria-hidden="true" />
+        ) : (
+          <Copy className="i i-sm" aria-hidden="true" />
+        )}
+        {copied ? 'Copied' : 'Copy'}
+      </Button>
+    </div>
+  );
 }
