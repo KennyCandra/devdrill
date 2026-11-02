@@ -267,8 +267,7 @@
   }
 
   /* Every control shows its focus ring, whether or not it sits inside a styled container. */
-  :focus-visible,
-  .is-focus {
+  :focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
@@ -279,19 +278,6 @@
  * classes (Tailwind) still win where a page needs something different.
  */
 @layer components {
-  .dd {
-    font-family: var(--font-ui);
-    font-size: var(--fs-md);
-    line-height: var(--lh-md);
-    color: var(--text);
-    background: var(--bg);
-    -webkit-font-smoothing: antialiased;
-  }
-  .dd *,
-  .dd *::before,
-  .dd *::after {
-    box-sizing: border-box;
-  }
   .mono {
     font-family: var(--font-mono);
     font-feature-settings: 'zero' 0;
@@ -300,14 +286,6 @@
     color: var(--text-2);
   }
   .subtle {
-    color: var(--text-3);
-  }
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: var(--fs-xs);
-    line-height: var(--lh-xs);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     color: var(--text-3);
   }
   .i {
@@ -324,10 +302,6 @@
     width: 14px;
     height: 14px;
   }
-  .i-lg {
-    width: 20px;
-    height: 20px;
-  }
   .link {
     color: var(--accent);
     text-decoration: underline;
@@ -342,13 +316,6 @@
   .link:hover {
     text-decoration-thickness: 2px;
   }
-  .hr {
-    height: 1px;
-    background: var(--border);
-    border: 0;
-    margin: 0;
-  }
-
   /* Buttons. Hover and press take 120 ms. */
   .btn {
     display: inline-flex;
@@ -384,8 +351,7 @@
     color: var(--text-on-primary);
     box-shadow: var(--shadow-1);
   }
-  .btn-primary:hover,
-  .btn-primary.is-hover {
+  .btn-primary:hover {
     background: var(--primary-hover);
   }
   .btn-primary:active {
@@ -396,16 +362,14 @@
     color: var(--text);
     border-color: var(--border-strong);
   }
-  .btn-secondary:hover,
-  .btn-secondary.is-hover {
+  .btn-secondary:hover {
     background: var(--surface-hover);
   }
   .btn-ghost {
     background: transparent;
     color: var(--text-2);
   }
-  .btn-ghost:hover,
-  .btn-ghost.is-hover {
+  .btn-ghost:hover {
     background: var(--surface-hover);
     color: var(--text);
   }
@@ -414,25 +378,13 @@
     color: var(--danger);
     border-color: var(--danger-line);
   }
-  .btn-danger:hover,
-  .btn-danger.is-hover {
+  .btn-danger:hover {
     background: var(--danger-bg);
   }
-  .btn-danger-solid {
-    background: var(--danger);
-    color: #fff;
-  }
-  [data-theme='dark'] .btn-danger-solid {
-    color: #2a0f12;
-  }
-  .btn[disabled],
-  .btn.is-disabled {
+  .btn[disabled] {
     opacity: 0.45;
     cursor: not-allowed;
     box-shadow: none;
-  }
-  .btn.is-busy {
-    cursor: progress;
   }
   .btn-icon {
     width: var(--control-h);
@@ -581,18 +533,6 @@
     border-color: var(--border-strong);
     font-weight: 500;
   }
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    height: 20px;
-    padding: 0 7px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    font: 400 11.5px / 1 var(--font-mono);
-    color: var(--text-2);
-  }
-
   /* Form controls */
   .field-label {
     display: block;
@@ -602,13 +542,7 @@
     color: var(--text);
     margin-bottom: 6px;
   }
-  .help {
-    font-size: var(--fs-sm);
-    line-height: var(--lh-sm);
-    color: var(--text-2);
-  }
   .input,
-  .select,
   .textarea {
     width: 100%;
     height: var(--control-h);
@@ -625,31 +559,17 @@
     font-size: var(--fs-sm);
   }
   .input:hover,
-  .select:hover,
   .textarea:hover {
     border-color: var(--text-3);
   }
   .input:focus,
-  .textarea:focus,
-  .input.is-focus,
-  .textarea.is-focus {
+  .textarea:focus {
     outline: 2px solid var(--focus);
     outline-offset: -1px;
     border-color: transparent;
   }
   .input[disabled] {
     opacity: 0.5;
-  }
-  .input.is-invalid {
-    border-color: var(--danger);
-  }
-  .select {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: auto;
-    cursor: pointer;
   }
   .textarea {
     height: auto;
@@ -671,41 +591,6 @@
   .search .input {
     padding-left: 34px;
   }
-  .check {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .check-box {
-    width: 18px;
-    height: 18px;
-    border-radius: 5px;
-    border: 1.5px solid var(--text-3);
-    background: var(--surface-2);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: transparent;
-    flex: none;
-  }
-  .check-box.on {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
-  }
-  .check-box.on-success {
-    background: var(--success);
-    border-color: var(--success);
-    color: var(--bg);
-  }
-  .check-box .i {
-    width: 13px;
-    height: 13px;
-    stroke-width: 3;
-  }
-
   /* Segmented control and underline tabs */
   .seg {
     display: inline-flex;
@@ -773,7 +658,7 @@
     position: absolute;
     left: 8px;
     right: 8px;
-    bottom: -1px;
+    bottom: 0;
     height: 2px;
     border-radius: 2px;
     background: var(--accent);
@@ -817,8 +702,7 @@
     position: absolute;
     inset: 0 -3px;
   }
-  .resize:hover,
-  .resize.is-hover {
+  .resize:hover {
     background: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
   }
@@ -914,6 +798,7 @@
   .dialog {
     width: 440px;
     max-width: calc(100vw - 32px);
+    margin: auto;
     background: var(--surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--r-xl);
@@ -922,119 +807,6 @@
   }
   .dialog::backdrop {
     background: var(--overlay);
-  }
-
-  /* Task text (Markdown), at reading size */
-  .md {
-    font-size: var(--fs-read);
-    line-height: var(--lh-read);
-    color: var(--text);
-  }
-  .md h1 {
-    font-size: var(--fs-xl);
-    line-height: var(--lh-xl);
-    margin: 0 0 12px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-  .md h2 {
-    font-size: var(--fs-md);
-    line-height: var(--lh-md);
-    margin: 24px 0 8px;
-    font-weight: 600;
-  }
-  .md p {
-    margin: 0 0 12px;
-  }
-  .md ul {
-    margin: 0 0 12px;
-    padding-left: 20px;
-  }
-  .md li {
-    margin-bottom: 6px;
-  }
-  .md li::marker {
-    color: var(--text-3);
-  }
-  .md strong {
-    font-weight: 600;
-  }
-  .md code {
-    font: 13px / 1 var(--font-mono);
-    padding: 2px 5px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    white-space: nowrap;
-  }
-  .md pre {
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    border-radius: var(--r-md);
-    background: var(--editor);
-    border: 1px solid var(--border);
-    font: 12.5px / 20px var(--font-mono);
-    color: var(--syn-text);
-    overflow-x: auto;
-    white-space: pre;
-  }
-  .md table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--fs-sm);
-    line-height: var(--lh-sm);
-    margin-bottom: 16px;
-  }
-  .md th {
-    text-align: left;
-    font-weight: 600;
-    color: var(--text-2);
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--border-strong);
-  }
-  .md td {
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-
-  /* Code lines (read-only code shown outside Monaco) */
-  .code {
-    font: 13px / 20px var(--font-mono);
-    color: var(--syn-text);
-    background: var(--editor);
-  }
-  .ln {
-    display: inline-block;
-    width: 44px;
-    padding-right: 16px;
-    text-align: right;
-    color: var(--line-number);
-    user-select: none;
-  }
-  .ln.on {
-    color: var(--line-number-active);
-  }
-  .cl {
-    white-space: pre;
-    height: 20px;
-    display: flex;
-  }
-  .cl-add {
-    background: var(--diff-add);
-  }
-  .cl-del {
-    background: var(--diff-del);
-  }
-  .cl-com {
-    background: var(--diff-commented);
-    box-shadow: inset 2px 0 0 var(--accent);
-  }
-  .gutter-sign {
-    width: 16px;
-    text-align: center;
-    color: var(--text-3);
-    flex: none;
   }
 
   /* Test rows */
@@ -1084,24 +856,7 @@
     color: var(--text-3);
   }
 
-  /* Comment card (inside the diff and in lists) and quoted comment */
-  .ccard {
-    border: 1px solid var(--border-strong);
-    background: var(--surface);
-    border-radius: var(--r-lg);
-    padding: 10px 12px;
-    font: 400 var(--fs-md) / 22px var(--font-ui);
-    color: var(--text);
-    white-space: normal;
-  }
-  .ccard-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font: 400 12px / 16px var(--font-mono);
-    color: var(--text-3);
-    margin-bottom: 4px;
-  }
+  /* Quoted comment */
   .quote {
     border-radius: var(--r-md);
     background: var(--surface-2);
@@ -1118,8 +873,7 @@
     border-bottom: 1px solid var(--border);
     transition: background var(--t-fast) var(--ease);
   }
-  .row-link:hover,
-  .row-link.is-hover {
+  .row-link:hover {
     background: var(--surface-hover);
   }
   .tree-item {
