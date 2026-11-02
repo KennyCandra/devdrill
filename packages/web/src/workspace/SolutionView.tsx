@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Language, SolutionFile } from '@devdrill/shared';
 import { api, ApiRequestError } from '../api/client';
 import { Spinner } from '../components/ui';
-import { languageFor, monaco } from '../editor/monacoSetup';
+import { editorThemeFor, languageFor, monaco } from '../editor/monacoSetup';
 import { useResolvedTheme } from '../theme';
 
 type Compare = 'yours' | 'starter';
@@ -76,7 +76,7 @@ export function SolutionView({ id, lang }: { id: string; lang: Language }) {
   }, [file, compare]);
 
   useEffect(() => {
-    monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    monaco.editor.setTheme(editorThemeFor(theme));
   }, [theme]);
 
   if (error) return <p className="text-danger">Couldn't load the solution: {error}</p>;

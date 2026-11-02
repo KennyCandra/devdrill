@@ -3,6 +3,7 @@ import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
 import TsWorker from 'monaco-editor/language/typescript/ts.worker?worker';
+import type { ResolvedTheme } from '../theme';
 
 // Monaco is bundled with the app (no CDN): it runs locally and must work offline.
 self.MonacoEnvironment = {
@@ -38,6 +39,71 @@ monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
 // Imported files must be models for cross-file types; keep the worker in sync with all of them.
 monaco.typescript.typescriptDefaults.setEagerModelSync(true);
 monaco.typescript.typescriptDefaults.addExtraLib(TEST_GLOBALS_DTS, 'file:///__test-globals.d.ts');
+
+// The two editor themes, from the design. The JavaScript and TypeScript tokenizer never emits
+// `identifier.function`, so function names get the plain identifier colour.
+monaco.editor.defineTheme('devdrill-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: '', foreground: 'd9dde5' },
+    { token: 'comment', foreground: '737c8c', fontStyle: 'italic' },
+    { token: 'keyword', foreground: 'c3a6ff' },
+    { token: 'string', foreground: 'a6d99a' },
+    { token: 'number', foreground: 'f5b871' },
+    { token: 'type.identifier', foreground: '6fd3c7' },
+    { token: 'delimiter', foreground: '9aa2b1' },
+  ],
+  colors: {
+    'editor.background': '#111318',
+    'editor.foreground': '#d9dde5',
+    'editorLineNumber.foreground': '#5a6272',
+    'editorLineNumber.activeForeground': '#c9ced8',
+    'editor.lineHighlightBackground': '#171a21',
+    'editor.selectionBackground': '#8c8aff40',
+    'editorCursor.foreground': '#a3a1ff',
+    'editorIndentGuide.background1': '#20242d',
+    'diffEditor.insertedLineBackground': '#5fd08f1a',
+    'diffEditor.insertedTextBackground': '#5fd08f42',
+    'diffEditor.removedLineBackground': '#ff8a7a1a',
+    'diffEditor.removedTextBackground': '#ff8a7a42',
+    'scrollbarSlider.background': '#ffffff14',
+  },
+});
+
+monaco.editor.defineTheme('devdrill-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: '', foreground: '1f232b' },
+    { token: 'comment', foreground: '7a808b', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '6a3ccf' },
+    { token: 'string', foreground: '2c7a3a' },
+    { token: 'number', foreground: '9a5200' },
+    { token: 'type.identifier', foreground: '0b7363' },
+    { token: 'delimiter', foreground: '5d6370' },
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.foreground': '#1f232b',
+    'editorLineNumber.foreground': '#9aa0aa',
+    'editorLineNumber.activeForeground': '#2a2e36',
+    'editor.lineHighlightBackground': '#f6f6f3',
+    'editor.selectionBackground': '#4b46d62e',
+    'editorCursor.foreground': '#4b46d6',
+    'editorIndentGuide.background1': '#ecece6',
+    'diffEditor.insertedLineBackground': '#1d734114',
+    'diffEditor.insertedTextBackground': '#1d734133',
+    'diffEditor.removedLineBackground': '#b3261e12',
+    'diffEditor.removedTextBackground': '#b3261e2e',
+    'scrollbarSlider.background': '#16181d1a',
+  },
+});
+
+/** The Monaco theme for the app's resolved light or dark theme. */
+export function editorThemeFor(theme: ResolvedTheme): string {
+  return theme === 'dark' ? 'devdrill-dark' : 'devdrill-light';
+}
 
 export { monaco };
 

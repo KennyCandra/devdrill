@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Spinner } from '../components/ui';
-import { languageFor, monaco } from '../editor/monacoSetup';
+import { editorThemeFor, languageFor, monaco } from '../editor/monacoSetup';
 import type { ResolvedTheme } from '../theme';
 import type { FileBuffer } from './fileStore';
 
@@ -81,7 +81,7 @@ export function CodeEditor({
   }, []);
 
   useEffect(() => {
-    monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    monaco.editor.setTheme(editorThemeFor(theme));
   }, [theme]);
 
   // Keep one model per open buffer; apply content that came from disk.

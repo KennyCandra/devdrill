@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FileContent, Language } from '@devdrill/shared';
 import { api } from '../api/client';
 import { Spinner } from '../components/ui';
-import { languageFor, monaco } from '../editor/monacoSetup';
+import { editorThemeFor, languageFor, monaco } from '../editor/monacoSetup';
 import { useResolvedTheme } from '../theme';
 
 const LINE_HEIGHT = 18;
@@ -51,7 +51,7 @@ export function HiddenTestsView({ id, lang }: { id: string; lang: Language }) {
   }, [file]);
 
   useEffect(() => {
-    monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    monaco.editor.setTheme(editorThemeFor(theme));
   }, [theme]);
 
   if (error) return <p className="text-danger">Couldn't load the hidden tests: {error}</p>;

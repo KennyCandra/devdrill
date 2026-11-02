@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { LineRange, ReviewComment, ReviewFile } from '@devdrill/shared';
-import { languageFor, monaco } from '../editor/monacoSetup';
+import { editorThemeFor, languageFor, monaco } from '../editor/monacoSetup';
 import type { ResolvedTheme } from '../theme';
 import { holdsFunction } from './functionText';
 
@@ -246,7 +246,7 @@ export function DiffView({
   }, [editor, focusedId, comments, activePath]);
 
   useEffect(() => {
-    monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    monaco.editor.setTheme(editorThemeFor(theme));
   }, [theme]);
 
   return <div ref={container} className="h-full w-full" />;
