@@ -1,13 +1,12 @@
 import {
   ArrowRight,
-  BookOpen,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Circle,
   CircleDot,
-  Clock,
-  Play,
   Search,
-  Send,
+  Terminal,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -22,16 +21,27 @@ import { TopBar } from '../components/TopBar';
 import { Dropdown } from '../components/Dropdown';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { useSettings } from '../settings';
-import { Button, DifficultyBadge, Kbd, modKey, Spinner } from '../components/ui';
+import {
+  Button,
+  DifficultyBadge,
+  Kbd,
+  MODE_ICONS,
+  MODE_NAMES,
+  ModeBadge,
+  modKey,
+  Spinner,
+} from '../components/ui';
 import { challengePath, navigate } from '../router';
+import { formatDuration } from '../workspace/timer';
 
 type ModeFilter = 'all' | ChallengeMode;
 
-const MODE_TABS: { value: ModeFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'debug', label: 'Debug' },
-  { value: 'feature', label: 'Feature' },
-  { value: 'review', label: 'Review' },
+/** The mode cards: "All", then one per mode, each with a line on what the mode asks. */
+const MODE_CARDS: { value: ModeFilter; description: string }[] = [
+  { value: 'all', description: 'Every mode, in suggested order.' },
+  { value: 'debug', description: "Find and fix a bug in code you didn't write." },
+  { value: 'feature', description: 'Add to working code without breaking it.' },
+  { value: 'review', description: 'Read a pull request and make the call.' },
 ];
 
 const DIFFICULTY_OPTIONS: { value: Difficulty | 'all'; label: string }[] = [
@@ -54,6 +64,39 @@ const STATUS_LABEL: Record<ChallengeStatus, string> = {
   solved: 'Solved',
 };
 
+/** The columns of the challenge list. The header and every row share them. */
+const ROW_COLUMNS = 'grid-cols-[52px_28px_minmax(0,1fr)_112px_104px_64px_72px]';
+
+/** How to work each mode, one card per mode in the How it works section. */
+const HOW_IT_WORKS: { mode: ChallengeMode; steps: ReactNode[] }[] = [
+  {
+    mode: 'debug',
+    steps: [
+      "Read the bug report. The code isn't yours.",
+      <>
+        Find the cause. Run the visible tests as often as you like with <Kbd>{modKey} Enter</Kbd>.
+      </>,
+      'Submit. Hidden tests check the edge cases; then compare with the reference fix.',
+    ],
+  },
+  {
+    mode: 'feature',
+    steps: [
+      'Read the ticket and the code around it.',
+      'Build it. The existing tests must keep passing.',
+      'Submit. Hidden tests check what the ticket promised.',
+    ],
+  },
+  {
+    mode: 'review',
+    steps: [
+      'Read the pull request and its diff.',
+      'Comment on the lines that matter, then approve or request changes.',
+      'Submit, compare with the answer key and tick what you caught.',
+    ],
+  },
+];
+
 export function ChallengeList() {
   const [challenges, setChallenges] = useState<ChallengeSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +104,8 @@ export function ChallengeList() {
   const [difficulty, setDifficulty] = useState<Difficulty | 'all'>('all');
   const [status, setStatus] = useState<ChallengeStatus | 'all'>('all');
   const [query, setQuery] = useState('');
+  // Null until the player toggles it; then the default below applies.
+  const [howOpenChoice, setHowOpenChoice] = useState<boolean | null>(null);
 
   const { settings } = useSettings();
 
@@ -85,127 +130,227 @@ export function ChallengeList() {
     );
   }, [challenges, mode, difficulty, status, query]);
 
+  // Each challenge's place in the full list, so its number stays put when filters change.
+  const positions = useMemo(
+    () => new Map((challenges ?? []).map((c, i) => [c.id, i + 1] as const)),
+    [challenges],
+  );
+
   const solved = challenges?.filter((c) => c.progress.status === 'solved').length ?? 0;
   // Pick up where you left off, else the first one you haven't tried.
   const next =
     challenges?.find((c) => c.progress.status === 'in_progress') ??
     challenges?.find((c) => c.progress.status === 'not_started');
+  // Anyone who has started a challenge is returning: a compact page, How it works closed.
+  const returning = challenges?.some((c) => c.progress.status !== 'not_started') ?? false;
+  const howOpen = howOpenChoice ?? !returning;
+
+  const clearFilters = () => {
+    setMode('all');
+    setDifficulty('all');
+    setStatus('all');
+    setQuery('');
+  };
 
   return (
     <div className="flex h-full flex-col">
-      <TopBar />
+      <TopBar right={<LanguageSwitch />} />
 
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 overflow-auto px-6 py-6">
-        <div className="animate-fade-in flex flex-wrap items-end justify-between gap-3 pb-2">
-          <div>
-            <h1 className="text-[20px] font-semibold tracking-tight">
-              In the era of AI, practice the skills you actually need.
-            </h1>
-            <p className="mt-1 text-muted">
-              Debug code you didn't write. Add features without breaking what works. Review pull
-              requests like a teammate.
-            </p>
-          </div>
-          <LanguageSwitch />
+      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-10 overflow-auto px-6 pt-12 pb-18">
+        <div
+          className={
+            returning
+              ? 'animate-fade-in flex flex-col gap-4'
+              : 'animate-fade-in grid items-stretch gap-8 grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))]'
+          }
+        >
+          <Header returning={returning} />
+          {challenges && challenges.length > 0 && (
+            <Progress solved={solved} total={challenges.length} next={next} />
+          )}
         </div>
 
-        {challenges && challenges.length > 0 && (
-          <Progress solved={solved} total={challenges.length} next={next} />
-        )}
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Mode" className="flex rounded border border-line">
-            {MODE_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                aria-pressed={mode === tab.value}
-                onClick={() => setMode(tab.value)}
-                className={`px-3 py-1 transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-accent ${
-                  mode === tab.value ? 'bg-active text-fg' : 'text-muted hover:bg-hover'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <Dropdown
-            label="Difficulty"
-            value={difficulty}
-            options={DIFFICULTY_OPTIONS}
-            defaultValue="all"
-            onChange={setDifficulty}
-          />
-          <Dropdown
-            label="Status"
-            value={status}
-            options={STATUS_OPTIONS}
-            defaultValue="all"
-            onChange={setStatus}
-          />
-
-          <label className="ml-auto flex h-7 items-center gap-1.5 rounded border border-line px-2 focus-within:border-accent">
-            <Search size={14} className="text-muted" aria-hidden="true" />
-            <input
-              type="search"
-              placeholder="Search title or tag"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-44 bg-transparent outline-none placeholder:text-muted"
-            />
-          </label>
-        </div>
-
-        {error && <p className="text-danger">Couldn't load challenges: {error}</p>}
-        {!challenges && !error && <Spinner className="text-muted" />}
-
-        {challenges && visible.length === 0 && (
-          <div className="animate-fade-in flex flex-col items-start gap-2 py-8 text-muted">
-            <p>No challenges match these filters.</p>
-            <Button
-              onClick={() => {
-                setMode('all');
-                setDifficulty('all');
-                setStatus('all');
-                setQuery('');
-              }}
-            >
-              Clear filters
-            </Button>
-          </div>
-        )}
-
-        {visible.length > 0 && (
-          <ul className="divide-y divide-line rounded border border-line">
-            {visible.map((c, i) => (
-              <li key={c.id} className="animate-fade-in" style={{ animationDelay: `${i * 20}ms` }}>
-                <a
-                  href={challengePath(c.id)}
-                  onClick={(e) => {
-                    // Always stay in this tab: a new tab wouldn't have the session token.
-                    e.preventDefault();
-                    navigate(challengePath(c.id));
-                  }}
-                  className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-100 hover:bg-hover"
+        {challenges && (
+          <div
+            role="group"
+            aria-label="Filter by mode"
+            className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,230px),1fr))]"
+          >
+            {MODE_CARDS.map(({ value, description }) => {
+              const Icon = value === 'all' ? null : MODE_ICONS[value];
+              const name = value === 'all' ? 'All challenges' : MODE_NAMES[value];
+              const { solved: done, total } = tally(challenges, value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={mode === value}
+                  onClick={() => setMode(value)}
+                  className="card flex flex-col gap-1.5 p-4 text-left aria-pressed:border-accent aria-pressed:shadow-[0_0_0_1px_var(--accent)]"
                 >
-                  <StatusIcon status={c.progress.status} />
-                  <span className="min-w-0 flex-1 truncate">{c.title}</span>
-                  <span className="hidden w-16 text-muted capitalize sm:inline">{c.mode}</span>
-                  <span className="w-16">
-                    <DifficultyBadge difficulty={c.difficulty} />
+                  <span className="flex w-full items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-2 text-[15px] font-semibold">
+                      {Icon && (
+                        <Icon
+                          className="i"
+                          aria-hidden="true"
+                          style={{ color: `var(--mode-${value})` }}
+                        />
+                      )}
+                      {name}
+                    </span>
+                    <span className="mono subtle text-[12px]">
+                      {value === 'all' ? total : `${done}/${total}`}
+                    </span>
                   </span>
-                  <span className="hidden w-14 items-center justify-end gap-1 text-muted sm:flex">
-                    <Clock size={12} aria-hidden="true" />~{c.estimatedMinutes}m
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
+                  <span className="muted text-[13px] leading-[19px]">{description}</span>
+                </button>
+              );
+            })}
+          </div>
         )}
 
-        <HowItWorks />
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Dropdown
+              label="Difficulty"
+              value={difficulty}
+              options={DIFFICULTY_OPTIONS}
+              defaultValue="all"
+              onChange={setDifficulty}
+            />
+            <Dropdown
+              label="Status"
+              value={status}
+              options={STATUS_OPTIONS}
+              defaultValue="all"
+              onChange={setStatus}
+            />
+            <div className="search ml-auto w-[min(100%,280px)]">
+              <Search className="i" aria-hidden="true" />
+              <input
+                type="search"
+                placeholder="Search title or tag"
+                aria-label="Search title or tag"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="input h-[30px] text-[13px]"
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-danger">Couldn't load challenges: {error}</p>}
+          {!challenges && !error && <Spinner className="subtle" />}
+
+          {challenges && visible.length === 0 && (
+            <div className="card animate-fade-in flex flex-col items-center gap-3 p-6 text-center">
+              <span className="font-semibold">No challenges match</span>
+              <span className="muted text-[13px] leading-[19px]">
+                Try other filters, or clear them.
+              </span>
+              <Button size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            </div>
+          )}
+
+          {visible.length > 0 && (
+            <div className="card overflow-x-auto">
+              <div className="min-w-[760px]">
+                <div
+                  className={`subtle grid h-9 items-center border-b border-border pr-4 text-[12px] font-medium ${ROW_COLUMNS}`}
+                >
+                  <span className="mono pl-[18px]">#</span>
+                  <span className="sr-only">Status</span>
+                  <span>Challenge</span>
+                  <span>Mode</span>
+                  <span>Difficulty</span>
+                  <span className="text-right">Time</span>
+                  <span className="text-right">Best</span>
+                </div>
+                <ul aria-label="Challenges">
+                  {visible.map((c, i) => (
+                    <li
+                      key={c.id}
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${i * 20}ms` }}
+                    >
+                      <a
+                        href={challengePath(c.id)}
+                        onClick={(e) => {
+                          // Always stay in this tab: a new tab wouldn't have the session token.
+                          e.preventDefault();
+                          navigate(challengePath(c.id));
+                        }}
+                        className={`row-link min-h-[52px] pr-4 ${ROW_COLUMNS}`}
+                      >
+                        <span className="mono subtle pl-[18px] text-[12px]">
+                          {String(positions.get(c.id) ?? 0).padStart(2, '0')}
+                        </span>
+                        <span className="flex">
+                          <StatusIcon status={c.progress.status} />
+                        </span>
+                        <span className="flex min-w-0 flex-col gap-0.5 py-2 pr-3">
+                          <span className="flex min-w-0 items-center gap-2 text-[14px] font-medium">
+                            <span className="min-w-0 truncate">{c.title}</span>
+                            {next?.id === c.id && (
+                              <span className="tag tag-ai h-5 shrink-0 text-[11px]">Up next</span>
+                            )}
+                          </span>
+                          <span className="mono subtle truncate text-[12px]">
+                            {c.tags.join(' · ')}
+                          </span>
+                        </span>
+                        <span className="flex">
+                          <ModeBadge mode={c.mode} />
+                        </span>
+                        <span className="flex">
+                          <DifficultyBadge difficulty={c.difficulty} />
+                        </span>
+                        <span className="mono muted text-right text-[13px]">
+                          {c.estimatedMinutes}m
+                        </span>
+                        <span className="mono text-fg text-right text-[13px]">{bestOf(c)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          {visible.length > 0 && (
+            <p className="subtle text-[12px]">
+              Best is your best solve time, or your best score for a review. Numbers show the
+              suggested order.
+            </p>
+          )}
+        </section>
+
+        <HowItWorks open={howOpen} onToggle={() => setHowOpenChoice(!howOpen)} />
       </main>
+    </div>
+  );
+}
+
+/** The tagline. Large for a new player; compact once they have started, to bring the list up. */
+function Header({ returning }: { returning: boolean }) {
+  const tagline = 'In the era of AI, practice the skills you actually need.';
+  if (returning) {
+    return <h1 className="text-[20px] leading-7 font-semibold tracking-tight">{tagline}</h1>;
+  }
+  return (
+    <div className="flex flex-col justify-center gap-3.5">
+      <h1 className="max-w-[560px] text-[34px] leading-[42px] font-semibold tracking-[-0.02em]">
+        {tagline}
+      </h1>
+      <p className="muted max-w-[520px] text-[16px] leading-[25px]">
+        Debug code you didn't write. Add features without breaking what works. Review pull requests
+        like a teammate.
+      </p>
+      <p className="subtle flex items-center gap-2 text-[13px]">
+        <Terminal className="i i-sm" aria-hidden="true" />
+        Runs on your machine. No account.
+      </p>
     </div>
   );
 }
@@ -222,35 +367,37 @@ function Progress({
 }) {
   const percent = Math.round((solved / total) * 100);
   return (
-    <section
-      aria-label="Your progress"
-      className="animate-fade-in flex flex-wrap items-center gap-x-6 gap-y-3 rounded-md border border-line bg-side px-4 py-3"
-    >
-      <div className="flex min-w-48 flex-1 flex-col gap-1.5">
-        <div className="flex items-baseline justify-between">
-          <span className="font-medium">
-            {solved} of {total} solved
-          </span>
-          <span className="text-[12px] text-muted">{percent}%</span>
-        </div>
-        <div
-          role="progressbar"
-          aria-valuenow={solved}
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-label="Challenges solved"
-          className="h-1.5 overflow-hidden rounded-full bg-hover"
-        >
-          <div
-            className="h-full rounded-full bg-success transition-[width] duration-200"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+    <section aria-label="Your progress" className="card card-raised flex flex-col gap-4 p-5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[15px] font-semibold">
+          {solved} of {total} solved
+        </span>
+        <span className="mono subtle text-[13px]">{percent}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={solved}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-label="Challenges solved"
+        className="progress"
+      >
+        <span
+          className="bg-success transition-[width] duration-200"
+          style={{ width: `${percent}%` }}
+        />
       </div>
       {next ? (
-        <Button variant="primary" onClick={() => navigate(challengePath(next.id))}>
-          {next.progress.status === 'in_progress' ? 'Continue' : 'Start'}: {next.title}
-          <ArrowRight size={14} aria-hidden="true" />
+        <Button
+          variant="primary"
+          size="lg"
+          className="justify-between"
+          onClick={() => navigate(challengePath(next.id))}
+        >
+          <span className="min-w-0 truncate">
+            {next.progress.status === 'in_progress' ? 'Continue' : 'Start'}: {next.title}
+          </span>
+          <ArrowRight className="i" aria-hidden="true" />
         </Button>
       ) : (
         <span className="text-success">Every challenge solved. Nice work.</span>
@@ -259,51 +406,74 @@ function Progress({
   );
 }
 
-function HowItWorks() {
+function HowItWorks({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
-    <section aria-labelledby="how-it-works" className="mt-4">
-      <h2
-        id="how-it-works"
-        className="mb-3 text-[11px] font-semibold tracking-wide text-muted uppercase"
-      >
-        How it works
-      </h2>
-      <ol className="grid gap-3 sm:grid-cols-3">
-        <Step icon={<BookOpen size={16} aria-hidden="true" />} title="1. Read the task">
-          Each challenge starts like a real bug report or ticket, with a few files you didn't write.
-        </Step>
-        <Step icon={<Play size={16} aria-hidden="true" />} title="2. Run the tests">
-          Check your work against the visible tests as often as you like: <Kbd>{modKey} Enter</Kbd>.
-        </Step>
-        <Step icon={<Send size={16} aria-hidden="true" />} title="3. Submit">
-          Hidden tests check the edge cases. Solve it, then compare with the reference solution.
-        </Step>
-      </ol>
+    <section aria-labelledby="how-it-works" className="flex flex-col gap-3.5">
+      <div className="flex items-center justify-between">
+        <h2 id="how-it-works" className="text-[17px] leading-6 font-semibold">
+          How it works
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-expanded={open}
+          aria-controls={open ? 'how-it-works-steps' : undefined}
+          onClick={onToggle}
+        >
+          {open ? 'Hide' : 'Show'}
+          {open ? (
+            <ChevronUp className="i i-sm" aria-hidden="true" />
+          ) : (
+            <ChevronDown className="i i-sm" aria-hidden="true" />
+          )}
+        </Button>
+      </div>
+      {open && (
+        <div
+          id="how-it-works-steps"
+          className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]"
+        >
+          {HOW_IT_WORKS.map(({ mode, steps }) => (
+            <div key={mode} className="card flex flex-col gap-3 p-[18px]">
+              <div className="flex">
+                <ModeBadge mode={mode} />
+              </div>
+              <ol className="flex list-decimal flex-col gap-2 pl-5 text-[14px] leading-[21px]">
+                {steps.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-function Step({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
-  return (
-    <li className="flex flex-col gap-1.5 rounded-md border border-line p-3">
-      <span className="flex items-center gap-2 font-medium">
-        <span className="text-accent">{icon}</span>
-        {title}
-      </span>
-      <span className="leading-relaxed text-muted">{children}</span>
-    </li>
-  );
+/** Solved and total challenges in one mode. "All" counts every mode. */
+function tally(list: ChallengeSummary[], mode: ModeFilter) {
+  const inMode = list.filter((c) => mode === 'all' || c.mode === mode);
+  return {
+    solved: inMode.filter((c) => c.progress.status === 'solved').length,
+    total: inMode.length,
+  };
+}
+
+/** Your best result: a solve time, or a self-graded score for a review. */
+function bestOf(c: ChallengeSummary): string {
+  const { bestTimeMs, bestScore } = c.progress;
+  if (c.mode === 'review') return bestScore === undefined ? '—' : `${bestScore}%`;
+  return bestTimeMs === undefined ? '—' : formatDuration(bestTimeMs);
 }
 
 function StatusIcon({ status }: { status: ChallengeStatus }) {
   const label = STATUS_LABEL[status];
   if (status === 'solved') {
-    return (
-      <CheckCircle2 size={16} className="shrink-0 text-success" role="img" aria-label={label} />
-    );
+    return <CheckCircle2 className="i text-success" role="img" aria-label={label} />;
   }
   if (status === 'in_progress') {
-    return <CircleDot size={16} className="shrink-0 text-accent" role="img" aria-label={label} />;
+    return <CircleDot className="i text-accent" role="img" aria-label={label} />;
   }
-  return <Circle size={16} className="shrink-0 text-muted" role="img" aria-label={label} />;
+  return <Circle className="i text-fg-3" role="img" aria-label={label} />;
 }

@@ -46,13 +46,13 @@ export function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
   );
 }
 
-const MODE_ICONS: Record<ChallengeMode, LucideIcon> = {
+export const MODE_ICONS: Record<ChallengeMode, LucideIcon> = {
   debug: Crosshair,
   feature: SquarePlus,
   review: GitPullRequest,
 };
 
-const MODE_NAMES: Record<ChallengeMode, string> = {
+export const MODE_NAMES: Record<ChallengeMode, string> = {
   debug: 'Debug',
   feature: 'Feature',
   review: 'Review',
