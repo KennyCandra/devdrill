@@ -156,7 +156,11 @@ export function ChallengeList() {
     <div className="flex h-full flex-col">
       <TopBar right={<LanguageSwitch />} />
 
-      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-10 overflow-auto px-6 pt-12 pb-18">
+      <main
+        className={`mx-auto flex w-full max-w-[1120px] flex-1 flex-col overflow-auto px-6 pb-18 ${
+          returning ? 'gap-6 pt-8' : 'gap-10 pt-12'
+        }`}
+      >
         <div
           className={
             returning
@@ -166,7 +170,7 @@ export function ChallengeList() {
         >
           <Header returning={returning} />
           {challenges && challenges.length > 0 && (
-            <Progress solved={solved} total={challenges.length} next={next} />
+            <Progress solved={solved} total={challenges.length} next={next} compact={returning} />
           )}
         </div>
 
@@ -261,7 +265,9 @@ export function ChallengeList() {
                   className={`subtle grid h-9 items-center border-b border-border pr-4 text-[12px] font-medium ${ROW_COLUMNS}`}
                 >
                   <span className="mono pl-[18px]">#</span>
-                  <span className="sr-only">Status</span>
+                  <span>
+                    <span className="sr-only">Status</span>
+                  </span>
                   <span>Challenge</span>
                   <span>Mode</span>
                   <span>Difficulty</span>
@@ -360,32 +366,42 @@ function Progress({
   solved,
   total,
   next,
+  compact,
 }: {
   solved: number;
   total: number;
   next: ChallengeSummary | undefined;
+  /** One row, so a returning player's list stays near the top. */
+  compact: boolean;
 }) {
   const percent = Math.round((solved / total) * 100);
   return (
-    <section aria-label="Your progress" className="card card-raised flex flex-col gap-4 p-5">
-      <div className="flex items-baseline justify-between">
-        <span className="text-[15px] font-semibold">
-          {solved} of {total} solved
-        </span>
-        <span className="mono subtle text-[13px]">{percent}%</span>
-      </div>
-      <div
-        role="progressbar"
-        aria-valuenow={solved}
-        aria-valuemin={0}
-        aria-valuemax={total}
-        aria-label="Challenges solved"
-        className="progress"
-      >
-        <span
-          className="bg-success transition-[width] duration-200"
-          style={{ width: `${percent}%` }}
-        />
+    <section
+      aria-label="Your progress"
+      className={`card card-raised flex gap-4 ${
+        compact ? 'flex-wrap items-center gap-x-6 px-5 py-4' : 'flex-col p-5'
+      }`}
+    >
+      <div className="flex min-w-60 flex-1 flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[15px] font-semibold">
+            {solved} of {total} solved
+          </span>
+          <span className="mono subtle text-[13px]">{percent}%</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={solved}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-label="Challenges solved"
+          className="progress"
+        >
+          <span
+            className="bg-success transition-[width] duration-200"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
       </div>
       {next ? (
         <Button
