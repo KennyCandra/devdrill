@@ -1,4 +1,4 @@
-import { ArrowLeft, Play, RotateCcw, Send } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Play, RotateCcw, Send, TriangleAlert } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -12,6 +12,7 @@ import {
   Panel,
   Separator,
   useDefaultLayout,
+  usePanelRef,
   type LayoutStorage,
 } from 'react-resizable-panels';
 import type { ChallengeDetail, Language, TestRunResult } from '@devdrill/shared';
@@ -22,7 +23,15 @@ import { FileTree } from '../components/FileTree';
 import { TaskPanel } from '../components/TaskPanel';
 import { TestPanel } from '../components/TestPanel';
 import { TopBar } from '../components/TopBar';
-import { Button, DifficultyBadge, Kbd, modKey, Spinner, StatusScreen } from '../components/ui';
+import {
+  Button,
+  DifficultyBadge,
+  Kbd,
+  ModeBadge,
+  modKey,
+  Spinner,
+  StatusScreen,
+} from '../components/ui';
 import { navigate, resultsPath } from '../router';
 import { useResolvedTheme } from '../theme';
 import { CodeEditor } from '../workspace/CodeEditor';
@@ -51,6 +60,9 @@ export const layoutStorage: LayoutStorage = {
     }
   },
 };
+
+/** The task panel folded to this many pixels: a strip with one button to bring it back. */
+const TASK_RAIL = 44;
 
 /** The file to open first: the first source file, else the first file. */
 function defaultFile(files: string[]): string | undefined {
@@ -90,6 +102,8 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
   const busy = running || submitting;
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const taskRef = usePanelRef();
+  const [taskCollapsed, setTaskCollapsed] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -291,37 +305,37 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
   return (
     <div className="flex h-full min-w-[720px] flex-col">
       <TopBar
+        iconOnly
         right={
           <>
             <SaveIndicator buffers={buffers} />
+            {challenge.progress.attempts > 0 && (
+              <button
+                type="button"
+                onClick={() => navigate(resultsPath(id))}
+                className="btn btn-ghost btn-sm shrink-0"
+              >
+                Results
+              </button>
+            )}
+            {/* Switching saves your code (the workspace flushes on leave) and reopens this
+                challenge in the other language. */}
+            <LanguageSwitch available={challenge.languages} beforeChange={() => store.flush()} />
             <TimerDisplay timer={timer} />
           </>
         }
       >
-        <span className="text-muted">/</span>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex shrink-0 items-center gap-1 rounded px-1 text-muted hover:bg-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+          className="crumb shrink-0 hover:bg-hover"
         >
-          <ArrowLeft size={14} aria-hidden="true" /> Challenges
+          <ArrowLeft className="i i-sm" aria-hidden="true" /> Challenges
         </button>
-        <span className="text-muted">/</span>
-        <h1 className="min-w-0 truncate">{challenge.title}</h1>
+        <span className="crumb-sep">/</span>
+        <h1 className="min-w-0 truncate text-[14px] leading-5 font-semibold">{challenge.title}</h1>
+        <ModeBadge mode={challenge.mode} />
         <DifficultyBadge difficulty={challenge.difficulty} />
-        <span className="shrink-0 text-muted capitalize">{challenge.mode}</span>
-        {/* Switching saves your code (the workspace flushes on leave) and reopens this
-            challenge in the other language. */}
-        <LanguageSwitch available={challenge.languages} beforeChange={() => store.flush()} />
-        {challenge.progress.attempts > 0 && (
-          <button
-            type="button"
-            onClick={() => navigate(resultsPath(id))}
-            className="shrink-0 rounded px-1 text-muted underline-offset-2 hover:bg-hover hover:text-fg hover:underline focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            Results
-          </button>
-        )}
       </TopBar>
 
       <Group
@@ -330,18 +344,32 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
         defaultLayout={columns.defaultLayout}
         onLayoutChanged={columns.onLayoutChanged}
       >
-        <Panel id="task" defaultSize="24" minSize={180}>
-          <TaskPanel
-            challenge={challenge}
-            askAi={
-              aiEnabled
-                ? async (shown) => {
-                    await store.flush(); // the AI reads the saved code
-                    return (await api.aiHint(id, shown, lang)).hint;
-                  }
-                : undefined
-            }
-          />
+        <Panel
+          id="task"
+          panelRef={taskRef}
+          defaultSize="24"
+          minSize={180}
+          collapsible
+          collapsedSize={TASK_RAIL}
+          // Only the panel's size is needed: it is TASK_RAIL exactly when folded.
+          onResize={(size) => setTaskCollapsed(size.inPixels <= TASK_RAIL)}
+        >
+          {taskCollapsed && <TaskRail onExpand={() => taskRef.current?.expand()} />}
+          {/* Hidden, not unmounted, when folded: the hints and AI answers keep their state. */}
+          <div hidden={taskCollapsed} className="h-full">
+            <TaskPanel
+              challenge={challenge}
+              onCollapse={() => taskRef.current?.collapse()}
+              askAi={
+                aiEnabled
+                  ? async (shown) => {
+                      await store.flush(); // the AI reads the saved code
+                      return (await api.aiHint(id, shown, lang)).hint;
+                    }
+                  : undefined
+              }
+            />
+          </div>
         </Panel>
         <ResizeHandle />
         <Panel id="files" defaultSize="16" minSize={120}>
@@ -366,9 +394,10 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
                 {conflict && (
                   <div
                     role="alert"
-                    className="flex flex-wrap items-center gap-2 border-b border-line bg-danger-bg px-3 py-1.5"
+                    className="flex flex-wrap items-center gap-2 border-b border-danger-line bg-danger-bg px-3 py-2"
                   >
-                    <span className="mr-auto">
+                    <span className="mr-auto flex items-center gap-2 text-danger">
+                      <TriangleAlert className="i i-sm" aria-hidden="true" />
                       {conflict} changed outside {PRODUCT_NAME}.
                     </span>
                     <Button onClick={() => void store.save(conflict, { overwrite: true })}>
@@ -401,18 +430,18 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
         </Panel>
       </Group>
 
-      <footer className="flex h-11 shrink-0 items-center gap-2 border-t border-line bg-bar px-3">
+      <footer className="bottombar shrink-0">
         <Button variant="ghost" onClick={() => setConfirmReset(true)} disabled={busy}>
-          <RotateCcw size={14} aria-hidden="true" /> Reset
+          <RotateCcw className="i i-sm" aria-hidden="true" /> Reset
         </Button>
+        <span className="muted ml-auto text-[13px]">Submit also runs hidden tests.</span>
         <Button
-          className="ml-auto"
           onClick={() => void runTests()}
           disabled={busy}
           title={`Run the visible tests (${modKey} Enter)`}
           aria-keyshortcuts="Control+Enter Meta+Enter"
         >
-          {running ? <Spinner /> : <Play size={14} aria-hidden="true" />}
+          {running ? <Spinner /> : <Play className="i i-sm" aria-hidden="true" />}
           {running ? 'Running…' : 'Run tests'}
           <Kbd>{modKey} ↵</Kbd>
         </Button>
@@ -423,8 +452,9 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
           title={`Run all tests, including hidden ones (${modKey} Shift Enter)`}
           aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter"
         >
-          {submitting ? <Spinner /> : <Send size={14} aria-hidden="true" />}
+          {submitting ? <Spinner /> : <Send className="i i-sm" aria-hidden="true" />}
           {submitting ? 'Submitting…' : 'Submit'}
+          <Kbd>{modKey} ⇧ ↵</Kbd>
         </Button>
       </footer>
 
@@ -443,11 +473,24 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
 }
 
 function ResizeHandle({ vertical = false }: { vertical?: boolean }) {
+  return <Separator className={vertical ? 'resize resize-h' : 'resize'} />;
+}
+
+/** The task panel folded away: one button to open it again, and its name running down the strip. */
+function TaskRail({ onExpand }: { onExpand: () => void }) {
   return (
-    <Separator
-      className={`bg-line transition-colors duration-100 hover:bg-accent focus-visible:bg-accent data-[separator=active]:bg-accent ${
-        vertical ? 'h-px' : 'w-px'
-      }`}
-    />
+    <div className="panel flex h-full flex-col items-center gap-3 py-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onExpand}
+        aria-label="Expand task panel"
+        title="Expand task panel"
+        className="btn-icon"
+      >
+        <ChevronRight className="i i-sm" aria-hidden="true" />
+      </Button>
+      <span className="panel-title [writing-mode:vertical-rl]">Task</span>
+    </div>
   );
 }

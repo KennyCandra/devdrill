@@ -1,9 +1,9 @@
 import {
   ChevronDown,
   ChevronRight,
-  FileCode2,
-  FileJson,
   FileText,
+  Folder,
+  FolderOpen,
   FlaskConical,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -68,24 +68,23 @@ export function FileTree({
 
   const render = (nodes: TreeNode[], depth: number) =>
     nodes.map((node) => {
-      const indent = { paddingLeft: 8 + depth * 12 };
+      const indent = 10 + depth * 14;
       if (node.children) {
         const open = !collapsed.has(node.path);
+        const Chevron = open ? ChevronDown : ChevronRight;
+        const FolderIcon = open ? FolderOpen : Folder;
         return (
           <li key={node.path}>
             <button
               type="button"
               onClick={() => toggle(node.path)}
               aria-expanded={open}
-              style={indent}
-              className="flex w-full items-center gap-1 py-0.5 pr-2 text-left hover:bg-hover focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+              style={{ paddingLeft: indent }}
+              className="tree-item w-[calc(100%-12px)] text-left"
             >
-              {open ? (
-                <ChevronDown size={14} aria-hidden="true" />
-              ) : (
-                <ChevronRight size={14} aria-hidden="true" />
-              )}
-              {node.name}
+              <Chevron className="i i-sm subtle" aria-hidden="true" />
+              <FolderIcon className="i i-sm subtle" aria-hidden="true" />
+              <span className="truncate">{node.name}</span>
             </button>
             {open && <ul>{render(node.children, depth + 1)}</ul>}
           </li>
@@ -98,16 +97,14 @@ export function FileTree({
             type="button"
             onClick={() => onOpen(node.path)}
             aria-current={active ? 'true' : undefined}
-            style={{ paddingLeft: indent.paddingLeft + 14 }}
-            className={`flex w-full items-center gap-1.5 py-0.5 pr-2 text-left focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent ${
-              active ? 'bg-active text-fg' : 'hover:bg-hover'
-            }`}
+            style={{ paddingLeft: indent + 14 }}
+            className={`tree-item w-[calc(100%-12px)] text-left ${active ? 'on' : ''}`}
           >
             <FileIcon name={node.name} />
-            <span className="truncate">{node.name}</span>
+            <span className="min-w-0 flex-1 truncate">{node.name}</span>
             {unsaved.has(node.path) && (
               <>
-                <span aria-hidden="true" className="ml-auto size-1.5 shrink-0 rounded-full bg-fg" />
+                <span aria-hidden="true" className="dot" />
                 <span className="sr-only"> (unsaved)</span>
               </>
             )}
@@ -117,19 +114,41 @@ export function FileTree({
     });
 
   return (
-    <nav aria-label="Files" className="h-full overflow-auto bg-side py-1 font-mono text-[12px]">
-      <div className="px-3 pt-1 pb-2 font-sans text-[11px] font-semibold tracking-wide text-muted uppercase">
-        Files
+    <nav aria-label="Files" className="panel flex h-full flex-col">
+      <div className="panel-header">
+        <span className="panel-title">Files</span>
       </div>
-      <ul>{render(tree, 0)}</ul>
+      <ul className="min-h-0 flex-1 overflow-auto py-2">{render(tree, 0)}</ul>
     </nav>
   );
 }
 
+const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/;
+
+/** A test file gets a flask; source files get a small JS or TS badge; anything else a page. */
 function FileIcon({ name }: { name: string }) {
-  const props = { size: 14, className: 'shrink-0 text-muted', 'aria-hidden': true } as const;
-  if (/\.(test|spec)\.[cm]?js$/.test(name)) return <FlaskConical {...props} />;
-  if (name.endsWith('.json')) return <FileJson {...props} />;
-  if (/\.[cm]?js$/.test(name)) return <FileCode2 {...props} className="shrink-0 text-warning" />;
-  return <FileText {...props} />;
+  if (TEST_FILE.test(name)) {
+    return <FlaskConical className="i i-sm shrink-0 text-mode-feature" aria-hidden="true" />;
+  }
+  if (/\.[cm]?jsx?$/.test(name)) {
+    return (
+      <span
+        aria-hidden="true"
+        className="mono w-3.5 shrink-0 text-center text-[9.5px] font-semibold text-mode-debug"
+      >
+        JS
+      </span>
+    );
+  }
+  if (/\.[cm]?tsx?$/.test(name)) {
+    return (
+      <span
+        aria-hidden="true"
+        className="mono w-3.5 shrink-0 text-center text-[9.5px] font-semibold text-info"
+      >
+        TS
+      </span>
+    );
+  }
+  return <FileText className="i i-sm subtle shrink-0" aria-hidden="true" />;
 }

@@ -1236,21 +1236,28 @@ body {
   }
 }
 
-/* Rendered README text in the task panel. */
+/* Rendered README text in the task panel, at reading size. */
+.prose-task {
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+}
 .prose-task h1 {
-  font-size: 15px;
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
   font-weight: 600;
-  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
 }
 .prose-task h2 {
-  font-size: 13px;
+  font-size: var(--fs-md);
+  line-height: var(--lh-md);
   font-weight: 600;
-  margin: 16px 0 6px;
+  margin: 24px 0 8px;
 }
 .prose-task p,
 .prose-task ul {
-  margin: 0 0 10px;
-  line-height: 1.6;
+  margin: 0 0 12px;
+  line-height: var(--lh-read);
 }
 .prose-task ul {
   padding-left: 18px;

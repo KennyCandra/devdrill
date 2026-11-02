@@ -1,4 +1,5 @@
-import { BookOpen, Check, Circle, EyeOff, X } from 'lucide-react';
+import { BookOpen, Check, Circle, EyeOff, Timer, TriangleAlert, X } from 'lucide-react';
+import { useState } from 'react';
 import type { ConsoleLine, TestCaseResult, TestRunResult } from '@devdrill/shared';
 import { Kbd, modKey, Spinner } from './ui';
 
@@ -11,60 +12,140 @@ export function TestPanel({
   running: boolean;
   error: string | null;
 }) {
+  const [view, setView] = useState<'results' | 'console'>('results');
+  // The Console switch only exists when the code printed something.
+  const consoleLines = result ? consoleLineCount(result) : 0;
+  const onConsole = view === 'console' && consoleLines > 0;
+
   return (
-    <section aria-label="Test results" className="flex h-full flex-col bg-bg">
-      <header className="flex h-8 shrink-0 items-center gap-3 border-b border-line px-3">
-        <span className="text-[11px] font-semibold tracking-wide text-muted uppercase">Tests</span>
-        {/* Only the summary is announced to screen readers, not every test. */}
-        <span role="status" className="flex items-center gap-2">
-          {running && (
-            <span className="flex items-center gap-2 text-muted">
-              <Spinner /> Running tests…
-            </span>
-          )}
-          {!running && result && <Summary result={result} />}
-        </span>
+    <section aria-label="Test results" className="panel flex h-full flex-col">
+      <header className="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-line px-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="panel-title">Tests</span>
+          {/* Only the summary is announced to screen readers, not every test. */}
+          <span role="status" className="flex min-w-0 items-center gap-3 text-[13px]">
+            {running && (
+              <span className="muted flex items-center gap-2">
+                <Spinner /> Running tests…
+              </span>
+            )}
+            {!running && result && <RunSummary result={result} />}
+          </span>
+        </div>
+        {!running && result && consoleLines > 0 && (
+          <div className="seg shrink-0 p-[2px]" role="group" aria-label="Test output">
+            <button
+              type="button"
+              aria-pressed={!onConsole}
+              onClick={() => setView('results')}
+              className={`seg-item h-6 ${onConsole ? '' : 'on'}`}
+            >
+              Results
+            </button>
+            <button
+              type="button"
+              aria-pressed={onConsole}
+              onClick={() => setView('console')}
+              className={`seg-item h-6 ${onConsole ? 'on' : ''}`}
+            >
+              Console <span className="seg-count">{consoleLines}</span>
+            </button>
+          </div>
+        )}
       </header>
 
-      <div className="flex-1 overflow-auto px-3 py-2 font-mono text-[12px]">
-        {error && <p className="text-danger">{error}</p>}
+      <div className="min-h-0 flex-1 overflow-auto py-1.5 font-mono text-[13px]">
+        {error && <p className="px-4 py-2 text-danger">{error}</p>}
 
         {!error && !result && !running && (
-          <p className="font-sans text-muted">
+          <p className="muted px-4 py-3 font-sans">
             Run the tests to see results. <Kbd>{modKey}</Kbd> <Kbd>Enter</Kbd>
           </p>
         )}
 
-        {!running && result && <TestResultList result={result} />}
+        {!running && result && !onConsole && (
+          <>
+            {isEveryVisibleTestPassing(result) && (
+              <p className="animate-fade-in flex items-center gap-2 px-4 py-2 font-sans text-[14px]">
+                <Check className="i i-sm ico-pass" aria-hidden="true" />
+                Every visible test passes. Submit to run the hidden tests too.
+              </p>
+            )}
+            <TestResultList result={result} showLogs={false} />
+          </>
+        )}
+
+        {!running && result && onConsole && <ConsoleView result={result} />}
       </div>
     </section>
   );
 }
 
-/** Runner errors, files that couldn't load, then every test. */
-export function TestResultList({ result }: { result: TestRunResult }) {
+/** Passed and failed counts with the duration, or why the run never got that far. */
+export function RunSummary({ result }: { result: TestRunResult }) {
+  if (result.status === 'timeout') {
+    return (
+      <span className="flex items-center gap-1.5 font-semibold text-warning">
+        <Timer className="i i-sm" aria-hidden="true" />
+        Timed out
+      </span>
+    );
+  }
+  if (result.status === 'error') {
+    return (
+      <span className="flex items-center gap-1.5 font-semibold text-danger">
+        <TriangleAlert className="i i-sm" aria-hidden="true" />
+        Couldn't run tests
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-3">
+      <span className="flex items-center gap-1.5 font-medium text-success">
+        <Check className="i i-sm" aria-hidden="true" />
+        {result.passed} passed
+      </span>
+      {result.failed > 0 && (
+        <span className="flex items-center gap-1.5 font-semibold text-danger">
+          <X className="i i-sm" aria-hidden="true" />
+          {result.failed} failed
+        </span>
+      )}
+      <span className="mono subtle text-[12px]">{(result.durationMs / 1000).toFixed(1)} s</span>
+    </span>
+  );
+}
+
+/** Runner errors, files that couldn't load, then every test. Logs go inline unless shown elsewhere. */
+export function TestResultList({
+  result,
+  showLogs = true,
+}: {
+  result: TestRunResult;
+  /** Off when the console output has its own view. */
+  showLogs?: boolean;
+}) {
   return (
     <>
       {result.errorMessage && (
-        <pre className="mb-2 whitespace-pre-wrap text-danger">{result.errorMessage}</pre>
+        <pre className="mx-4 my-2 whitespace-pre-wrap text-danger">{result.errorMessage}</pre>
       )}
-      {result.logs && result.logs.length > 0 && (
-        <div className="mb-2">
-          <p className="font-sans text-[11px] text-muted">Printed outside a test</p>
+      {showLogs && result.logs && result.logs.length > 0 && (
+        <div className="mx-4 my-2">
+          <p className="subtle font-sans text-[12px]">Printed outside a test</p>
           <ConsoleOutput lines={result.logs} />
         </div>
       )}
       {result.fileErrors.map((fe) => (
-        <div key={fe.file} className="animate-fade-in mb-2">
-          <p className="text-danger">
-            <X size={12} className="inline" aria-hidden="true" /> {fe.file} could not run
-          </p>
-          <pre className="mt-1 ml-4 whitespace-pre-wrap text-muted">{fe.message}</pre>
+        <div key={fe.file} className="animate-fade-in trow">
+          <X className="i i-sm ico-fail mt-0.5" aria-hidden="true" />
+          <span className="trow-name">{fe.file} could not run</span>
+          <pre className="trow-err">{fe.message}</pre>
         </div>
       ))}
-      <ul className="flex flex-col gap-1">
+      <ul>
         {sortForFixing(result.tests).map((t, i) => (
-          <TestRow key={`${t.file}:${t.name}`} test={t} index={i} />
+          <TestRow key={`${t.file}:${t.name}`} test={t} index={i} showLogs={showLogs} />
         ))}
       </ul>
     </>
@@ -77,70 +158,103 @@ export function sortForFixing(tests: TestCaseResult[]): TestCaseResult[] {
   return [...tests].sort((a, b) => rank(a) - rank(b));
 }
 
-function Summary({ result }: { result: TestRunResult }) {
-  if (result.status === 'timeout') return <span className="text-danger">Timed out</span>;
-  if (result.status === 'error') return <span className="text-danger">Couldn't run tests</span>;
+/** Every visible test ran and passed (the run itself has no errors). */
+function isEveryVisibleTestPassing(result: TestRunResult): boolean {
+  return result.status === 'passed' && result.failed === 0 && result.total > 0;
+}
+
+/** Lines printed outside tests plus lines printed inside each test. */
+function consoleLineCount(result: TestRunResult): number {
   return (
-    <span className="flex items-center gap-3">
-      <span className="text-success">{result.passed} passed</span>
-      {result.failed > 0 && <span className="text-danger">{result.failed} failed</span>}
-      <span className="text-muted">{(result.durationMs / 1000).toFixed(1)}s</span>
-    </span>
+    (result.logs?.length ?? 0) + result.tests.reduce((sum, t) => sum + (t.logs?.length ?? 0), 0)
   );
 }
 
-function TestRow({ test, index }: { test: TestCaseResult; index: number }) {
+/** Everything the code printed: outside tests first, then each test's output under its name. */
+function ConsoleView({ result }: { result: TestRunResult }) {
+  const groups: { label: string; lines: ConsoleLine[] }[] = [];
+  if (result.logs && result.logs.length > 0) {
+    groups.push({ label: 'outside tests', lines: result.logs });
+  }
+  for (const t of result.tests) {
+    if (t.logs && t.logs.length > 0) groups.push({ label: t.name, lines: t.logs });
+  }
+  return (
+    <div className="animate-fade-in flex flex-col gap-3 px-4 py-2">
+      {groups.map((group, i) => (
+        <div key={`${i}:${group.label}`} className="flex min-w-0 flex-col gap-1">
+          <p className="subtle truncate text-[12px]">{group.label}</p>
+          <ConsoleOutput lines={group.lines} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TestRow({
+  test,
+  index,
+  showLogs,
+}: {
+  test: TestCaseResult;
+  index: number;
+  showLogs: boolean;
+}) {
   const icon =
     test.status === 'passed' ? (
-      <Check size={13} className="shrink-0 text-success" role="img" aria-label="Passed" />
+      <Check className="i ico-pass mt-0.5" role="img" aria-label="Passed" />
     ) : test.status === 'failed' ? (
-      <X size={13} className="shrink-0 text-danger" role="img" aria-label="Failed" />
+      <X className="i ico-fail mt-0.5" role="img" aria-label="Failed" />
     ) : (
-      <Circle size={13} className="shrink-0 text-muted" role="img" aria-label="Skipped" />
+      <Circle className="i ico-skip mt-0.5" role="img" aria-label="Skipped" />
     );
 
   return (
-    <li className="animate-fade-in" style={{ animationDelay: `${Math.min(index, 20) * 15}ms` }}>
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className={test.status === 'failed' ? 'text-fg' : 'text-muted'}>{test.name}</span>
+    <li
+      className={`trow animate-fade-in ${test.status === 'passed' ? 'trow-pass' : ''}`}
+      style={{ animationDelay: `${Math.min(index, 20) * 15}ms` }}
+    >
+      {icon}
+      <span className="trow-name flex flex-wrap items-center gap-2">
+        {test.name}
         {test.hidden && (
-          <span className="flex items-center gap-1 text-[11px] text-muted">
-            <EyeOff size={11} aria-hidden="true" /> hidden
+          <span className="tag tag-hidden h-5">
+            <EyeOff className="i" aria-hidden="true" />
+            hidden
           </span>
         )}
-      </div>
-      {test.logs && test.logs.length > 0 && (
-        <div className="ml-5">
-          <ConsoleOutput lines={test.logs} />
+      </span>
+      {test.message && <pre className="trow-err">{test.message}</pre>}
+      {test.rule && test.status === 'failed' && (
+        <div className="trow-rule">
+          <span className="flex gap-2">
+            <BookOpen className="i i-sm subtle mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="subtle">From the task: </span>“{test.rule}”
+            </span>
+          </span>
         </div>
       )}
-      {test.message && (
-        <pre className="mt-1 mb-1 ml-5 whitespace-pre-wrap text-danger">{test.message}</pre>
-      )}
-      {test.rule && test.status === 'failed' && (
-        <p className="mt-1 mb-1 ml-5 flex gap-1.5 rounded-sm bg-warning-bg px-2 py-1 font-sans text-[12px] leading-relaxed text-fg">
-          <BookOpen size={13} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
-          <span>
-            <span className="text-warning">From the task: </span>“{test.rule}”
-          </span>
-        </p>
-      )}
       {test.detailsHidden && (
-        <p className="mt-0.5 mb-1 ml-5 font-sans text-[12px] text-muted">
+        <p className="subtle col-start-2 font-sans text-[12px]">
           Details unlock when you solve the challenge.
         </p>
+      )}
+      {showLogs && test.logs && test.logs.length > 0 && (
+        <div className="col-start-2 min-w-0">
+          <ConsoleOutput lines={test.logs} />
+        </div>
       )}
     </li>
   );
 }
 
-/** console.log / console.error output, like a terminal. */
+/** console.log / console.error output, like a terminal. Errors are tinted as warnings. */
 function ConsoleOutput({ lines }: { lines: ConsoleLine[] }) {
   return (
     <pre
       aria-label="Console output"
-      className="my-1 max-h-48 overflow-auto rounded-sm border-l-2 border-line-strong bg-side px-2 py-1 whitespace-pre-wrap"
+      className="max-h-48 overflow-auto rounded-md border border-line bg-bg px-3 py-2 whitespace-pre-wrap"
     >
       {lines.map((line, i) => (
         <span key={i} className={`block ${line.stream === 'stderr' ? 'text-warning' : 'text-fg'}`}>

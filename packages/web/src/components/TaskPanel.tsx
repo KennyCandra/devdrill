@@ -1,9 +1,9 @@
-import { Bot, Bug, GitPullRequest, Lightbulb, Sparkles } from 'lucide-react';
+import { Bot, ChevronLeft, Lightbulb } from 'lucide-react';
 import { useState } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ChallengeDetail } from '@devdrill/shared';
-import { Button, Spinner } from './ui';
+import type { ChallengeDetail, ChallengeMode } from '@devdrill/shared';
+import { Button, MODE_ICONS, Spinner } from './ui';
 
 // Links leave the app in a new tab, so leaving never drops unsaved work.
 const markdownComponents: Components = {
@@ -37,10 +37,13 @@ function readShownHints(id: string): number {
 export function TaskPanel({
   challenge,
   askAi,
+  onCollapse,
 }: {
   challenge: ChallengeDetail;
   /** Gets an AI hint, given the written hints already shown. */
   askAi?: (shownHints: string[]) => Promise<string>;
+  /** Shows a collapse button in the header when the panel can be folded away. */
+  onCollapse?: () => void;
 }) {
   const { id, hints } = challenge;
   const [shownHints, setShownHints] = useState(() => Math.min(readShownHints(id), hints.length));
@@ -73,95 +76,140 @@ export function TaskPanel({
   };
 
   return (
-    <aside className="flex h-full flex-col bg-side">
+    <aside className="panel flex h-full flex-col">
+      <div className="panel-header">
+        <span className="panel-title">Task</span>
+        {onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Collapse task panel"
+            title="Collapse task panel"
+            className="btn btn-ghost btn-icon btn-sm"
+          >
+            <ChevronLeft className="i i-sm" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="px-3 pt-2 pb-2 text-[11px] font-semibold tracking-wide text-muted uppercase">
-          Task
-        </div>
-        <ModeNote mode={challenge.mode} />
-        <div className="prose-task px-3 pb-4">
-          <Markdown remarkPlugins={remarkPlugins} components={markdownComponents}>
-            {challenge.readme}
-          </Markdown>
+        <div className="flex flex-col gap-4 px-5 pt-4 pb-5">
+          <ModeNote mode={challenge.mode} />
+          <div className="prose-task">
+            <Markdown remarkPlugins={remarkPlugins} components={markdownComponents}>
+              {challenge.readme}
+            </Markdown>
+          </div>
         </div>
       </div>
 
-      <div className="flex max-h-[45%] shrink-0 flex-col gap-2 overflow-auto border-t border-line p-3">
+      <section
+        aria-label="Hints"
+        className="flex max-h-[45%] shrink-0 flex-col gap-2 overflow-auto border-t border-line px-5 py-3"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="panel-title">Hints</span>
+          <span className="mono subtle text-[12px]">
+            {shownHints} of {hints.length} shown
+          </span>
+        </div>
         {hints.slice(0, shownHints).map((hint, i) => (
-          <p key={i} className="animate-fade-in flex gap-2 rounded bg-hover p-2 leading-relaxed">
-            <Lightbulb size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+          <p
+            key={i}
+            className="animate-fade-in flex gap-2.5 rounded-md border border-line bg-surface-2 px-3 py-2.5 text-[14px] leading-[21px]"
+          >
+            <span
+              className="mono w-3.5 shrink-0 pt-0.5 text-[12px] text-warning"
+              aria-hidden="true"
+            >
+              {i + 1}
+            </span>
             <span>
-              <span className="text-muted">Hint {i + 1}: </span>
+              <span className="sr-only">Hint {i + 1}: </span>
               {hint}
             </span>
           </p>
         ))}
         <div aria-live="polite" className="contents">
           {aiHints.map((hint, i) => (
-            <p
+            <div
               key={`ai-${i}`}
-              className="animate-fade-in flex gap-2 rounded bg-hover p-2 leading-relaxed"
+              className="animate-fade-in flex flex-col gap-1 rounded-md border border-line bg-surface-2 px-3 py-2.5"
             >
-              <Bot size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-              <span>
-                <span className="text-muted">AI hint: </span>
-                {hint}
+              <span className="flex items-center gap-1.5 text-[12px] font-medium text-accent">
+                <Bot className="i i-sm" aria-hidden="true" />
+                AI hint
               </span>
-            </p>
+              <p className="text-[14px] leading-[21px]">{hint}</p>
+            </div>
           ))}
         </div>
         {aiError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-[13px] text-danger">
             {aiError}
           </p>
         )}
         <div className="flex flex-wrap gap-2">
           {shownHints < hints.length && (
-            <Button onClick={showNext} className="self-start">
-              <Lightbulb size={14} aria-hidden="true" />
+            <Button size="sm" onClick={showNext}>
+              <Lightbulb className="i i-sm" aria-hidden="true" />
               {shownHints === 0
                 ? 'Need a hint?'
-                : `Next hint (${shownHints + 1} of ${hints.length})`}
+                : `Next hint · ${shownHints + 1} of ${hints.length}`}
             </Button>
           )}
           {askAi && (
-            <Button onClick={() => void askForHint()} disabled={asking} className="self-start">
-              {asking ? <Spinner /> : <Bot size={14} aria-hidden="true" />}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void askForHint()}
+              disabled={asking}
+              className="text-accent"
+            >
+              {asking ? <Spinner /> : <Bot className="i i-sm" aria-hidden="true" />}
               {asking ? 'Thinking…' : 'Ask AI for a hint'}
             </Button>
           )}
         </div>
-      </div>
+      </section>
     </aside>
   );
 }
 
-/** What "done" means in each mode, since they work differently. */
-function ModeNote({ mode }: { mode: ChallengeDetail['mode'] }) {
-  const debug = mode === 'debug';
-  const Icon = debug ? Bug : mode === 'review' ? GitPullRequest : Sparkles;
+const MODE_NOTES: Record<ChallengeMode, { lead: string; body: string; detail: string }> = {
+  debug: {
+    lead: 'Debug.',
+    body: 'Something is broken. Find the cause and fix it.',
+    detail: 'Done means every visible and hidden test passes.',
+  },
+  feature: {
+    lead: 'Add a feature.',
+    body: 'The existing tests pass now and must keep passing.',
+    detail: 'Hidden tests check your new feature when you submit.',
+  },
+  review: {
+    lead: 'Review a pull request.',
+    body: "Comment on what's wrong, then approve it or request changes.",
+    detail: 'Your verdict is checked, then you tick what you caught.',
+  },
+};
+
+/** What "done" means in each mode, since they work differently. Tinted in the mode's colour. */
+function ModeNote({ mode }: { mode: ChallengeMode }) {
+  const Icon = MODE_ICONS[mode];
+  const note = MODE_NOTES[mode];
   return (
-    <p className="mx-3 mb-3 flex gap-2 rounded border border-line p-2 leading-relaxed">
-      <Icon size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-      <span>
-        {mode === 'review' ? (
-          <>
-            <strong className="font-semibold">Review a pull request.</strong> Comment on what's
-            wrong, then approve it or request changes. Comments that point at nothing real count
-            against you.
-          </>
-        ) : debug ? (
-          <>
-            <strong className="font-semibold">Debug.</strong> Something is broken. Find the cause
-            and fix it so every test passes.
-          </>
-        ) : (
-          <>
-            <strong className="font-semibold">Add a feature.</strong> The existing tests pass now
-            and must keep passing. Hidden tests check your new feature when you submit.
-          </>
-        )}
-      </span>
-    </p>
+    <div
+      className="flex gap-2.5 rounded-lg px-3.5 py-3 text-[14px] leading-[21px]"
+      style={{ background: `var(--mode-${mode}-bg)` }}
+    >
+      <Icon className="i mt-0.5" aria-hidden="true" style={{ color: `var(--mode-${mode})` }} />
+      <div className="flex flex-col gap-1">
+        <p>
+          <strong className="font-semibold">{note.lead}</strong> {note.body}
+        </p>
+        <p className="muted">{note.detail}</p>
+      </div>
+    </div>
   );
 }
