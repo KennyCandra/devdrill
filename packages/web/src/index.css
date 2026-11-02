@@ -894,6 +894,7 @@
 
   /* Spinner: a still ring when the person asks for less motion */
   .spin {
+    display: inline-block;
     width: 14px;
     height: 14px;
     border-radius: 50%;

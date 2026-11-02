@@ -108,17 +108,13 @@ export function Dropdown<T extends string>({
         aria-label={`${label}: ${options[selectedIndex]?.label ?? ''}`}
         onClick={() => (open ? close(false) : openList())}
         onKeyDown={onButtonKey}
-        className={`flex h-7 items-center gap-1.5 rounded border px-2 transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-accent ${
-          active
-            ? 'border-accent bg-active text-fg'
-            : 'border-line text-fg hover:border-line-strong hover:bg-hover'
-        }`}
+        className={`btn btn-secondary btn-sm ${active ? 'border-accent' : ''}`}
       >
         {options[selectedIndex]?.label}
         <ChevronDown
           size={14}
           aria-hidden="true"
-          className={`text-muted transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          className={`subtle transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -131,7 +127,7 @@ export function Dropdown<T extends string>({
           aria-activedescendant={`${listId}-${highlighted}`}
           tabIndex={-1}
           onKeyDown={onListKey}
-          className="animate-fade-in absolute top-full left-0 z-20 mt-1 min-w-full overflow-hidden rounded-md border border-line-strong bg-side py-1 shadow-lg shadow-black/30 outline-none"
+          className="card animate-fade-in absolute top-full left-0 z-20 mt-1 min-w-full overflow-hidden border-border-strong bg-surface p-1 shadow-[var(--shadow-2)] outline-none"
         >
           {options.map((option, i) => {
             const selected = option.value === value;
@@ -143,14 +139,14 @@ export function Dropdown<T extends string>({
                 aria-selected={selected}
                 onPointerMove={() => setHighlighted(i)}
                 onClick={() => pick(i)}
-                className={`flex cursor-pointer items-center gap-2 px-2 py-1 whitespace-nowrap ${
-                  i === highlighted ? 'bg-accent-bg text-on-accent' : 'text-fg'
+                className={`flex h-[30px] cursor-pointer items-center gap-2 rounded-md px-2 text-[13px] whitespace-nowrap ${
+                  i === highlighted ? 'bg-surface-hover' : ''
                 }`}
               >
                 <Check
                   size={13}
                   aria-hidden="true"
-                  className={selected ? 'opacity-100' : 'opacity-0'}
+                  className={`text-accent ${selected ? '' : 'opacity-0'}`}
                 />
                 {option.label}
               </li>

@@ -1,60 +1,81 @@
 import type { ComponentProps, ReactNode } from 'react';
-import type { Difficulty } from '@devdrill/shared';
+import type { LucideIcon } from 'lucide-react';
+import { Crosshair, GitPullRequest, SquarePlus } from 'lucide-react';
+import type { ChallengeMode, Difficulty } from '@devdrill/shared';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent-bg text-on-accent hover:bg-accent-bg-hover',
-  secondary: 'bg-hover text-fg hover:bg-active border border-line-strong',
-  ghost: 'text-fg hover:bg-hover',
-  danger: 'bg-danger-bg text-danger border border-danger/40 hover:border-danger',
+  primary: 'btn-primary',
+  secondary: 'btn-secondary',
+  ghost: 'btn-ghost',
+  danger: 'btn-danger',
 };
+
+const SIZES = { sm: 'btn-sm', lg: 'btn-lg' } as const;
 
 export function Button({
   variant = 'secondary',
+  size,
   className = '',
   ...props
-}: ComponentProps<'button'> & { variant?: Variant }) {
+}: ComponentProps<'button'> & { variant?: Variant; size?: keyof typeof SIZES }) {
   return (
     <button
       type="button"
-      className={`inline-flex h-7 items-center gap-1.5 rounded px-3 text-[13px] whitespace-nowrap transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
+      className={`btn ${VARIANTS[variant]} ${size ? SIZES[size] : ''} ${className}`}
       {...props}
     />
   );
 }
 
-const DIFFICULTY_STYLE: Record<Difficulty, string> = {
-  easy: 'text-success bg-success-bg',
-  medium: 'text-warning bg-warning-bg',
-  hard: 'text-danger bg-danger-bg',
+const DIFFICULTY_BARS: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
+
+/** Difficulty as three bars and a word, so it never relies on colour alone. */
+export function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+  const filled = DIFFICULTY_BARS[difficulty];
+  return (
+    <span className="diff">
+      <span className="diff-bars" aria-hidden="true">
+        {[1, 2, 3].map((bar) => (
+          <i key={bar} className={bar <= filled ? 'on' : undefined} />
+        ))}
+      </span>
+      <span className="capitalize">{difficulty}</span>
+    </span>
+  );
+}
+
+const MODE_ICONS: Record<ChallengeMode, LucideIcon> = {
+  debug: Crosshair,
+  feature: SquarePlus,
+  review: GitPullRequest,
 };
 
-export function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+const MODE_NAMES: Record<ChallengeMode, string> = {
+  debug: 'Debug',
+  feature: 'Feature',
+  review: 'Review',
+};
+
+/** The mode of a challenge: its icon and name, in the mode's colour. */
+export function ModeBadge({ mode }: { mode: ChallengeMode }) {
+  const Icon = MODE_ICONS[mode];
   return (
-    <span
-      className={`rounded px-1.5 py-px text-[11px] font-medium capitalize ${DIFFICULTY_STYLE[difficulty]}`}
-    >
-      {difficulty}
+    <span className={`mode mode-${mode}`}>
+      <Icon className="i" aria-hidden="true" />
+      {MODE_NAMES[mode]}
     </span>
   );
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return (
-    <kbd className="rounded border border-line-strong px-1 font-mono text-[10px] text-muted">
-      {children}
-    </kbd>
-  );
+  return <kbd className="kbd">{children}</kbd>;
 }
 
+/** A ring that turns; with reduced motion it stays still (see `.spin`). */
 export function Spinner({ className = '' }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent ${className}`}
-    />
-  );
+  return <span aria-hidden="true" className={`spin ${className}`} />;
 }
 
 /** Full-screen message for "can't connect", "reopen the link", "not found" and similar. */
@@ -69,8 +90,8 @@ export function StatusScreen({
 }) {
   return (
     <main className="animate-fade-in flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <h1 className="text-[15px] font-semibold">{title}</h1>
-      <div className="max-w-md leading-relaxed text-muted">{children}</div>
+      <h1 className="text-[17px] leading-6 font-semibold">{title}</h1>
+      <div className="muted max-w-md leading-relaxed">{children}</div>
       {action}
     </main>
   );

@@ -9,14 +9,14 @@ import { Logo } from './ui';
  */
 export function TopBar({ children, right }: { children?: ReactNode; right?: ReactNode }) {
   return (
-    <header className="flex h-10 shrink-0 items-center gap-3 border-b border-line bg-bar px-3">
+    <header className="topbar shrink-0">
       <button
         type="button"
         onClick={() => navigate('/')}
-        className="flex shrink-0 items-center gap-2 rounded px-1 font-semibold hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+        className="flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 hover:bg-surface-hover"
       >
         <Logo />
-        <span className="font-mono text-[15px] font-semibold">devdrill</span>
+        <span className="mono text-[15px] font-semibold">devdrill</span>
       </button>
       {children}
       <div className="ml-auto flex min-w-0 shrink items-center gap-2">{right}</div>
@@ -25,7 +25,7 @@ export function TopBar({ children, right }: { children?: ReactNode; right?: Reac
         onClick={() => navigate('/settings')}
         aria-label="Settings"
         title="Settings"
-        className="flex size-7 shrink-0 items-center justify-center rounded text-muted hover:bg-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+        className="btn btn-ghost btn-icon btn-sm shrink-0"
       >
         <Settings size={16} aria-hidden="true" />
       </button>

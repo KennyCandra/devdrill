@@ -45,14 +45,14 @@ export function ConfirmDialog({
         onCancel();
       }}
       aria-labelledby="confirm-title"
-      className="m-auto w-[360px] rounded-md border border-line-strong bg-side p-4 text-fg backdrop:bg-black/50"
+      className="dialog"
     >
-      <h2 id="confirm-title" className="mb-2 text-[14px] font-semibold">
+      <h2 id="confirm-title" className="mb-2 text-[17px] leading-6 font-semibold">
         {title}
       </h2>
-      <div className="mb-4 leading-relaxed text-muted">{children}</div>
+      <div className="muted mb-5 leading-[21px]">{children}</div>
       <div className="flex justify-end gap-2">
-        <Button ref={cancelRef} onClick={onCancel}>
+        <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
         <Button variant={tone} onClick={onConfirm}>
