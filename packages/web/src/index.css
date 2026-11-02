@@ -3,76 +3,243 @@
 @import '@fontsource-variable/jetbrains-mono';
 
 /*
- * Colors follow VS Code's default themes (docs/V1_PLAN.md, "Visual design").
- * Dark is the default; [data-theme] on <html> is set from the user's setting.
+ * Tokens from the "Graphite & Signal" design. Dark is the default; [data-theme] on <html>
+ * is set from the user's setting. The Monaco themes in editor/monacoSetup.ts use the
+ * syntax and diff tokens here, so keep the two in step.
  */
 :root,
 [data-theme='dark'] {
-  --bg: #1e1e1e;
-  --bg-side: #252526;
-  --bg-bar: #181818;
-  --bg-hover: #2a2d2e;
-  --bg-active: #37373d;
-  --border: #2b2b2b;
-  --border-strong: #3c3c3c;
-  --text: #cccccc;
-  --text-muted: #8b8b8b;
-  --accent: #3794ff;
-  --accent-bg: #0e639c;
-  --accent-bg-hover: #1177bb;
-  --on-accent: #ffffff;
-  --success: #73c991;
-  --success-bg: #1e3a2a;
-  --danger: #f48771;
-  --danger-bg: #4b1818;
-  --warning: #e2c08d;
-  --warning-bg: #3b3018;
   color-scheme: dark;
+  /* Surfaces */
+  --bg: #0f1115;
+  --surface: #15181e;
+  --surface-2: #1b1f27;
+  --surface-hover: #222733;
+  --surface-active: #2a3040;
+  --bar: #0b0d10;
+  --editor: #111318;
+  --overlay: rgba(4, 5, 8, 0.66);
+  --border: #252a34;
+  --border-strong: #353c4a;
+  /* Text */
+  --text: #e7e9ee;
+  --text-2: #b0b7c3;
+  --text-3: #8890a0;
+  --text-on-primary: #ffffff;
+  /* Signal */
+  --primary: #5b57e8;
+  --primary-hover: #6a66f2;
+  --primary-press: #4e4ad6;
+  --accent: #a3a1ff;
+  --accent-soft: rgba(140, 138, 255, 0.14);
+  --focus: #a3a1ff;
+  /* Status: always shown with an icon and a word */
+  --success: #5fd08f;
+  --success-bg: #11281c;
+  --success-line: #1e4a31;
+  --danger: #ff8a7a;
+  --danger-bg: #301619;
+  --danger-line: #5a2329;
+  --warning: #f2c063;
+  --warning-bg: #2c2312;
+  --warning-line: #54421c;
+  --info: #7cc4ff;
+  --info-bg: #10233a;
+  /* Modes */
+  --mode-debug: #f2a65e;
+  --mode-debug-bg: rgba(242, 166, 94, 0.12);
+  --mode-feature: #4fc7b4;
+  --mode-feature-bg: rgba(79, 199, 180, 0.12);
+  --mode-review: #f08cc0;
+  --mode-review-bg: rgba(240, 140, 192, 0.12);
+  /* Syntax and diff */
+  --syn-text: #d9dde5;
+  --syn-comment: #737c8c;
+  --syn-keyword: #c3a6ff;
+  --syn-string: #a6d99a;
+  --syn-number: #f5b871;
+  --syn-function: #84b9ff;
+  --syn-type: #6fd3c7;
+  --syn-punct: #9aa2b1;
+  --line-number: #5a6272;
+  --line-number-active: #c9ced8;
+  --diff-add: rgba(95, 208, 143, 0.1);
+  --diff-add-strong: rgba(95, 208, 143, 0.26);
+  --diff-del: rgba(255, 138, 122, 0.1);
+  --diff-del-strong: rgba(255, 138, 122, 0.26);
+  --diff-commented: rgba(140, 138, 255, 0.16);
+  /* Elevation */
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 [data-theme='light'] {
-  --bg: #ffffff;
-  --bg-side: #f8f8f8;
-  --bg-bar: #f3f3f3;
-  --bg-hover: #e8e8e8;
-  --bg-active: #e4e6f1;
-  --border: #e5e5e5;
-  --border-strong: #d4d4d4;
-  --text: #1f1f1f;
-  --text-muted: #616161;
-  --accent: #005fb8;
-  --accent-bg: #005fb8;
-  --accent-bg-hover: #0258a8;
-  --on-accent: #ffffff;
-  --success: #2e7d32;
-  --success-bg: #e6f4ea;
-  --danger: #c72e0f;
-  --danger-bg: #fdecea;
-  --warning: #7a4d00;
-  --warning-bg: #fdf1d6;
   color-scheme: light;
+  --bg: #f5f5f2;
+  --surface: #ffffff;
+  --surface-2: #fafaf8;
+  --surface-hover: #f0f0ec;
+  --surface-active: #e7e7f6;
+  --bar: #fbfbf9;
+  --editor: #ffffff;
+  --overlay: rgba(22, 24, 29, 0.42);
+  --border: #e3e3dd;
+  --border-strong: #cbcbc3;
+  --text: #16181d;
+  --text-2: #464c57;
+  --text-3: #636a76;
+  --text-on-primary: #ffffff;
+  --primary: #4b46d6;
+  --primary-hover: #3f3ac4;
+  --primary-press: #3530ad;
+  --accent: #4640c9;
+  --accent-soft: rgba(75, 70, 214, 0.09);
+  --focus: #4b46d6;
+  --success: #1d7341;
+  --success-bg: #e4f3e9;
+  --success-line: #b7dcc3;
+  --danger: #b3261e;
+  --danger-bg: #fcebe9;
+  --danger-line: #f1c2bd;
+  --warning: #7f5300;
+  --warning-bg: #fbf1d9;
+  --warning-line: #ecd39b;
+  --info: #155ea8;
+  --info-bg: #e6f0fb;
+  --mode-debug: #a84f12;
+  --mode-debug-bg: #fbeee2;
+  --mode-feature: #0b7363;
+  --mode-feature-bg: #e1f4f0;
+  --mode-review: #a62a6c;
+  --mode-review-bg: #fbe8f2;
+  --syn-text: #1f232b;
+  --syn-comment: #7a808b;
+  --syn-keyword: #6a3ccf;
+  --syn-string: #2c7a3a;
+  --syn-number: #9a5200;
+  --syn-function: #1c5fbf;
+  --syn-type: #0b7363;
+  --syn-punct: #5d6370;
+  --line-number: #9aa0aa;
+  --line-number-active: #2a2e36;
+  --diff-add: rgba(29, 115, 65, 0.08);
+  --diff-add-strong: rgba(29, 115, 65, 0.2);
+  --diff-del: rgba(179, 38, 30, 0.07);
+  --diff-del-strong: rgba(179, 38, 30, 0.18);
+  --diff-commented: rgba(75, 70, 214, 0.1);
+  --shadow-1: 0 1px 2px rgba(20, 22, 28, 0.06);
+  --shadow-2: 0 8px 24px rgba(20, 22, 28, 0.1), 0 1px 2px rgba(20, 22, 28, 0.06);
+  --shadow-3: 0 24px 64px rgba(20, 22, 28, 0.18), 0 2px 6px rgba(20, 22, 28, 0.08);
 }
 
+/* Size, space, radius and motion: the same in both themes. */
+:root {
+  --fs-xs: 12px;
+  --lh-xs: 16px;
+  --fs-sm: 13px;
+  --lh-sm: 18px;
+  --fs-md: 14px;
+  --lh-md: 20px;
+  --fs-read: 15px;
+  --lh-read: 24px;
+  --fs-lg: 17px;
+  --lh-lg: 24px;
+  --fs-xl: 20px;
+  --lh-xl: 28px;
+  --fs-2xl: 26px;
+  --lh-2xl: 32px;
+  --fs-3xl: 34px;
+  --lh-3xl: 40px;
+  /* Space, on a 4 px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-14: 56px;
+  --s-18: 72px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-pill: 999px;
+  --t-fast: 120ms;
+  --t-base: 180ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --bar-h: 48px;
+  --row-h: 52px;
+  --control-h: 34px;
+  --control-h-sm: 28px;
+}
+
+/*
+ * Tailwind names. The old names (bg-side, text-muted, border-line, ...) are aliases for
+ * the nearest new token, so pages that aren't redesigned yet pick up the new colours.
+ */
 @theme inline {
   --color-bg: var(--bg);
-  --color-side: var(--bg-side);
-  --color-bar: var(--bg-bar);
-  --color-hover: var(--bg-hover);
-  --color-active: var(--bg-active);
-  --color-line: var(--border);
-  --color-line-strong: var(--border-strong);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-bar: var(--bar);
+  --color-editor: var(--editor);
+  --color-overlay: var(--overlay);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-fg: var(--text);
-  --color-muted: var(--text-muted);
+  --color-fg-2: var(--text-2);
+  --color-fg-3: var(--text-3);
+  --color-on-primary: var(--text-on-primary);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-press: var(--primary-press);
   --color-accent: var(--accent);
-  --color-accent-bg: var(--accent-bg);
-  --color-accent-bg-hover: var(--accent-bg-hover);
-  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-focus: var(--focus);
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
+  --color-success-line: var(--success-line);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
+  --color-danger-line: var(--danger-line);
   --color-warning: var(--warning);
   --color-warning-bg: var(--warning-bg);
+  --color-warning-line: var(--warning-line);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-mode-debug: var(--mode-debug);
+  --color-mode-feature: var(--mode-feature);
+  --color-mode-review: var(--mode-review);
+  --color-syn-text: var(--syn-text);
+  --color-syn-comment: var(--syn-comment);
+  --color-syn-keyword: var(--syn-keyword);
+  --color-syn-string: var(--syn-string);
+  --color-syn-number: var(--syn-number);
+  --color-syn-function: var(--syn-function);
+  --color-syn-type: var(--syn-type);
+  --color-syn-punct: var(--syn-punct);
+  --color-line-number: var(--line-number);
+  --color-line-number-active: var(--line-number-active);
+  --color-diff-add: var(--diff-add);
+  --color-diff-del: var(--diff-del);
+  --color-diff-commented: var(--diff-commented);
+
+  /* Old names, kept until each page is redone */
+  --color-side: var(--surface);
+  --color-hover: var(--surface-hover);
+  --color-active: var(--surface-active);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-muted: var(--text-3);
+  --color-accent-bg: var(--primary);
+  --color-accent-bg-hover: var(--primary-hover);
+  --color-on-accent: var(--text-on-primary);
+
   --font-sans: 'Inter Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 }
@@ -172,7 +339,7 @@ body {
 .prose-task code {
   font-family: var(--font-mono);
   font-size: 12px;
-  background: var(--bg-hover);
+  background: var(--surface-hover);
   padding: 1px 4px;
   border-radius: 3px;
 }
@@ -207,9 +374,9 @@ body {
   white-space: nowrap;
 }
 .prose-task th {
-  background: var(--bg-hover);
+  background: var(--surface-hover);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-3);
 }
 .prose-task tr:last-child td {
   border-bottom: 0;
@@ -283,7 +450,7 @@ body {
     font-weight: 600;
   }
   .prose-task td:nth-child(2) {
-    color: var(--text-muted);
+    color: var(--text-3);
   }
   .prose-task td + td {
     margin-top: 2px;
@@ -311,7 +478,7 @@ body {
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--accent);
   border-radius: 4px;
-  background: var(--bg-side);
+  background: var(--surface);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 12px;
@@ -323,7 +490,7 @@ body {
   border-color: var(--accent);
 }
 .review-zone-head {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-weight: 600;
 }
 .review-zone-why {
@@ -346,7 +513,7 @@ body {
   height: 16px;
   margin: 1px 0 0 2px;
   border-radius: 4px;
-  background: var(--accent-bg);
-  color: var(--on-accent);
+  background: var(--primary);
+  color: var(--text-on-primary);
   font: 600 14px/1 var(--font-sans);
 }
