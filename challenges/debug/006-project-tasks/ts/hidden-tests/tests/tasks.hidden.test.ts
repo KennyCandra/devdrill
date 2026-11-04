@@ -31,6 +31,17 @@ function addTask(projectId: number | string, body: object) {
 }
 
 describe('project tasks', () => {
+  it('answers 404 on every task route for a missing project', async () => {
+    const answers = await Promise.all([
+      fetch(`${base}/projects/99/tasks/1`),
+      addTask(99, { title: 'Nowhere' }),
+    ]);
+    for (const res of answers) {
+      expect(res.status).toBe(404);
+      expect(await res.json()).toEqual({ error: 'Project not found' });
+    }
+  });
+
   it('only finds a task under its own project', async () => {
     const res = await fetch(`${base}/projects/2/tasks/1`);
     expect(res.status).toBe(404);
@@ -39,9 +50,11 @@ describe('project tasks', () => {
   });
 
   it('treats an id that only starts with a real id as not found', async () => {
-    const project = await fetch(`${base}/projects/1abc/tasks`);
-    expect(project.status).toBe(404);
-    expect(await project.json()).toEqual({ error: 'Project not found' });
+    for (const id of ['1abc', '1.0', '0x1']) {
+      const project = await fetch(`${base}/projects/${id}/tasks`);
+      expect(project.status).toBe(404);
+      expect(await project.json()).toEqual({ error: 'Project not found' });
+    }
     const task = await fetch(`${base}/projects/1/tasks/1abc`);
     expect(task.status).toBe(404);
     expect(await task.json()).toEqual({ error: 'Task not found' });
@@ -67,5 +80,7 @@ describe('project tasks', () => {
     const res = await addTask(1, { title: '' });
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'Title is required' });
+    const noBody = await fetch(`${base}/projects/1/tasks`, { method: 'POST' });
+    expect(noBody.status).toBe(400);
   });
 });

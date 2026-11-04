@@ -15,6 +15,7 @@
     "Use express.Router({ mergeParams: true }). Then log typeof req.params.projectId: URLs are text, but the ids in src/store are numbers."
   ],
   "hiddenTestRules": {
+    "project tasks > answers 404 on every task route for a missing project": "If the project doesn't exist, every task route is 404 with { error: 'Project not found' }.",
     "project tasks > only finds a task under its own project": "A task is only found under the project it belongs to; under any other project it's 404 with { error: 'Task not found' }.",
     "project tasks > treats an id that only starts with a real id as not found": "An id that isn't exactly a real id, like 1abc, is treated as not found.",
     "project tasks > gives a new task its project's number": "A new task's projectId is the project's number, not text: 1, not '1'.",

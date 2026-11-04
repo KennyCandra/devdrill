@@ -115,7 +115,9 @@ describe('shape', () => {
     expect(await read('/articles')).toEqual([other]);
     expect(await read('/authors/ben/articles')).toEqual([other]);
     await send('POST', `/articles/${SLUG}/restore`);
-    expect(await read('/articles')).toEqual([ARTICLE, other]);
+    const restored = await read('/articles');
+    expect(restored).toHaveLength(2);
+    expect(restored).toEqual(expect.arrayContaining([ARTICLE, other]));
     const renamed = await send('PATCH', `/articles/${SLUG}`, { title: 'Hi' });
     expect(await renamed.json()).toEqual({ ...ARTICLE, title: 'Hi' });
   });

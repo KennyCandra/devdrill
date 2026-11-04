@@ -33,7 +33,34 @@ function call(token: string, path: string, body?: object) {
 
 const account = async (token: string) => (await call(token, '/me')).json();
 
-beforeEach(() => start(createApp(createStore({ latencyMs: { 1: 150, 2: 5, 3: 40 } }))));
+/** The store, with a delay of its own on everything that happens after signing in. */
+function withDelays(ms: Record<number, number>) {
+  const store = createStore();
+  const delayed = async (userId: number) => {
+    await sleep(ms[userId] ?? 1);
+  };
+  return {
+    ...store,
+    recordVisit: async (id: number) => {
+      await delayed(id);
+      return store.recordVisit(id);
+    },
+    loadSettings: async (id: number) => {
+      await delayed(id);
+      return store.loadSettings(id);
+    },
+    notesOf: async (id: number) => {
+      await delayed(id);
+      return store.notesOf(id);
+    },
+    addNote: async (id: number, text: string) => {
+      await delayed(id);
+      return store.addNote(id, text);
+    },
+  };
+}
+
+beforeEach(() => start(createApp(withDelays({ 1: 150, 2: 5, 3: 40 }))));
 
 describe('overlapping requests', () => {
   it('keeps a note with the person who sent it', async () => {

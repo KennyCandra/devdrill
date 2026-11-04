@@ -15,6 +15,7 @@ export function createStore({ latencyMs = {} } = {}) {
     3: { theme: 'solarized', newestFirst: false, maxNoteLength: 10 },
   };
   const notes = [{ id: 1, ownerId: 2, text: 'Buy milk' }];
+  const lastSeen = new Map();
   let nextNoteId = 2;
 
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,6 +25,10 @@ export function createStore({ latencyMs = {} } = {}) {
     async findUserByToken(token) {
       await wait(1);
       return users.find((u) => u.token === token) ?? null;
+    },
+    async recordVisit(userId) {
+      await waitFor(userId);
+      lastSeen.set(userId, Date.now());
     },
     async loadSettings(userId) {
       await waitFor(userId);

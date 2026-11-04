@@ -93,7 +93,7 @@ The validator checks:
 
 ### Express challenges
 
-`express` is the one package a challenge can import. Players don't install it: the app provides its own copy at run time, and its types in the editor (`EXPRESS_DTS` in `packages/shared/src/testGlobals.ts`; add any part of Express a challenge needs there). Export a `createApp()` that builds a fresh app with fresh data. Tests start it on a random port on `127.0.0.1`, call it with `fetch` and close it afterwards. Hidden tests can't share a helper, so each test file has its own few lines for this. In `ts/`, don't import from `node:`: the type check has no Node types.
+`express` is the one package a challenge can import. Players don't install it: the app provides its own copy at run time, and its types in the editor (`EXPRESS_DTS` in `packages/shared/src/testGlobals.ts`). Export a `createApp()` that builds a fresh app with fresh data. Tests start it on a random port on `127.0.0.1`, call it with `fetch` and close it afterwards. Hidden tests can't share a helper, so each test file has its own few lines for this.
 
 ### 5. Playtest
 

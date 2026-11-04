@@ -21,7 +21,7 @@ export function tasksRouter(store) {
   });
 
   router.post('/', (req, res) => {
-    const { title } = req.body;
+    const { title } = req.body ?? {};
     if (!title) return res.status(400).json({ error: 'Title is required' });
     res.status(201).json(store.addTask(req.params.projectId, title));
   });

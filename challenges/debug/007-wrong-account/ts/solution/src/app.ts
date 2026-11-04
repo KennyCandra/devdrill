@@ -5,7 +5,10 @@ import { createStore } from './store';
 export function createApp(store = createStore()) {
   const app = express();
   app.use(express.json());
-  app.use('/me', authenticate(store));
+  app.use('/me', authenticate(store), async (req, res, next) => {
+    await store.recordVisit(res.locals.user.id);
+    next();
+  });
 
   app.get('/me', async (req, res) => {
     const { id, name } = res.locals.user;

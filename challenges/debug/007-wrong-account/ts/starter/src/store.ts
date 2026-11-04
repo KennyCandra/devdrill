@@ -31,6 +31,7 @@ export function createStore({ latencyMs = {} }: { latencyMs?: Record<number, num
     3: { theme: 'solarized', newestFirst: false, maxNoteLength: 10 },
   };
   const notes: Note[] = [{ id: 1, ownerId: 2, text: 'Buy milk' }];
+  const lastSeen = new Map<number, number>();
   let nextNoteId = 2;
 
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,6 +41,10 @@ export function createStore({ latencyMs = {} }: { latencyMs?: Record<number, num
     async findUserByToken(token: string) {
       await wait(1);
       return users.find((u) => u.token === token) ?? null;
+    },
+    async recordVisit(userId: number) {
+      await waitFor(userId);
+      lastSeen.set(userId, Date.now());
     },
     async loadSettings(userId: number) {
       await waitFor(userId);

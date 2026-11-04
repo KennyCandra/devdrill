@@ -3,7 +3,6 @@ export interface Project {
   name: string;
 }
 //T
-/** Ids reach the store from JSON and from code, so it takes either. */
 type Id = number | string;
 //T
 export interface Task {

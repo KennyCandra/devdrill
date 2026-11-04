@@ -1,8 +1,8 @@
-import { cp, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { checkImports, validateChallenge } from './validateChallenge.js';
+import { checkImports, typeCheck, validateChallenge } from './validateChallenge.js';
 
 // Uses the real challenge #1 as a known-good fixture, then breaks copies of it.
 const GOOD = path.resolve(import.meta.dirname, '../../challenges/debug/001-cart-discount');
@@ -58,6 +58,28 @@ describe('validateChallenge', () => {
     await checkImports('b.js', 'js', importing('lodash'), errors);
     await checkImports('c.js', 'js', importing('express/lib/router'), errors);
     expect(errors).toHaveLength(2);
+  });
+
+  it('type-checks ordinary Express code without false errors', async () => {
+    const dir = path.join(root, 'express-types');
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      path.join(dir, 'app.ts'),
+      `import express, { Router, json, type Application, type Request } from 'express';
+       import { randomUUID } from 'node:crypto';
+       const app: Application = express();
+       const router = Router({ mergeParams: true });
+       app.use(json(), express.urlencoded({ extended: true }));
+       app.use('/x', router);
+       app.set('trust proxy', true);
+       router.get('/', (req: Request, res) => {
+         req.user = { id: randomUUID(), ip: req.ip };
+         res.set({ 'X-Id': Buffer.from(req.url).toString('base64') }).status(200).end('done');
+       });
+       app.listen(0, (err) => console.log(err));
+      `,
+    );
+    expect(await typeCheck([dir])).toEqual([]);
   });
 
   it('rejects tests that import vitest', async () => {

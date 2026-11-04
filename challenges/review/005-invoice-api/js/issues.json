@@ -15,7 +15,7 @@
     "id": "error-handler-exposes-internals",
     "file": "src/app.js",
     "lines": [
-      32,
+      30,
       32
     ],
     "type": "data-exposure",
@@ -40,11 +40,23 @@
     "file": "tests/invoices.test.js",
     "lines": [
       46,
-      51
+      55
     ],
     "type": "missing-test",
     "severity": "should",
     "title": "No test asks for another customer's invoice",
     "explanation": "The most important rule in the PR is that a customer only sees their own invoices, and every test reads Ana's invoices as Ana. A test where Ana asks for invoice 20 would have caught the must-fix above."
+  },
+  {
+    "id": "error-test-checks-too-little",
+    "file": "tests/invoices.test.js",
+    "lines": [
+      59,
+      69
+    ],
+    "type": "weak-test",
+    "severity": "should",
+    "title": "The error test doesn't look at what the response says",
+    "explanation": "It checks the status and the content type only, so it passes with the stack trace in the body. The rule that matters is that customers never see internal details: check the body, and that it contains neither 'database is down' nor a stack."
   }
 ]
