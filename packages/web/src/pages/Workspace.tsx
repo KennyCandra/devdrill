@@ -71,6 +71,18 @@ function defaultFile(files: string[]): string | undefined {
 }
 
 /**
+ * The files the editor needs along with `open`. TypeScript checks imports across files,
+ * so every .ts file needs to be in the editor (not opened as a tab) for its types to be known.
+ */
+function editorFiles(files: string[], lang: Language, open: string[]): string[] {
+  return lang === 'ts' ? [...new Set([...open, ...files.filter(isTsFile)])] : open;
+}
+
+function isTsFile(path: string): boolean {
+  return path.endsWith('.ts');
+}
+
+/**
  * `lang` is fixed for the life of this screen: everything it saves goes to that
  * language's workspace, even if the language setting changes while a save is running.
  */
@@ -116,13 +128,17 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
     };
   }, []);
 
+  const showFile = useCallback((path: string) => {
+    setTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setActive(path);
+  }, []);
+
   const openFile = useCallback(
     (path: string) => {
-      setTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
-      setActive(path);
+      showFile(path);
       store.load(path).catch((err: Error) => setMessage(`Couldn't open ${path}: ${err.message}`));
     },
-    [store],
+    [showFile, store],
   );
 
   // Load the challenge and create its workspace on first visit.
@@ -134,18 +150,14 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
         setChallenge(detail);
         setFiles(ws.files);
         const first = defaultFile(ws.files);
-        if (first) openFile(first);
-        // TypeScript checks imports across files, so every .ts file needs to be in the
-        // editor (not opened as a tab) for its types to be known.
-        if (lang === 'ts') {
-          for (const file of ws.files.filter((f) => f.endsWith('.ts'))) void store.load(file);
-        }
+        if (first) showFile(first);
+        return store.loadAll(editorFiles(ws.files, lang, first ? [first] : []));
       })
       .catch((err: Error) => !cancelled && setLoadError(err.message));
     return () => {
       cancelled = true;
     };
-  }, [id, lang, openFile, store]);
+  }, [id, lang, showFile, store]);
 
   const runTests = useCallback(async () => {
     if (busy) return;
@@ -202,8 +214,7 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
       const next = active && keep.includes(active) ? active : (keep[0] ?? defaultFile(ws.files));
       setTabs(next && !keep.includes(next) ? [...keep, next] : keep);
       setActive(next ?? null);
-      for (const path of keep) void store.load(path);
-      if (next) void store.load(next);
+      await store.loadAll(editorFiles(ws.files, lang, next ? [...keep, next] : keep));
     } catch (err) {
       setMessage((err as Error).message);
     }
@@ -213,7 +224,8 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
     const remaining = tabs.filter((t) => t !== path);
     setTabs(remaining);
     if (active === path) setActive(remaining[remaining.length - 1] ?? null);
-    void store.close(path);
+    // A closed .ts file stays in the editor: other files may still import its types.
+    if (lang !== 'ts' || !isTsFile(path)) void store.close(path);
   };
 
   // Keyboard shortcuts outside the editor (CodeEditor handles them inside).

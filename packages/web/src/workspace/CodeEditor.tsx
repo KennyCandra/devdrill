@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Spinner } from '../components/ui';
-import { editorThemeFor, languageFor, monaco } from '../editor/monacoSetup';
+import { editorThemeFor, languageFor, monaco, recheckTypeScript } from '../editor/monacoSetup';
 import type { ResolvedTheme } from '../theme';
 import type { FileBuffer } from './fileStore';
 
@@ -86,12 +86,14 @@ export function CodeEditor({
 
   // Keep one model per open buffer; apply content that came from disk.
   useEffect(() => {
+    let addedTypeScript = false;
     for (const [path, buf] of Object.entries(buffers)) {
       const entry = models.current.get(path);
       if (!entry) {
         // file:// URIs let the TypeScript worker resolve imports between open files.
         const uri = monaco.Uri.from({ scheme: 'file', path: `/${workspaceId}/${path}` });
         const model = monaco.editor.createModel(buf.content, languageFor(path), uri);
+        if (model.getLanguageId() === 'typescript') addedTypeScript = true;
         const listener = model.onDidChangeContent(() => {
           if (!applyingDisk.current) callbacks.current.onEdit(path, model.getValue());
         });
@@ -103,6 +105,7 @@ export function CodeEditor({
         entry.diskRevision = buf.diskRevision;
       }
     }
+    if (addedTypeScript) recheckTypeScript();
     for (const [path, entry] of models.current) {
       if (path in buffers) continue;
       if (editor?.getModel() === entry.model) {

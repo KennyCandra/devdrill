@@ -32,10 +32,8 @@ monaco.typescript.typescriptDefaults.setCompilerOptions({
   noEmit: true,
   allowNonTsExtensions: true,
 });
-monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
-  noSemanticValidation: false,
-  noSyntaxValidation: false,
-});
+const TS_DIAGNOSTICS = { noSemanticValidation: false, noSyntaxValidation: false };
+monaco.typescript.typescriptDefaults.setDiagnosticsOptions(TS_DIAGNOSTICS);
 // Imported files must be models for cross-file types; keep the worker in sync with all of them.
 monaco.typescript.typescriptDefaults.setEagerModelSync(true);
 monaco.typescript.typescriptDefaults.addExtraLib(TEST_GLOBALS_DTS, 'file:///__test-globals.d.ts');
@@ -106,6 +104,15 @@ monaco.editor.defineTheme('devdrill-light', {
 /** The Monaco theme for the app's resolved light or dark theme. */
 export function editorThemeFor(theme: ResolvedTheme): string {
   return theme === 'dark' ? 'devdrill-dark' : 'devdrill-light';
+}
+
+/**
+ * Checks every open TypeScript file again. A running worker learns about a file only when
+ * it checks that file, so the first file can report its imports as missing. Setting the
+ * options restarts the worker, and a new worker starts with every file (eager model sync).
+ */
+export function recheckTypeScript(): void {
+  monaco.typescript.typescriptDefaults.setDiagnosticsOptions(TS_DIAGNOSTICS);
 }
 
 export { monaco };

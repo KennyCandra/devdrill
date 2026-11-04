@@ -32,6 +32,29 @@ afterEach(() => {
 });
 
 describe('FileStore', () => {
+  it('opens several files in one step', async () => {
+    const { api } = fakeApi();
+    const store = new FileStore(api, 600);
+    const seen: string[][] = [];
+    store.subscribe(() => seen.push(Object.keys(store.getSnapshot())));
+
+    await store.loadAll(['a.ts', 'b.ts', 'c.ts']);
+
+    expect(seen).toEqual([['a.ts', 'b.ts', 'c.ts']]);
+  });
+
+  it('keeps edits to a file that is already open when opening several', async () => {
+    const { api } = fakeApi();
+    const store = new FileStore(api, 600);
+    await store.load('a.ts');
+    store.edit('a.ts', 'mine');
+
+    await store.loadAll(['a.ts', 'b.ts']);
+
+    expect(store.get('a.ts')?.content).toBe('mine');
+    expect(store.get('b.ts')?.content).toBe('v0');
+  });
+
   it('autosaves after the delay', async () => {
     const { api, disk } = fakeApi();
     const store = new FileStore(api, 600);
