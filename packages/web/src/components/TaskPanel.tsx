@@ -20,19 +20,10 @@ const markdownComponents: Components = {
 // GitHub-flavored Markdown: the "Data" sections are tables.
 const remarkPlugins = [remarkGfm];
 
-const hintsKey = (id: string) => `devdrill-hints-${id}`;
-
-function readShownHints(id: string): number {
-  try {
-    return Number(localStorage.getItem(hintsKey(id))) || 0;
-  } catch {
-    return 0;
-  }
-}
-
 /**
- * The challenge's README, with hints revealed one at a time pinned underneath. With an AI
- * provider set up (`askAi`), the AI can add a hint based on the player's code.
+ * The challenge's README, with hints revealed one at a time pinned underneath. Every visit
+ * starts with them hidden: a hint only ever shows because the player just asked for it.
+ * With an AI provider set up (`askAi`), the AI can add a hint based on the player's code.
  */
 export function TaskPanel({
   challenge,
@@ -51,8 +42,8 @@ export function TaskPanel({
   /** The panel's name in its header: "Task", or "Pull request" in a review. */
   title?: string;
 }) {
-  const { id, hints } = challenge;
-  const [shownHints, setShownHints] = useState(() => Math.min(readShownHints(id), hints.length));
+  const { hints } = challenge;
+  const [shownHints, setShownHints] = useState(0);
   const [aiHints, setAiHints] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -68,16 +59,6 @@ export function TaskPanel({
       setAiError((err as Error).message);
     } finally {
       setAsking(false);
-    }
-  };
-
-  const showNext = () => {
-    const next = shownHints + 1;
-    setShownHints(next);
-    try {
-      localStorage.setItem(hintsKey(id), String(next));
-    } catch {
-      // Storage unavailable: the hint still shows for this visit.
     }
   };
 
@@ -158,7 +139,7 @@ export function TaskPanel({
         )}
         <div className="flex flex-wrap gap-2">
           {shownHints < hints.length && (
-            <Button size="sm" onClick={showNext}>
+            <Button size="sm" onClick={() => setShownHints((n) => n + 1)}>
               <Lightbulb className="i i-sm" aria-hidden="true" />
               {shownHints === 0
                 ? 'Need a hint?'

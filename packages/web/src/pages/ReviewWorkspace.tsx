@@ -464,7 +464,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
         onConfirm={() => void reset()}
         onCancel={() => setConfirmReset(false)}
       >
-        Every comment and your verdict are deleted. Your progress and revealed hints are kept.
+        Every comment and your verdict are deleted. Your progress is kept.
       </ConfirmDialog>
     </div>
   );

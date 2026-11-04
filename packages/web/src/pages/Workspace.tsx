@@ -466,7 +466,7 @@ export function Workspace({ id, lang }: { id: string; lang: Language }) {
         onCancel={() => setConfirmReset(false)}
       >
         Every file in this challenge goes back to how it started, and your edits are lost. Your
-        progress and revealed hints are kept.
+        progress is kept.
       </ConfirmDialog>
     </div>
   );
