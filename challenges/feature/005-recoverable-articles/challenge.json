@@ -1,0 +1,29 @@
+{
+  "id": "feature-005-recoverable-articles",
+  "mode": "feature",
+  "title": "Let deleted articles be restored",
+  "difficulty": "medium",
+  "estimatedMinutes": 25,
+  "tags": [
+    "express",
+    "api-design",
+    "refactoring"
+  ],
+  "hints": [
+    "Before writing code, list every place in src/store that reads articles or comments. Each one needs a decision about deleted articles.",
+    "If most of the app should behave as if a deleted article is gone, make that the default, and add a separate way to see it for the few places that must.",
+    "Keep the deleted slugs in a Set next to the articles rather than adding a field to each article. Then responses keep their shape on their own, and the slug check can still see every article."
+  ],
+  "hiddenTestRules": {
+    "deleting > hides the article from the list": "A deleted article is gone from GET /articles and from GET /authors/:author/articles.",
+    "deleting > hides the article from its author's list": "A deleted article is gone from GET /articles and from GET /authors/:author/articles.",
+    "deleting > answers 404 on every route for that article": "Every other route for a deleted article is 404 with { error: 'Article not found' }, including its comments, PATCH and a second DELETE.",
+    "deleting > leaves the article and its comments out of the stats": "GET /stats counts neither the deleted article nor its comments.",
+    "deleting > keeps the slug taken": "A deleted article's slug stays taken: POST /articles with it is 409, as for any other article, so it can always be restored.",
+    "restoring > brings the article back exactly as it was": "POST /articles/:slug/restore brings a deleted article back with its comments, and answers 200 with the article.",
+    "restoring > brings the comments back and counts them again": "POST /articles/:slug/restore brings a deleted article back with its comments",
+    "restoring > answers 404 for an article that never existed": "Restoring an article that doesn't exist is 404 with { error: 'Article not found' }.",
+    "restoring > answers 409 for an article that is not deleted": "Restoring an article that isn't deleted is 409 with { error: 'Article is not deleted' }.",
+    "shape > adds no new fields to any response": "Articles in responses have the same fields as today: nothing new, whether or not they were ever deleted."
+  }
+}

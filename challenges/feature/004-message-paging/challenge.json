@@ -1,0 +1,30 @@
+{
+  "id": "feature-004-message-paging",
+  "mode": "feature",
+  "title": "Load messages a page at a time",
+  "difficulty": "medium",
+  "estimatedMinutes": 25,
+  "tags": [
+    "express",
+    "api-design",
+    "pagination"
+  ],
+  "hints": [
+    "Decide first which requests get the new response and which keep the old one. Write that branch in the route before anything else.",
+    "A page number or offset counts positions, and positions move when messages are added or deleted. What about a message never changes?",
+    "Make the cursor the id of the last message on the page, and return messages with a bigger id. Ask for one more than the limit to know if there's another page."
+  ],
+  "hiddenTestRules": {
+    "paging > returns the first page and a cursor": "the result is { items, nextCursor }: up to limit messages, oldest first, and nextCursor is text you can pass back.",
+    "paging > continues after the cursor": "With a cursor, the page starts right after the last message of the page that cursor came from.",
+    "paging > ends with a null cursor when the last page is full": "nextCursor is null when there are no more messages, even when the last page is exactly full.",
+    "paging > uses a limit of 20 when only a cursor is given": "A cursor with no limit uses a limit of 20.",
+    "paging > rejects limits outside 1 to 100": "A limit that isn't a whole number from 1 to 100 is 400 with { error: 'limit must be a whole number from 1 to 100' }.",
+    "paging > rejects a limit with junk after the number": "A limit that isn't a whole number from 1 to 100 is 400",
+    "paging > rejects a cursor it never gave out": "A cursor that can't be read is 400 with { error: 'Invalid cursor' }.",
+    "paging > skips nothing when an earlier message is deleted": "Paging never skips or repeats a message when messages are added or deleted between pages.",
+    "paging > still works when the cursor's own message is deleted": "This holds even if the message the cursor came from was deleted.",
+    "paging > repeats nothing when a message is added": "Paging never skips or repeats a message when messages are added or deleted between pages.",
+    "paging > regression: the old list has no paging at all": "With neither limit nor cursor, GET /messages stays exactly as it is today: a plain list of every message."
+  }
+}
