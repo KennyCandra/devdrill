@@ -128,6 +128,18 @@ try {
   const submit = (await api('POST', `/workspaces/${CHALLENGE}/submit`, {})) as { solved: boolean };
   check(submit.solved, 'the fixed code solves the challenge, hidden tests included');
 
+  // Express challenges import a package the workspace doesn't have.
+  const EXPRESS = 'debug-006-project-tasks';
+  await api('POST', `/challenges/${EXPRESS}/start`);
+  const express = (await api('POST', `/workspaces/${EXPRESS}/run`)) as {
+    passed: number;
+    fileErrors: unknown[];
+  };
+  check(
+    express.fileErrors.length === 0 && express.passed > 0,
+    'an Express challenge runs with the installed copy of express',
+  );
+
   // Review mode: the pull request, its issue types, and grading a draft.
   const REVIEW = 'review-001-order-coupons';
   await api('POST', `/challenges/${REVIEW}/start`);
