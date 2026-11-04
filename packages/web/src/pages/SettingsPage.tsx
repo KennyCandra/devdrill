@@ -49,10 +49,10 @@ export function SettingsPage() {
     setConfirmReset(false);
     try {
       await api.resetProgress();
-      // Revealed hints are per-browser; clear them too so it's a real fresh start.
+      // Timers are per-browser; clear them too so it's a real fresh start.
       try {
         for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('devdrill-hints-') || key.startsWith('devdrill-time-')) {
+          if (key.startsWith('devdrill-time-')) {
             localStorage.removeItem(key);
           }
         }
@@ -178,8 +178,8 @@ export function SettingsPage() {
 
             <Section id="progress" title="Progress" className="border-danger-line">
               <p className="muted text-[14px] leading-[21px]">
-                Start over: every challenge goes back to "Not started", your code goes back to the
-                starting files, and revealed hints are hidden again.
+                Start over: every challenge goes back to "Not started", and your code goes back to
+                the starting files.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Button variant="danger" onClick={() => setConfirmReset(true)}>
