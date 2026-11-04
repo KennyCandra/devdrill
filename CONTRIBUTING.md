@@ -82,7 +82,7 @@ It also checks that your number isn't already used in that mode.
 The validator checks:
 
 1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` has a `## Data` section and an example of the exact result in a ` ```js ` block. The README and hints name no `.js`/`.ts` files.
-2. **Plain code, no dependencies:** only `.js`/`.mjs` files in `js/` and `.ts` files in `ts/`; `starter/package.json` has `"type": "module"` and no dependencies; only relative or `node:` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
+2. **Plain code, no dependencies:** only `.js`/`.mjs` files in `js/` and `.ts` files in `ts/`; `starter/package.json` has `"type": "module"` and no dependencies; only relative, `node:` or `express` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
 3. **Every test runs:** no symlinks, no `vitest.config.*` or `vite.config.*`, no `.skip` / `.only` / `.todo` / `.skipIf` / `.runIf`.
 4. **Layout:** hidden test files are named `*.hidden.test.js` (or `.ts`) and don't share a path with a starter file; `solution/` doesn't contain tests or `package.json`.
 5. **Debug:** at least one visible and one hidden test fail on `starter/`; everything passes on `solution/`.
@@ -90,6 +90,10 @@ The validator checks:
 7. **Same tests:** the solution run runs exactly the same tests as the starter run, and `js/` and `ts/` have the same test names.
 8. **Every hidden test has a rule:** each hidden test is in `hiddenTestRules`, and its sentence appears in the README (bold and code ticks are ignored when comparing).
 9. **TypeScript type-checks:** in `ts/`, the starter and the full solution have no type errors (strict mode), no `any` outside tests and no `@ts-` comments that switch checks off.
+
+### Express challenges
+
+`express` is the one package a challenge can import. Players don't install it: the app provides its own copy at run time, and its types in the editor (`EXPRESS_DTS` in `packages/shared/src/testGlobals.ts`; add any part of Express a challenge needs there). Export a `createApp()` that builds a fresh app with fresh data. Tests start it on a random port on `127.0.0.1`, call it with `fetch` and close it afterwards. Hidden tests can't share a helper, so each test file has its own few lines for this. In `ts/`, don't import from `node:`: the type check has no Node types.
 
 ### 5. Playtest
 

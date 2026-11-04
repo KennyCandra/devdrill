@@ -1,4 +1,4 @@
-import { TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
+import { EXPRESS_DTS, TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
 import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
@@ -39,6 +39,9 @@ monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
 // Imported files must be models for cross-file types; keep the worker in sync with all of them.
 monaco.typescript.typescriptDefaults.setEagerModelSync(true);
 monaco.typescript.typescriptDefaults.addExtraLib(TEST_GLOBALS_DTS, 'file:///__test-globals.d.ts');
+// Workspaces have no node_modules, so Express challenges get its types from here.
+monaco.typescript.typescriptDefaults.addExtraLib(EXPRESS_DTS, 'file:///__express.d.ts');
+monaco.typescript.javascriptDefaults.addExtraLib(EXPRESS_DTS, 'file:///__express.d.ts');
 
 // The two editor themes, from the design. The JavaScript and TypeScript tokenizer never emits
 // `identifier.function`, so function names get the plain identifier colour.

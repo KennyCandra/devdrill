@@ -2,7 +2,7 @@ import { cp, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { validateChallenge } from './validateChallenge.js';
+import { checkImports, validateChallenge } from './validateChallenge.js';
 
 // Uses the real challenge #1 as a known-good fixture, then breaks copies of it.
 const GOOD = path.resolve(import.meta.dirname, '../../challenges/debug/001-cart-discount');
@@ -48,6 +48,16 @@ describe('validateChallenge', () => {
     const result = await validateChallenge(dir);
     expect(result.ok).toBe(false);
     expect(result.errors.join('\n')).toContain('at least one visible test must fail');
+  });
+
+  it('allows importing express but no other package', async () => {
+    const importing = (name: string) => `import x from '${name}';\nexport default x;\n`;
+    const errors: string[] = [];
+    await checkImports('a.js', 'js', importing('express'), errors);
+    expect(errors).toEqual([]);
+    await checkImports('b.js', 'js', importing('lodash'), errors);
+    await checkImports('c.js', 'js', importing('express/lib/router'), errors);
+    expect(errors).toHaveLength(2);
   });
 
   it('rejects tests that import vitest', async () => {
