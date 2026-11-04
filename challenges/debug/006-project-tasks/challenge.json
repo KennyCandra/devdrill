@@ -1,0 +1,24 @@
+{
+  "id": "debug-006-project-tasks",
+  "mode": "debug",
+  "title": "Every project's tasks return 404",
+  "difficulty": "medium",
+  "estimatedMinutes": 15,
+  "tags": [
+    "express",
+    "routing",
+    "debugging"
+  ],
+  "hints": [
+    "Add a console.log of req.params at the top of the middleware in src/tasksRouter and run the tests.",
+    "A router only sees the URL params of its own paths unless you tell it otherwise. Look at how express.Router is called, and at where :projectId is defined.",
+    "Use express.Router({ mergeParams: true }). Then log typeof req.params.projectId: URLs are text, but the ids in src/store are numbers."
+  ],
+  "hiddenTestRules": {
+    "project tasks > only finds a task under its own project": "A task is only found under the project it belongs to; under any other project it's 404 with { error: 'Task not found' }.",
+    "project tasks > treats an id that only starts with a real id as not found": "An id that isn't exactly a real id, like 1abc, is treated as not found.",
+    "project tasks > gives a new task its project's number": "A new task's projectId is the project's number, not text: 1, not '1'.",
+    "project tasks > lists a new task in its project": "A new task then shows up in its project's list.",
+    "project tasks > regression: rejects a task with no title": "A new task needs a non-empty title; otherwise it's 400 with { error: 'Title is required' }."
+  }
+}
