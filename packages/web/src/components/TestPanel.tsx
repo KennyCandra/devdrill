@@ -13,9 +13,9 @@ export function TestPanel({
   error: string | null;
 }) {
   const [view, setView] = useState<'results' | 'console'>('results');
-  // The Console switch only exists when the code printed something.
+  // The Console switch is there after every run: an empty console is a clue too.
   const consoleLines = result ? consoleLineCount(result) : 0;
-  const onConsole = view === 'console' && consoleLines > 0;
+  const onConsole = view === 'console';
 
   return (
     <section aria-label="Test results" className="panel flex h-full flex-col">
@@ -32,7 +32,7 @@ export function TestPanel({
             {!running && result && <RunSummary result={result} />}
           </span>
         </div>
-        {!running && result && consoleLines > 0 && (
+        {!running && result && (
           <div className="seg shrink-0 p-[2px]" role="group" aria-label="Test output">
             <button
               type="button"
@@ -48,7 +48,7 @@ export function TestPanel({
               onClick={() => setView('console')}
               className={`seg-item h-6 ${onConsole ? 'on' : ''}`}
             >
-              Console <span className="seg-count">{consoleLines}</span>
+              Console {consoleLines > 0 && <span className="seg-count">{consoleLines}</span>}
             </button>
           </div>
         )}
@@ -178,6 +178,13 @@ function ConsoleView({ result }: { result: TestRunResult }) {
   }
   for (const t of result.tests) {
     if (t.logs && t.logs.length > 0) groups.push({ label: t.name, lines: t.logs });
+  }
+  if (groups.length === 0) {
+    return (
+      <p className="muted animate-fade-in px-4 py-3 font-sans">
+        Nothing printed in this run. A console.log only prints if the code reaches it.
+      </p>
+    );
   }
   return (
     <div className="animate-fade-in flex flex-col gap-3 px-4 py-2">
