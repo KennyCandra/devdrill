@@ -44,13 +44,19 @@ export function buildTree(files: string[]): TreeNode[] {
   return sort(root.children!);
 }
 
+/**
+ * `virtualFiles` are listed first, above the folders, for files the page shows that are not
+ * on disk (the README). They open like any file but have no unsaved state.
+ */
 export function FileTree({
   files,
+  virtualFiles = [],
   activePath,
   unsaved,
   onOpen,
 }: {
   files: string[];
+  virtualFiles?: string[];
   activePath: string | null;
   unsaved: Set<string>;
   onOpen: (path: string) => void;
@@ -65,6 +71,31 @@ export function FileTree({
       else next.add(path);
       return next;
     });
+
+  const fileItem = (path: string, name: string, depth: number) => {
+    const active = path === activePath;
+    const indent = 10 + depth * 14;
+    return (
+      <li key={path}>
+        <button
+          type="button"
+          onClick={() => onOpen(path)}
+          aria-current={active ? 'true' : undefined}
+          style={{ paddingLeft: indent + 14 }}
+          className={`tree-item w-[calc(100%-12px)] text-left ${active ? 'on' : ''}`}
+        >
+          <FileIcon name={name} />
+          <span className="min-w-0 flex-1 truncate">{name}</span>
+          {unsaved.has(path) && (
+            <>
+              <span aria-hidden="true" className="dot" />
+              <span className="sr-only"> (unsaved)</span>
+            </>
+          )}
+        </button>
+      </li>
+    );
+  };
 
   const render = (nodes: TreeNode[], depth: number) =>
     nodes.map((node) => {
@@ -90,27 +121,7 @@ export function FileTree({
           </li>
         );
       }
-      const active = node.path === activePath;
-      return (
-        <li key={node.path}>
-          <button
-            type="button"
-            onClick={() => onOpen(node.path)}
-            aria-current={active ? 'true' : undefined}
-            style={{ paddingLeft: indent + 14 }}
-            className={`tree-item w-[calc(100%-12px)] text-left ${active ? 'on' : ''}`}
-          >
-            <FileIcon name={node.name} />
-            <span className="min-w-0 flex-1 truncate">{node.name}</span>
-            {unsaved.has(node.path) && (
-              <>
-                <span aria-hidden="true" className="dot" />
-                <span className="sr-only"> (unsaved)</span>
-              </>
-            )}
-          </button>
-        </li>
-      );
+      return fileItem(node.path, node.name, depth);
     });
 
   return (
@@ -118,7 +129,10 @@ export function FileTree({
       <div className="panel-header">
         <span className="panel-title">Files</span>
       </div>
-      <ul className="min-h-0 flex-1 overflow-auto py-2">{render(tree, 0)}</ul>
+      <ul className="min-h-0 flex-1 overflow-auto py-2">
+        {virtualFiles.map((path) => fileItem(path, path, 0))}
+        {render(tree, 0)}
+      </ul>
     </nav>
   );
 }

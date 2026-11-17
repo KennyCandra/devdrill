@@ -1,5 +1,5 @@
-import { Bot, ChevronLeft, Lightbulb } from 'lucide-react';
-import { useState, type Ref } from 'react';
+import { Bot, Lightbulb } from 'lucide-react';
+import { useState } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChallengeDetail, ChallengeMode } from '@devdrill/shared';
@@ -21,26 +21,18 @@ const markdownComponents: Components = {
 const remarkPlugins = [remarkGfm];
 
 /**
- * The challenge's README, with hints revealed one at a time pinned underneath. Every visit
- * starts with them hidden: a hint only ever shows because the player just asked for it.
+ * The challenge's README (or, in a review, the pull request description), rendered read-only,
+ * with hints revealed one at a time at the bottom. Every visit starts with them hidden: a hint
+ * only ever shows because the player just asked for it. The caller scrolls this.
  * With an AI provider set up (`askAi`), the AI can add a hint based on the player's code.
  */
-export function TaskPanel({
+export function ReadmeTab({
   challenge,
   askAi,
-  onCollapse,
-  collapseRef,
-  title = 'Task',
 }: {
   challenge: ChallengeDetail;
   /** Gets an AI hint, given the written hints already shown. */
   askAi?: (shownHints: string[]) => Promise<string>;
-  /** Shows a collapse button in the header when the panel can be folded away. */
-  onCollapse?: () => void;
-  /** Lets the page move focus to the collapse button. */
-  collapseRef?: Ref<HTMLButtonElement>;
-  /** The panel's name in its header: "Task", or "Pull request" in a review. */
-  title?: string;
 }) {
   const { hints } = challenge;
   const [shownHints, setShownHints] = useState(0);
@@ -63,38 +55,15 @@ export function TaskPanel({
   };
 
   return (
-    <aside className="panel flex h-full flex-col">
-      <div className="panel-header">
-        <span className="panel-title">{title}</span>
-        {onCollapse && (
-          <button
-            ref={collapseRef}
-            type="button"
-            onClick={onCollapse}
-            aria-label={`Collapse ${title.toLowerCase()} panel`}
-            title={`Collapse ${title.toLowerCase()} panel`}
-            className="btn btn-ghost btn-icon btn-sm"
-          >
-            <ChevronLeft className="i i-sm" aria-hidden="true" />
-          </button>
-        )}
+    <div className="flex flex-col gap-4 px-5 pt-4 pb-5">
+      <ModeNote mode={challenge.mode} />
+      <div className="prose-task">
+        <Markdown remarkPlugins={remarkPlugins} components={markdownComponents}>
+          {challenge.readme}
+        </Markdown>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <div className="flex flex-col gap-4 px-5 pt-4 pb-5">
-          <ModeNote mode={challenge.mode} />
-          <div className="prose-task">
-            <Markdown remarkPlugins={remarkPlugins} components={markdownComponents}>
-              {challenge.readme}
-            </Markdown>
-          </div>
-        </div>
-      </div>
-
-      <section
-        aria-label="Hints"
-        className="flex max-h-[45%] shrink-0 flex-col gap-2 overflow-auto border-t border-line px-5 py-3"
-      >
+      <section aria-label="Hints" className="flex flex-col gap-2 border-t border-line pt-4">
         <div className="flex items-center justify-between gap-2">
           <span className="panel-title">Hints</span>
           <span className="mono subtle text-[12px]">
@@ -160,7 +129,7 @@ export function TaskPanel({
           )}
         </div>
       </section>
-    </aside>
+    </div>
   );
 }
 
