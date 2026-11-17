@@ -33,6 +33,27 @@ Rules:
 ({ id: 2, ownerId: 1, text: 'Call Sam' });
 ```
 
+The sample data: Alice has no notes yet, and Bob has one note, `Buy milk`. Cara's notes can be up to 10 characters long. Other examples:
+
+```js
+// GET /me with the header Authorization: Bearer bob-token
+({ id: 2, name: 'Bob', theme: 'light' });
+
+// GET /me/notes with the header Authorization: Bearer alice-token
+[];
+
+// GET /me/notes with the header Authorization: Bearer bob-token
+[{ id: 1, ownerId: 2, text: 'Buy milk' }];
+
+// POST /me/notes with cara-token and { "text": "This note is too long" }
+// answers 400 and
+({ error: 'Note is too long' });
+
+// GET /me or GET /me/notes with no token, or with an unknown token
+// answers 401 and
+({ error: 'Not signed in' });
+```
+
 ## Data
 
 **Account**

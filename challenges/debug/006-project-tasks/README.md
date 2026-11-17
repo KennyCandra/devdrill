@@ -24,12 +24,52 @@ Rules:
 - A new task then shows up in its project's list.
 - A new task needs a non-empty `title`; otherwise it's `400` with `{ error: 'Title is required' }`.
 
+The app starts with two projects, and three tasks:
+
 ```js
+// GET /projects
+[
+  { id: 1, name: 'Website' },
+  { id: 2, name: 'Mobile app' },
+];
+
+// GET /projects/1/tasks
+[
+  { id: 1, projectId: 1, title: 'Fix the header', done: false },
+  { id: 2, projectId: 1, title: 'Write the docs', done: true },
+];
+
 // GET /projects/2/tasks
 [{ id: 3, projectId: 2, title: 'Ship the beta', done: false }];
 
 // POST /projects/2/tasks with { "title": "Fix login" } answers 201 and
 ({ id: 4, projectId: 2, title: 'Fix login', done: false });
+
+// GET /projects/2/tasks, after that POST
+[
+  { id: 3, projectId: 2, title: 'Ship the beta', done: false },
+  { id: 4, projectId: 2, title: 'Fix login', done: false },
+];
+```
+
+The error responses:
+
+```js
+// GET /projects/99/tasks, GET /projects/99/tasks/1 or POST /projects/99/tasks
+// answers 404 and
+({ error: 'Project not found' });
+
+// GET /projects/1abc/tasks answers 404 and
+({ error: 'Project not found' });
+
+// GET /projects/2/tasks/1 (task 1 is in project 1) answers 404 and
+({ error: 'Task not found' });
+
+// GET /projects/1/tasks/1abc answers 404 and
+({ error: 'Task not found' });
+
+// POST /projects/1/tasks with { "title": "" }, or with no body, answers 400 and
+({ error: 'Title is required' });
 ```
 
 ## Data
