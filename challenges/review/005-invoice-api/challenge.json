@@ -1,0 +1,17 @@
+{
+  "id": "review-005-invoice-api",
+  "mode": "review",
+  "title": "Add invoice details and a summary",
+  "difficulty": "medium",
+  "estimatedMinutes": 15,
+  "tags": [
+    "express",
+    "security",
+    "performance"
+  ],
+  "hints": [
+    "Sign in as one customer and walk through each new route with an id or data that belongs to another customer. What stops them?",
+    "Look at what the new error handler sends back, and think about who reads that response.",
+    "Work out how long the summary takes for a customer with 300 invoices. Then compare what the new tests check with what the PR promises."
+  ]
+}

@@ -22,6 +22,28 @@ afterEach(async () => {
 });
 
 describe('runTests', () => {
+  it('lets a workspace without node_modules import express', async () => {
+    const dir = await project({
+      'tests/app.test.js': `
+        import express from 'express';
+        it('serves a request', async () => {
+          const app = express();
+          app.get('/ping', (req, res) => res.json({ ok: true }));
+          const server = await new Promise((resolve) => {
+            const s = app.listen(0, '127.0.0.1', () => resolve(s));
+          });
+          const res = await fetch('http://127.0.0.1:' + server.address().port + '/ping');
+          server.close();
+          expect(await res.json()).toEqual({ ok: true });
+        });`,
+    });
+
+    const result = await runTests(dir);
+
+    expect(result.errorMessage).toBeUndefined();
+    expect(result).toMatchObject({ status: 'passed', passed: 1, total: 1 });
+  });
+
   it('reports passed and failed tests with relative file paths', async () => {
     const dir = await project({
       'tests/math.test.js': `

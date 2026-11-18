@@ -22,10 +22,8 @@ import type {
 } from '@devdrill/shared';
 import { createApp } from './app.js';
 import { appPaths } from './config.js';
-import { TOKEN_HEADER } from './security.js';
 import { loadChallenges } from './services/challengeLoader.js';
 
-const TOKEN = 'test-token-0123456789abcdef';
 const ID = 'debug-001-cart-discount';
 const BUGGY_LINE = "coupon.type === 'percentage'";
 const FIXED_LINE = "coupon.type === 'percent'";
@@ -36,7 +34,7 @@ let host: string;
 
 /** A request with everything the security middleware needs; tests remove parts of it. */
 function api(method: 'get' | 'post' | 'put' | 'delete', url: string) {
-  const req = request(server)[method](`/api${url}`).set('Host', host).set(TOKEN_HEADER, TOKEN);
+  const req = request(server)[method](`/api${url}`).set('Host', host);
   return method === 'get' ? req : req.set('Content-Type', 'application/json');
 }
 
@@ -45,7 +43,6 @@ async function startServer(): Promise<void> {
   const app = createApp({
     challenges: await loadChallenges(appPaths().challenges),
     dataDir,
-    token: TOKEN,
     extraOrigins: ['http://localhost:5173'],
   });
   server = app.listen(0, '127.0.0.1');
@@ -60,25 +57,22 @@ afterAll(async () => {
   await rm(dataDir, { recursive: true, force: true });
 });
 
-describe('security', () => {
-  it('accepts a correct request', async () => {
+// Local mode has no token: these checks are the whole protection (see apiSecurity).
+describe('security (local, no token)', () => {
+  it('accepts a correct request with no token at all', async () => {
     await api('get', '/challenges').expect(200);
-  });
-
-  it('rejects a missing token', async () => {
-    await request(server).get('/api/challenges').set('Host', host).expect(401);
-  });
-
-  it('rejects a wrong token', async () => {
-    await api('get', '/challenges').set(TOKEN_HEADER, 'nope').expect(401);
   });
 
   it('rejects a foreign Host header (DNS rebinding)', async () => {
     await api('get', '/challenges').set('Host', 'evil.example:80').expect(403);
   });
 
-  it('rejects a foreign Origin (CSRF)', async () => {
+  it('rejects a foreign Origin (CSRF), even with no token', async () => {
     await api('get', '/challenges').set('Origin', 'https://evil.example').expect(403);
+  });
+
+  it('rejects a foreign Origin on a write, even when it is JSON', async () => {
+    await api('post', `/challenges/${ID}/start`).set('Origin', 'https://evil.example').expect(403);
   });
 
   it('allows the configured dev origin', async () => {
@@ -92,6 +86,10 @@ describe('security', () => {
       .expect(415);
   });
 
+  it('does not ignore the Host check just because there is no token', async () => {
+    await request(server).get('/api/challenges').set('Host', 'localhost.evil.example').expect(403);
+  });
+
   it('accepts a JSON POST with no body at all (no Content-Length)', async () => {
     const status = await new Promise<number | undefined>((resolve, reject) => {
       const req = httpRequest(
@@ -100,7 +98,7 @@ describe('security', () => {
           port: Number(host.split(':')[1]),
           method: 'POST',
           path: `/api/challenges/${ID}/start`,
-          headers: { Host: host, [TOKEN_HEADER]: TOKEN, 'Content-Type': 'application/json' },
+          headers: { Host: host, 'Content-Type': 'application/json' },
         },
         (res) => {
           res.resume();
@@ -354,12 +352,8 @@ describe('workspace edge cases', () => {
     await api('get', `/workspaces/${ID}/files?path=image.png`).expect(415);
   });
 
-  it('accepts bodyless POSTs with no Content-Type (the token already blocks other sites)', async () => {
-    await request(server)
-      .post(`/api/workspaces/${ID}/reset`)
-      .set('Host', host)
-      .set(TOKEN_HEADER, TOKEN)
-      .expect(200);
+  it('accepts bodyless POSTs with no Content-Type', async () => {
+    await request(server).post(`/api/workspaces/${ID}/reset`).set('Host', host).expect(200);
   });
 
   it('records when a challenge was first started', async () => {
@@ -369,7 +363,7 @@ describe('workspace edge cases', () => {
 });
 
 describe('session', () => {
-  it('confirms the token works', async () => {
+  it('answers without a token', async () => {
     const res = await api('get', '/session').expect(200);
     expect(res.body).toMatchObject({ ok: true });
   });
@@ -416,7 +410,6 @@ describe('serving the built UI', () => {
     const app = createApp({
       challenges: await loadChallenges(appPaths().challenges),
       dataDir,
-      token: TOKEN,
       uiDir,
     });
     uiServer = app.listen(0, '127.0.0.1');
@@ -429,10 +422,9 @@ describe('serving the built UI', () => {
     await rm(uiDir, { recursive: true, force: true });
   });
 
-  it('serves the app page with security headers and no token', async () => {
+  it('serves the app page with security headers', async () => {
     const res = await request(uiServer).get('/').set('Host', uiHost).expect(200);
     expect(res.text).toContain('<title>DevDrill</title>');
-    expect(res.text).not.toContain(TOKEN);
     expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
     expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
@@ -476,11 +468,7 @@ describe('serving the built UI', () => {
   });
 
   it('still answers unknown API routes with JSON', async () => {
-    const res = await request(uiServer)
-      .get('/api/nope')
-      .set('Host', uiHost)
-      .set(TOKEN_HEADER, TOKEN)
-      .expect(404);
+    const res = await request(uiServer).get('/api/nope').set('Host', uiHost).expect(404);
     expect(res.body).toEqual({ error: 'Unknown API route.' });
   });
 });
@@ -548,13 +536,11 @@ describe('languages', () => {
       const app = createApp({
         challenges: await loadChallenges(appPaths().challenges),
         dataDir: home,
-        token: TOKEN,
       });
       const srv = app.listen(0, '127.0.0.1');
       await new Promise((resolve) => srv.once('listening', resolve));
       const host2 = `127.0.0.1:${(srv.address() as AddressInfo).port}`;
-      const get = (url: string) =>
-        request(srv).get(`/api${url}`).set('Host', host2).set(TOKEN_HEADER, TOKEN);
+      const get = (url: string) => request(srv).get(`/api${url}`).set('Host', host2);
 
       const ws = await get(`/workspaces/${ID}?lang=js`).expect(200);
       expect((ws.body as WorkspaceInfo).files).toEqual(['new.js']);
@@ -583,13 +569,11 @@ describe('languages', () => {
       const app = createApp({
         challenges: await loadChallenges(appPaths().challenges),
         dataDir: oldHome,
-        token: TOKEN,
       });
       const old = app.listen(0, '127.0.0.1');
       await new Promise((resolve) => old.once('listening', resolve));
       const oldHost = `127.0.0.1:${(old.address() as AddressInfo).port}`;
-      const get = (url: string) =>
-        request(old).get(`/api${url}`).set('Host', oldHost).set(TOKEN_HEADER, TOKEN);
+      const get = (url: string) => request(old).get(`/api${url}`).set('Host', oldHost);
 
       const ws = await get(`/workspaces/${ID}?lang=js`).expect(200);
       expect((ws.body as WorkspaceInfo).files).toContain('src/mine.js');
@@ -773,7 +757,6 @@ describe('review challenges', () => {
     const app = createApp({
       challenges: await loadChallenges(appPaths().challenges),
       dataDir,
-      token: TOKEN,
     });
     const other = app.listen(0, '127.0.0.1');
     await new Promise((resolve) => other.once('listening', resolve));
@@ -781,7 +764,6 @@ describe('review challenges', () => {
     const res = await request(other)
       .get(`/api/workspaces/${REVIEW}/review?lang=js`)
       .set('Host', otherHost)
-      .set(TOKEN_HEADER, TOKEN)
       .expect(200);
     other.close();
     expect(res.body).toEqual({ comments: [], verdict: null });
@@ -830,7 +812,6 @@ describe('review challenges', () => {
     const app = createApp({
       challenges: await loadChallenges(appPaths().challenges),
       dataDir,
-      token: TOKEN,
     });
     const other = app.listen(0, '127.0.0.1');
     await new Promise((resolve) => other.once('listening', resolve));
@@ -838,7 +819,6 @@ describe('review challenges', () => {
     await request(other)
       .get(`/api/workspaces/${REVIEW}/review/result?lang=js`)
       .set('Host', otherHost)
-      .set(TOKEN_HEADER, TOKEN)
       .expect(404);
     other.close();
   });

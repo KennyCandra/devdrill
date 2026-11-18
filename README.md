@@ -78,7 +78,7 @@ npx devdrill --help
 ## Your data and safety
 
 - Your code, progress and settings live in `~/.devdrill`. Settings → "Reset all progress" starts over.
-- The server listens on `127.0.0.1` only. Because your code runs on your machine, the API is locked down so other websites can't reach it: it checks the Host and Origin headers, requires JSON, and needs a secret token. That's why the app opens with a link ending in `#token=…`.
+- The server listens on `127.0.0.1` only. Because your code runs on your machine, the API is locked down so other websites can't reach it: it checks the Host and Origin headers and requires JSON. A web page in your browser can't get past those checks, so the app opens at a plain `http://127.0.0.1:3000/` address with no token. Other programs on your computer can reach the server too, so don't leave it running on a machine you share with people you don't trust.
 - Your tests run with the app's own Vitest; challenges have no dependencies and nothing is installed per challenge.
 
 ## Development

@@ -21,7 +21,7 @@ import { MAX_COMMENT_LINES, MAX_REVIEW_COMMENTS } from '@devdrill/shared/review'
 import { api } from '../api/client';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LanguageSwitch } from '../components/LanguageSwitch';
-import { TaskPanel } from '../components/TaskPanel';
+import { ReadmeTab } from '../components/ReadmeTab';
 import { TopBar } from '../components/TopBar';
 import { Button, DifficultyBadge, ModeBadge, Spinner, StatusScreen } from '../components/ui';
 import type { monaco } from '../editor/monacoSetup';
@@ -32,7 +32,10 @@ import { ReviewDraftStore } from '../workspace/reviewDraft';
 import { ReviewPanel, type CommentEdit } from '../workspace/ReviewPanel';
 import { ActiveTimer } from '../workspace/timer';
 import { TimerDisplay } from '../workspace/TimerDisplay';
-import { layoutStorage, TASK_RAIL, TaskRail, useTaskFold } from './Workspace';
+import { layoutStorage } from './Workspace';
+
+/** The pull request description, as the first tab. Like the README, it is never a file on disk. */
+const PR_PATH = 'PR.md';
 
 function newCommentId(): string {
   return typeof crypto.randomUUID === 'function'
@@ -54,7 +57,8 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
     state: saveState,
     error: saveError,
   } = useSyncExternalStore(store.subscribe, store.getSnapshot);
-  const columns = useDefaultLayout({ id: 'devdrill-review-columns', storage: layoutStorage });
+  // The layout id changed when the task column went: sizes saved for the old panels are not reused.
+  const columns = useDefaultLayout({ id: 'devdrill-review-files-columns', storage: layoutStorage });
   const [timer] = useState(() => new ActiveTimer(id, lang));
   useEffect(() => {
     timer.start();
@@ -64,7 +68,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [pr, setPr] = useState<ReviewPullRequest | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activePath, setActivePath] = useState('');
+  const [activePath, setActivePath] = useState(PR_PATH);
   const [selection, setSelection] = useState<LineRange | null>(null);
   const [editing, setEditing] = useState<CommentEdit | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -76,7 +80,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   /** Bumped to clear the selection in the diff, e.g. after a comment is added. */
   const [clearSelection, setClearSelection] = useState(0);
   const models = useRef(new Map<string, monaco.editor.ITextModel>());
-  const task = useTaskFold();
   /** Lines added and removed in the file on screen. */
   const [lineCounts, setLineCounts] = useState<LineCounts | null>(null);
 
@@ -89,7 +92,6 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
         store.load(saved);
         setChallenge(detail);
         setPr(pullRequest);
-        setActivePath(pullRequest.files[0]?.path ?? '');
       })
       .catch((err: Error) => !cancelled && setLoadError(err.message));
     return () => {
@@ -248,6 +250,7 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
   }
 
   const countIn = (path: string) => draft.comments.filter((c) => c.file === path).length;
+  const onPr = activePath === PR_PATH;
   // What the footer says, after any message: the comment being written, else the verdict.
   const status = editing
     ? `Writing a comment on ${lineLabel(editing.lines)}…`
@@ -295,35 +298,24 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
         defaultLayout={columns.defaultLayout}
         onLayoutChanged={columns.onLayoutChanged}
       >
-        <Panel
-          id="task"
-          panelRef={task.panelRef}
-          defaultSize="22"
-          minSize={180}
-          collapsible
-          collapsedSize={TASK_RAIL}
-          onResize={task.onResize}
-        >
-          {task.collapsed && (
-            <TaskRail label="Pull request" expandRef={task.expandRef} onExpand={task.expand} />
-          )}
-          {/* Hidden, not unmounted, when folded: the hints keep their state. */}
-          <div hidden={task.collapsed} className="h-full">
-            <TaskPanel
-              challenge={challenge}
-              title="Pull request"
-              collapseRef={task.collapseRef}
-              onCollapse={task.collapse}
-            />
-          </div>
-        </Panel>
-        <ResizeHandle />
         <Panel id="diff" minSize={320}>
           <div className="flex h-full flex-col">
             <nav
-              aria-label="Changed files"
+              aria-label="Pull request and changed files"
               className="flex shrink-0 overflow-x-auto border-b border-line bg-bar"
             >
+              <button
+                type="button"
+                aria-current={onPr ? 'page' : undefined}
+                onClick={() => {
+                  // The diff's selection belongs to its file; it can't carry over to the PR.
+                  setSelection(null);
+                  setActivePath(PR_PATH);
+                }}
+                className={`ftab shrink-0 focus-visible:outline-2 focus-visible:outline-accent ${onPr ? 'on' : ''}`}
+              >
+                {PR_PATH}
+              </button>
               {pr.files.map((f) => {
                 const on = f.path === activePath;
                 const comments = countIn(f.path);
@@ -349,14 +341,19 @@ export function ReviewWorkspace({ id, lang }: { id: string; lang: Language }) {
                   </button>
                 );
               })}
-              {lineCounts && (
+              {lineCounts && !onPr && (
                 <span className="mono ml-auto flex shrink-0 items-center gap-2.5 self-center px-3.5 text-[12px]">
                   <span className="text-success">+{lineCounts.added}</span>
                   <span className="text-danger">−{lineCounts.removed}</span>
                 </span>
               )}
             </nav>
-            <div className="min-h-0 flex-1">
+            {/* The PR description and the diff take turns here. Both stay mounted, so the
+                diff keeps its scroll position and the hints keep their state. */}
+            <div hidden={!onPr} className="min-h-0 flex-1 overflow-auto">
+              <ReadmeTab challenge={challenge} />
+            </div>
+            <div hidden={onPr} className="min-h-0 flex-1">
               <DiffView
                 reviewId={`${lang}/${id}`}
                 files={pr.files}

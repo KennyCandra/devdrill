@@ -1,21 +1,36 @@
-import { BookOpen, Check, Circle, EyeOff, Timer, TriangleAlert, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+  BookOpen,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  EyeOff,
+  Timer,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
+import { useState, type Ref } from 'react';
 import type { ConsoleLine, TestCaseResult, TestRunResult } from '@devdrill/shared';
-import { Kbd, modKey, Spinner } from './ui';
+import { Button, Kbd, modKey, Spinner } from './ui';
 
 export function TestPanel({
   result,
   running,
   error,
+  onHide,
+  hideRef,
 }: {
   result: TestRunResult | null;
   running: boolean;
   error: string | null;
+  /** Shows the hide button, when the panel can be folded. */
+  onHide?: () => void;
+  hideRef?: Ref<HTMLButtonElement>;
 }) {
   const [view, setView] = useState<'results' | 'console'>('results');
-  // The Console switch only exists when the code printed something.
+  // The Console switch is there after every run: an empty console is a clue too.
   const consoleLines = result ? consoleLineCount(result) : 0;
-  const onConsole = view === 'console' && consoleLines > 0;
+  const onConsole = view === 'console';
 
   return (
     <section aria-label="Test results" className="panel flex h-full flex-col">
@@ -32,26 +47,41 @@ export function TestPanel({
             {!running && result && <RunSummary result={result} />}
           </span>
         </div>
-        {!running && result && consoleLines > 0 && (
-          <div className="seg shrink-0 p-[2px]" role="group" aria-label="Test output">
-            <button
-              type="button"
-              aria-pressed={!onConsole}
-              onClick={() => setView('results')}
-              className={`seg-item h-6 ${onConsole ? '' : 'on'}`}
+        <div className="flex shrink-0 items-center gap-2">
+          {!running && result && (
+            <div className="seg shrink-0 p-[2px]" role="group" aria-label="Test output">
+              <button
+                type="button"
+                aria-pressed={!onConsole}
+                onClick={() => setView('results')}
+                className={`seg-item h-6 ${onConsole ? '' : 'on'}`}
+              >
+                Results
+              </button>
+              <button
+                type="button"
+                aria-pressed={onConsole}
+                onClick={() => setView('console')}
+                className={`seg-item h-6 ${onConsole ? 'on' : ''}`}
+              >
+                Console {consoleLines > 0 && <span className="seg-count">{consoleLines}</span>}
+              </button>
+            </div>
+          )}
+          {onHide && (
+            <Button
+              ref={hideRef}
+              variant="ghost"
+              size="sm"
+              onClick={onHide}
+              aria-label="Hide tests panel"
+              title={`Hide tests panel (${modKey} J)`}
+              className="btn-icon"
             >
-              Results
-            </button>
-            <button
-              type="button"
-              aria-pressed={onConsole}
-              onClick={() => setView('console')}
-              className={`seg-item h-6 ${onConsole ? 'on' : ''}`}
-            >
-              Console <span className="seg-count">{consoleLines}</span>
-            </button>
-          </div>
-        )}
+              <ChevronDown className="i i-sm" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto py-1.5 font-mono text-[13px]">
@@ -78,6 +108,52 @@ export function TestPanel({
         {!running && result && onConsole && <ConsoleView result={result} />}
       </div>
     </section>
+  );
+}
+
+/**
+ * The Tests panel folded away: its title and last run summary, and a button to bring it back.
+ * The whole bar is the target, so a click anywhere on it opens the panel.
+ */
+export function TestsBar({
+  result,
+  running,
+  onShow,
+  showRef,
+}: {
+  result: TestRunResult | null;
+  running: boolean;
+  onShow: () => void;
+  showRef?: Ref<HTMLButtonElement>;
+}) {
+  return (
+    <div
+      onClick={onShow}
+      className="panel flex h-full cursor-pointer items-center justify-between gap-3 px-3 hover:bg-surface-hover"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="panel-title">Tests</span>
+        <span className="flex min-w-0 items-center gap-3 text-[13px]">
+          {running && (
+            <span className="muted flex items-center gap-2">
+              <Spinner /> Running tests…
+            </span>
+          )}
+          {!running && result && <RunSummary result={result} />}
+        </span>
+      </div>
+      {/* The click reaches the bar, so the button needs no handler of its own. */}
+      <Button
+        ref={showRef}
+        variant="ghost"
+        size="sm"
+        aria-label="Show tests panel"
+        title={`Show tests panel (${modKey} J)`}
+        className="btn-icon shrink-0"
+      >
+        <ChevronUp className="i i-sm" aria-hidden="true" />
+      </Button>
+    </div>
   );
 }
 
@@ -178,6 +254,13 @@ function ConsoleView({ result }: { result: TestRunResult }) {
   }
   for (const t of result.tests) {
     if (t.logs && t.logs.length > 0) groups.push({ label: t.name, lines: t.logs });
+  }
+  if (groups.length === 0) {
+    return (
+      <p className="muted animate-fade-in px-4 py-3 font-sans">
+        Nothing printed in this run. A console.log only prints if the code reaches it.
+      </p>
+    );
   }
   return (
     <div className="animate-fade-in flex flex-col gap-3 px-4 py-2">

@@ -35,14 +35,16 @@ try {
 }
 
 const home = dataDir();
-const appUrl = (port: number, token: string) =>
-  hosted ? `${hosted.publicUrl}/#token=${token}` : `http://${HOST}:${port}/#token=${token}`;
+// Hosted: the link carries the token, in the fragment so it never reaches server logs or
+// Referer headers. Locally there is no token, so the link is the plain address.
+const appUrl = (port: number, token?: string) =>
+  hosted && token !== undefined ? `${hosted.publicUrl}/#token=${token}` : `http://${HOST}:${port}/`;
 
 // One server per data folder: two would overwrite each other's progress. (Hosted, the
 // platform runs exactly one.)
 const previous = hosted ? null : await readInstance(home);
 if (previous && (await isRunning(previous))) {
-  const url = appUrl(previous.port, previous.token);
+  const url = appUrl(previous.port);
   console.log(`${APP_NAME} is already running.\nOpen: ${url}`);
   if (options.port !== undefined && options.port !== previous.port) {
     console.log(`(It's on port ${previous.port}; --port only applies when starting a new server.)`);
@@ -51,16 +53,14 @@ if (previous && (await isRunning(previous))) {
   process.exit(0);
 }
 
-// Reusing the last token keeps tabs from a previous run working after a restart.
-const token = hosted
-  ? (hosted.token ?? (await hostedToken(home, createSessionToken)))
-  : (previous?.token ?? createSessionToken());
+// Hosted only: the token every request must send. Locally there is none.
+const token = hosted ? (hosted.token ?? (await hostedToken(home, createSessionToken))) : undefined;
 const challenges = await loadChallenges(appPaths().challenges);
 
 const app = createApp({
   challenges,
   dataDir: home,
-  token,
+  ...(token !== undefined ? { token } : {}),
   uiDir: appPaths().ui,
   // The Vite dev server (milestone M3) proxies /api from this origin.
   extraOrigins: process.env.DEVDRILL_DEV_ORIGIN ? [process.env.DEVDRILL_DEV_ORIGIN] : [],
@@ -73,9 +73,8 @@ const server = hosted
   ? await listenOn(hosted.port, '0.0.0.0')
   : await listen(options.port, previous?.port ?? DEFAULT_PORT);
 const { port } = server.address() as AddressInfo;
-if (!hosted) await writeInstance(home, { pid: process.pid, port, token });
+if (!hosted) await writeInstance(home, { pid: process.pid, port });
 
-// The token goes in the fragment so it never reaches server logs or Referer headers.
 const url = appUrl(port, token);
 console.log(`${APP_NAME} is running with ${challenges.size} challenges.`);
 console.log(`Open: ${url}`);
@@ -85,7 +84,7 @@ if (!appPaths().ui) {
 }
 if (options.open && !hosted) await openBrowser(url);
 
-// server.json stays on shutdown: the next start sees this pid is gone and reuses the token.
+// server.json stays on shutdown: the next start sees this pid is gone and replaces it.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     killAllTestRuns();

@@ -9,7 +9,7 @@ Users with long todo lists keep asking for a search box. Add a `search` method t
 - `options.tag` (optional): only todos that have this exact tag, ignoring case (`'trav'` doesn't match `'travel'`).
 - `options.status` (optional): `'all'` (default), `'open'` or `'done'`, the same as `list()`.
 - Results come back in the order the todos were added.
-- Like `list()`, return copies: changing a result must not change the stored todo.
+- Like `list()`, return copies: changing a result must not change the stored todo. That includes its `tags`.
 
 ```js
 const todos = createTodoList();
@@ -21,6 +21,75 @@ todos.search('', { tag: 'Travel' }); // [{ title: 'Book flights', ... }]
 ```
 
 The existing tests pass now and must keep passing.
+
+## Contract
+
+`search(query, options)` takes a text `query` and an optional `options` object (`tag`, `status`). It returns a list of **Todo** copies, in the order added. The examples use this list:
+
+```js
+const todos = createTodoList();
+todos.add('Buy milk', { tags: ['home', 'Errands'] }); // id 1
+todos.add('Book flights to Cairo', { tags: ['travel'] }); // id 2
+todos.add('Buy sunscreen', { tags: ['Travel'] }); // id 3
+todos.add('Fix the bike', { tags: [] }); // id 4
+```
+
+Each case, with its exact return value:
+
+```js
+// search('BUY')
+[
+  { id: 1, title: 'Buy milk', tags: ['home', 'Errands'], done: false },
+  { id: 3, title: 'Buy sunscreen', tags: ['Travel'], done: false },
+];
+
+// search('  bike ')
+[{ id: 4, title: 'Fix the bike', tags: [], done: false }];
+
+// search('')
+[
+  { id: 1, title: 'Buy milk', tags: ['home', 'Errands'], done: false },
+  { id: 2, title: 'Book flights to Cairo', tags: ['travel'], done: false },
+  { id: 3, title: 'Buy sunscreen', tags: ['Travel'], done: false },
+  { id: 4, title: 'Fix the bike', tags: [], done: false },
+];
+
+// search('', { tag: 'travel' })
+[
+  { id: 2, title: 'Book flights to Cairo', tags: ['travel'], done: false },
+  { id: 3, title: 'Buy sunscreen', tags: ['Travel'], done: false },
+];
+
+// search('buy', { tag: 'TRAVEL' })
+[{ id: 3, title: 'Buy sunscreen', tags: ['Travel'], done: false }];
+
+// search('zebra')
+[];
+
+// search('', { tag: 'trav' })
+[];
+```
+
+Changing a result changes nothing in the list, its tags included:
+
+```js
+const [milk] = todos.search('milk');
+milk.title = 'changed';
+milk.tags.push('changed');
+
+// search('milk')
+[{ id: 1, title: 'Buy milk', tags: ['home', 'Errands'], done: false }];
+```
+
+After `todos.complete(1)`:
+
+```js
+// search('buy', { status: 'open' })
+[{ id: 3, title: 'Buy sunscreen', tags: ['Travel'], done: false }];
+
+// search('buy', { status: 'done' })
+[{ id: 1, title: 'Buy milk', tags: ['home', 'Errands'], done: true }];
+```
 
 ## Data
 

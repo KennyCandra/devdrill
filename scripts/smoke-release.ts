@@ -77,31 +77,34 @@ try {
     env: { ...process.env, DEVDRILL_HOME: home },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  const token = await new Promise<string>((resolve, reject) => {
-    let output = '';
-    const timer = setTimeout(() => reject(new Error(`Server didn't start:\n${output}`)), 30_000);
+  const base = `http://127.0.0.1:${port}`;
+  let serverOutput = '';
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Server didn't start:\n${serverOutput}`)),
+      30_000,
+    );
     const onData = (chunk: Buffer) => {
-      output += chunk.toString();
-      const match = /#token=(\S+)/.exec(output);
-      if (match?.[1]) {
+      serverOutput += chunk.toString();
+      if (serverOutput.includes(`Open: ${base}/`)) {
         clearTimeout(timer);
-        resolve(match[1]);
+        resolve();
       }
     };
     server!.stdout?.on('data', onData);
     server!.stderr?.on('data', onData);
-    server!.on('exit', (code) => reject(new Error(`Server exited (${code}):\n${output}`)));
+    server!.on('exit', (code) => reject(new Error(`Server exited (${code}):\n${serverOutput}`)));
   });
-  check(token.length > 16, 'the server prints a link with a token');
+  check(
+    serverOutput.includes(`Open: ${base}/`) && !serverOutput.includes('#token'),
+    'the server prints a plain link, with no token',
+  );
 
-  const base = `http://127.0.0.1:${port}`;
+  // Locally there is no token: a request needs only the right Host (and no foreign Origin).
   const api = async (method: string, route: string, body?: unknown) => {
     const res = await fetch(`${base}/api${route}`, {
       method,
-      headers: {
-        'x-devdrill-token': token,
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      },
+      headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
     if (!res.ok) throw new Error(`${method} ${route}: ${res.status} ${await res.text()}`);
@@ -110,6 +113,12 @@ try {
 
   const page = await fetch(`${base}/`);
   check(page.ok && (await page.text()).includes('<div id="root">'), 'the UI loads');
+
+  // Without a token, the other checks still apply: a page on another site is refused.
+  const foreign = await fetch(`${base}/api/challenges`, {
+    headers: { Origin: 'https://evil.example' },
+  });
+  check(foreign.status === 403, 'an API request from another website is refused');
   check(
     page.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"),
     'the UI has a CSP',
@@ -127,6 +136,18 @@ try {
   await api('PUT', file, { content: content.replace("'percentage'", "'percent'") });
   const submit = (await api('POST', `/workspaces/${CHALLENGE}/submit`, {})) as { solved: boolean };
   check(submit.solved, 'the fixed code solves the challenge, hidden tests included');
+
+  // Express challenges import a package the workspace doesn't have.
+  const EXPRESS = 'debug-006-project-tasks';
+  await api('POST', `/challenges/${EXPRESS}/start`);
+  const express = (await api('POST', `/workspaces/${EXPRESS}/run`)) as {
+    passed: number;
+    fileErrors: unknown[];
+  };
+  check(
+    express.fileErrors.length === 0 && express.passed > 0,
+    'an Express challenge runs with the installed copy of express',
+  );
 
   // Review mode: the pull request, its issue types, and grading a draft.
   const REVIEW = 'review-001-order-coupons';

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Spinner } from '../components/ui';
-import { editorThemeFor, languageFor, monaco } from '../editor/monacoSetup';
+import { editorThemeFor, languageFor, monaco, recheckTypeScript } from '../editor/monacoSetup';
 import type { ResolvedTheme } from '../theme';
 import type { FileBuffer } from './fileStore';
 
@@ -25,6 +25,7 @@ export function CodeEditor({
   onSaveShortcut,
   onRunShortcut,
   onSubmitShortcut,
+  onTestsShortcut,
 }: {
   workspaceId: string;
   activePath: string | null;
@@ -34,6 +35,7 @@ export function CodeEditor({
   onSaveShortcut: () => void;
   onRunShortcut: () => void;
   onSubmitShortcut: () => void;
+  onTestsShortcut: () => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -42,9 +44,21 @@ export function CodeEditor({
   const shownPath = useRef<string | null>(null);
   const applyingDisk = useRef(false);
 
-  const callbacks = useRef({ onEdit, onSaveShortcut, onRunShortcut, onSubmitShortcut });
+  const callbacks = useRef({
+    onEdit,
+    onSaveShortcut,
+    onRunShortcut,
+    onSubmitShortcut,
+    onTestsShortcut,
+  });
   useLayoutEffect(() => {
-    callbacks.current = { onEdit, onSaveShortcut, onRunShortcut, onSubmitShortcut };
+    callbacks.current = {
+      onEdit,
+      onSaveShortcut,
+      onRunShortcut,
+      onSubmitShortcut,
+      onTestsShortcut,
+    };
   });
 
   // Create the editor once.
@@ -66,6 +80,7 @@ export function CodeEditor({
     instance.addCommand(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Enter, () =>
       callbacks.current.onSubmitShortcut(),
     );
+    instance.addCommand(KeyMod.CtrlCmd | KeyCode.KeyJ, () => callbacks.current.onTestsShortcut());
     setEditor(instance);
 
     const owned = models.current;
@@ -86,12 +101,14 @@ export function CodeEditor({
 
   // Keep one model per open buffer; apply content that came from disk.
   useEffect(() => {
+    let addedTypeScript = false;
     for (const [path, buf] of Object.entries(buffers)) {
       const entry = models.current.get(path);
       if (!entry) {
         // file:// URIs let the TypeScript worker resolve imports between open files.
         const uri = monaco.Uri.from({ scheme: 'file', path: `/${workspaceId}/${path}` });
         const model = monaco.editor.createModel(buf.content, languageFor(path), uri);
+        if (model.getLanguageId() === 'typescript') addedTypeScript = true;
         const listener = model.onDidChangeContent(() => {
           if (!applyingDisk.current) callbacks.current.onEdit(path, model.getValue());
         });
@@ -103,6 +120,7 @@ export function CodeEditor({
         entry.diskRevision = buf.diskRevision;
       }
     }
+    if (addedTypeScript) recheckTypeScript();
     for (const [path, entry] of models.current) {
       if (path in buffers) continue;
       if (editor?.getModel() === entry.model) {

@@ -40,8 +40,9 @@ export class ApiRequestError extends Error {
 }
 
 /**
- * Reads the session token from `#token=...` (the link the server prints), keeps it in
- * sessionStorage for reloads, and removes it from the address bar.
+ * Hosted mode only: reads the access token from `#token=...` (the link the server prints
+ * there), keeps it in sessionStorage for reloads, and removes it from the address bar.
+ * Locally there is no token, so this returns null and every request goes without the header.
  */
 export function readToken(location: Location = window.location): string | null {
   const match = /(?:^#|&)token=([^&]+)/.exec(location.hash);
@@ -62,6 +63,7 @@ export function readToken(location: Location = window.location): string | null {
   }
 }
 
+/** The hosted access token, or null (locally). Requests send it only when it's set. */
 let token: string | null = null;
 
 export function setToken(value: string | null): void {

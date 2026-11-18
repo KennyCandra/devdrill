@@ -84,4 +84,16 @@ describe('hosted security', () => {
       .set('Host', 'devdrill-ada.up.railway.app')
       .expect(401);
   });
+
+  it('still rejects a wrong token, and a token on the session check too', async () => {
+    await request(server)
+      .get('/api/challenges')
+      .set('Host', 'devdrill-ada.up.railway.app')
+      .set(TOKEN_HEADER, 'a-very-long-but-wrong-token-0123')
+      .expect(401);
+    await request(server)
+      .get('/api/session')
+      .set('Host', 'devdrill-ada.up.railway.app')
+      .expect(401);
+  });
 });

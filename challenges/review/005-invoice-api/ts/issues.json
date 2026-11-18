@@ -1,0 +1,62 @@
+[
+  {
+    "id": "any-customer-can-read-any-invoice",
+    "file": "src/app.ts",
+    "lines": [
+      25,
+      28
+    ],
+    "type": "missing-authorization",
+    "severity": "must",
+    "title": "Any signed-in customer can read any invoice",
+    "explanation": "The route looks an invoice up by id and never checks that it belongs to res.locals.user. Ana can read Ben's invoice just by changing the number in the URL, though a customer may only see their own. Answer 404 unless invoice.customerId matches the signed-in customer (404 rather than 403, so ids can't be probed)."
+  },
+  {
+    "id": "error-handler-exposes-internals",
+    "file": "src/app.ts",
+    "lines": [
+      31,
+      33
+    ],
+    "type": "data-exposure",
+    "severity": "must",
+    "title": "Errors send the stack trace and raw message to customers",
+    "explanation": "err.stack shows file paths and code, and err.message can hold anything, such as a database address. Customers must never see internal details. Log the error on the server and answer a fixed message like { error: 'Something went wrong' }."
+  },
+  {
+    "id": "summary-waits-one-by-one",
+    "file": "src/app.ts",
+    "lines": [
+      17,
+      20
+    ],
+    "type": "sequential-awaits",
+    "severity": "should",
+    "title": "The summary loads each invoice's lines in turn",
+    "explanation": "Each await waits for the one before it, so 300 invoices at 20 ms each take about 6 s, far over the one second pages should load in. Start every store.linesOf first and wait with Promise.all, or better, add a store call that loads the lines of all the invoices at once. It's a should, not a must: the answers are right, and it only hurts customers with many invoices."
+  },
+  {
+    "id": "no-test-for-another-customer",
+    "file": "tests/invoices.test.ts",
+    "lines": [
+      47,
+      56
+    ],
+    "type": "missing-test",
+    "severity": "should",
+    "title": "No test asks for another customer's invoice",
+    "explanation": "The most important rule in the PR is that a customer only sees their own invoices, and every test reads Ana's invoices as Ana. A test where Ana asks for invoice 20 would have caught the must-fix above."
+  },
+  {
+    "id": "error-test-checks-too-little",
+    "file": "tests/invoices.test.ts",
+    "lines": [
+      60,
+      70
+    ],
+    "type": "weak-test",
+    "severity": "should",
+    "title": "The error test doesn't look at what the response says",
+    "explanation": "It checks the status and the content type only, so it passes with the stack trace in the body. The rule that matters is that customers never see internal details: check the body, and that it contains neither 'database is down' nor a stack."
+  }
+]

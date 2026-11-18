@@ -284,7 +284,7 @@ export function ChallengeList() {
                       <a
                         href={challengePath(c.id)}
                         onClick={(e) => {
-                          // Always stay in this tab: a new tab wouldn't have the session token.
+                          // Always stay in this tab: a hosted new tab wouldn't have the access token.
                           e.preventDefault();
                           navigate(challengePath(c.id));
                         }}

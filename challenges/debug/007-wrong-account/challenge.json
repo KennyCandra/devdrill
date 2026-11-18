@@ -1,0 +1,24 @@
+{
+  "id": "debug-007-wrong-account",
+  "mode": "debug",
+  "title": "Users sometimes see someone else's account",
+  "difficulty": "medium",
+  "estimatedMinutes": 20,
+  "tags": [
+    "express",
+    "middleware",
+    "async"
+  ],
+  "hints": [
+    "Log currentUser().name before and after each await in the GET /me route, then run the tests.",
+    "A module has one copy of its variables, shared by every request the server is handling. What can happen to that copy during an await?",
+    "Keep the signed-in user on something that belongs to this one request, such as res.locals."
+  ],
+  "hiddenTestRules": {
+    "overlapping requests > keeps a note with the person who sent it": "A note always belongs to the person who sent it, even while other requests are running.",
+    "overlapping requests > gives each person their own notes": "Each person only ever gets their own notes.",
+    "overlapping requests > answers everyone correctly when many run at once": "Every request is answered for the person whose token it carries, however many run at once.",
+    "overlapping requests > does not make a quick request wait for a slow one": "One person's slow request must not hold up anyone else's.",
+    "overlapping requests > regression: an unknown token is never signed in": "A request with a missing or unknown token is 401 with { error: 'Not signed in' }, even right after someone else's request."
+  }
+}

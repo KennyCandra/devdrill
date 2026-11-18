@@ -1,4 +1,4 @@
-import { TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
+import { EXPRESS_DTS, TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
 import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
@@ -32,13 +32,14 @@ monaco.typescript.typescriptDefaults.setCompilerOptions({
   noEmit: true,
   allowNonTsExtensions: true,
 });
-monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
-  noSemanticValidation: false,
-  noSyntaxValidation: false,
-});
+const TS_DIAGNOSTICS = { noSemanticValidation: false, noSyntaxValidation: false };
+monaco.typescript.typescriptDefaults.setDiagnosticsOptions(TS_DIAGNOSTICS);
 // Imported files must be models for cross-file types; keep the worker in sync with all of them.
 monaco.typescript.typescriptDefaults.setEagerModelSync(true);
 monaco.typescript.typescriptDefaults.addExtraLib(TEST_GLOBALS_DTS, 'file:///__test-globals.d.ts');
+// Workspaces have no node_modules, so Express challenges get its types from here.
+monaco.typescript.typescriptDefaults.addExtraLib(EXPRESS_DTS, 'file:///__express.d.ts');
+monaco.typescript.javascriptDefaults.addExtraLib(EXPRESS_DTS, 'file:///__express.d.ts');
 
 // The two editor themes, from the design. The JavaScript and TypeScript tokenizer never emits
 // `identifier.function`, so function names get the plain identifier colour.
@@ -103,6 +104,15 @@ monaco.editor.defineTheme('devdrill-light', {
 /** The Monaco theme for the app's resolved light or dark theme. */
 export function editorThemeFor(theme: ResolvedTheme): string {
   return theme === 'dark' ? 'devdrill-dark' : 'devdrill-light';
+}
+
+/**
+ * Checks every open TypeScript file again. A running worker learns about a file only when
+ * it checks that file, so the first file can report its imports as missing. Setting the
+ * options restarts the worker, and a new worker starts with every file (eager model sync).
+ */
+export function recheckTypeScript(): void {
+  monaco.typescript.typescriptDefaults.setDiagnosticsOptions(TS_DIAGNOSTICS);
 }
 
 export { monaco };

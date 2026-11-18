@@ -5,7 +5,7 @@ import path from 'node:path';
 import { init as initLexer, parse as parseImports } from 'es-module-lexer';
 import { transform } from 'esbuild';
 import ts from 'typescript';
-import { TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
+import { EXPRESS_DTS, TEST_GLOBALS_DTS } from '@devdrill/shared/testGlobals';
 import type { ChallengeMeta, Language, TestRunResult } from '@devdrill/shared';
 import { parseChallengeMeta } from '../../packages/server/src/services/challengeMeta.js';
 import { IGNORED_FILES } from '../../packages/server/src/services/files.js';
@@ -57,6 +57,9 @@ export const SKIP_OR_FOCUS =
 type Layer = 'starter' | 'hidden-tests' | 'solution';
 const LAYERS: Layer[] = ['starter', 'hidden-tests', 'solution'];
 const REVIEW_LAYERS = ['base', 'head'] as const;
+
+/** Packages challenges may import; the app provides them (see assets/vitest.config.mjs). */
+const ALLOWED_PACKAGES = new Set(['express']);
 
 export const TS_ESCAPE = /@ts-(?:ignore|expect-error|nocheck)\b/;
 export const EXPLICIT_ANY = /(?::|\bas|<|\|)\s*any\b(?!\w)/;
@@ -319,14 +322,15 @@ export async function checkImports(
     if (
       specifier.startsWith('./') ||
       specifier.startsWith('../') ||
-      specifier.startsWith('node:')
+      specifier.startsWith('node:') ||
+      ALLOWED_PACKAGES.has(specifier)
     ) {
       continue;
     }
     errors.push(
       specifier === 'vitest'
         ? `${label}: don't import from "vitest"; describe/it/expect are globals.`
-        : `${label}: imports "${specifier}"; only relative and node: imports are allowed.`,
+        : `${label}: imports "${specifier}"; only relative, node: and express imports are allowed.`,
     );
   }
 
@@ -450,7 +454,7 @@ export async function typeCheck(layers: readonly string[]): Promise<string[]> {
   try {
     for (const layer of layers) await cp(layer, work, { recursive: true, force: true });
     const globals = path.join(work, '__test-globals.d.ts');
-    await writeFile(globals, TEST_GLOBALS_DTS);
+    await writeFile(globals, TEST_GLOBALS_DTS + EXPRESS_DTS);
     const files = (await readdir(work, { recursive: true }))
       .map((f) => path.join(work, f))
       .filter((f) => f.endsWith('.ts'));

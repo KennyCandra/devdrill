@@ -71,6 +71,29 @@ export class FileStore {
     });
   }
 
+  /**
+   * Loads several files and opens them in one step, skipping any already open, so the
+   * editor gets them together and TypeScript checks them all once.
+   */
+  async loadAll(paths: string[]): Promise<void> {
+    const missing = paths.filter((path) => !this.buffers[path]);
+    const files = await Promise.all(
+      missing.map(async (path) => ({ path, file: await this.api.read(path) })),
+    );
+    const loaded: Record<string, FileBuffer> = {};
+    for (const { path, file } of files) {
+      if (this.buffers[path]) continue; // opened while this was loading
+      loaded[path] = {
+        content: file.content,
+        mtimeMs: file.mtimeMs,
+        state: 'saved',
+        diskRevision: 1,
+      };
+    }
+    this.buffers = { ...this.buffers, ...loaded };
+    this.emit();
+  }
+
   /** Records the user's typing and schedules an autosave. */
   edit(path: string, content: string): void {
     const buf = this.buffers[path];

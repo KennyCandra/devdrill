@@ -65,6 +65,7 @@ For TypeScript:
 ### 3. Write it so it's fair
 
 - **README:** name files without an extension (`src/cart`, `tests/cart.test`): the README and hints are shown for every language. Describe the symptom like a bug report, or the feature like a ticket. Every rule the hidden tests check must be in the README; a correct solution must never fail because of something unstated. Show an example of the exact result (fields, order, empty cases): playtesters miss rules written only in prose.
+- **Contract (feature challenges):** a feature README has a `## Contract` section right after "What to build". For every new or changed route, give its method and path, its request body if any, and an exact example for every case: the status and the JSON body, including every error. For plain-code challenges, list every new or changed function: its signature, and an exact example return value or the exact error thrown for every case. Hidden tests may only check what the contract states: if a test checks anything else, add it to the contract first.
 - **Data:** add a `## Data` section with a table for every object (field, type, meaning) and every function (what it takes, what it returns). Write types in plain words, like "text", "whole number", "true/false", "list of **Todo**", "**Coupon** or null", so the description works for any language. Players can't see types in plain JavaScript, so this is where they learn the shapes.
 - **Visible tests:** for debug, at least one fails at the start. For feature, all pass at the start.
 - **Hidden tests:** check the edge cases a symptom-only fix misses. Try to beat your own challenge: hardcode the visible test's values, special-case inputs, add a `sleep`. If a hack passes everything, add a test. Prefix pure regression tests with `regression:`.
@@ -82,7 +83,7 @@ It also checks that your number isn't already used in that mode.
 The validator checks:
 
 1. **Metadata:** `challenge.json` is valid, its `id` is mode + folder name, the folder is named `NNN-kebab-case`, and `README.md` has a `## Data` section and an example of the exact result in a ` ```js ` block. The README and hints name no `.js`/`.ts` files.
-2. **Plain code, no dependencies:** only `.js`/`.mjs` files in `js/` and `.ts` files in `ts/`; `starter/package.json` has `"type": "module"` and no dependencies; only relative or `node:` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
+2. **Plain code, no dependencies:** only `.js`/`.mjs` files in `js/` and `.ts` files in `ts/`; `starter/package.json` has `"type": "module"` and no dependencies; only relative, `node:` or `express` imports, no computed `import()`, no `createRequire`. Don't import from `vitest`: `describe`, `it` and `expect` are globals.
 3. **Every test runs:** no symlinks, no `vitest.config.*` or `vite.config.*`, no `.skip` / `.only` / `.todo` / `.skipIf` / `.runIf`.
 4. **Layout:** hidden test files are named `*.hidden.test.js` (or `.ts`) and don't share a path with a starter file; `solution/` doesn't contain tests or `package.json`.
 5. **Debug:** at least one visible and one hidden test fail on `starter/`; everything passes on `solution/`.
@@ -90,6 +91,10 @@ The validator checks:
 7. **Same tests:** the solution run runs exactly the same tests as the starter run, and `js/` and `ts/` have the same test names.
 8. **Every hidden test has a rule:** each hidden test is in `hiddenTestRules`, and its sentence appears in the README (bold and code ticks are ignored when comparing).
 9. **TypeScript type-checks:** in `ts/`, the starter and the full solution have no type errors (strict mode), no `any` outside tests and no `@ts-` comments that switch checks off.
+
+### Express challenges
+
+`express` is the one package a challenge can import. Players don't install it: the app provides its own copy at run time, and its types in the editor (`EXPRESS_DTS` in `packages/shared/src/testGlobals.ts`). Export a `createApp()` that builds a fresh app with fresh data. Tests start it on a random port on `127.0.0.1`, call it with `fetch` and close it afterwards. Hidden tests can't share a helper, so each test file has its own few lines for this.
 
 ### 5. Playtest
 
