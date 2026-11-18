@@ -9,17 +9,17 @@ import './index.css';
 applyInitialTheme();
 document.title = PRODUCT_NAME;
 
-// Read before the first render: it also removes the token from the address bar.
-const token = readToken();
-setToken(token);
+// Read before the first render: it also removes the token from the address bar. Only hosted
+// links have one; locally there is none, and no header is sent.
+setToken(readToken());
 
-// Pasting the terminal link into an open tab only changes the hash, which doesn't reload.
+// Pasting a hosted link into an open tab only changes the hash, which doesn't reload.
 window.addEventListener('hashchange', () => {
   if (/(?:^#|&)token=/.test(window.location.hash)) window.location.reload();
 });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App hasToken={token !== null} />
+    <App />
   </StrictMode>,
 );

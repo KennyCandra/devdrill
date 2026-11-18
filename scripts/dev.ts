@@ -35,16 +35,16 @@ server.stdout?.on('data', (chunk: Buffer) => {
   // Keep everything seen so far: the line we need can arrive split across chunks.
   if (!viteStarted) output += text;
 
-  // The server prints "Open: http://127.0.0.1:<port>/#token=<token>"; reuse both for Vite.
-  // It also prints this when a dev server is already running, so both cases work.
-  const match = /Open: http:\/\/127\.0\.0\.1:(\d+)\/#token=(\S+)\n/.exec(output);
+  // The server prints "Open: http://127.0.0.1:<port>/" (no token locally); reuse the port
+  // for Vite. It also prints this when a dev server is already running, so both cases work.
+  const match = /Open: http:\/\/127\.0\.0\.1:(\d+)\/\n/.exec(output);
   if (!match || viteStarted) return;
   viteStarted = true;
-  const [, port = '3000', token = ''] = match;
+  const [, port = '3000'] = match;
 
   const vite = start('npx', ['vite', 'packages/web'], { DEVDRILL_API_PORT: port });
   vite.stdout?.on('data', (c: Buffer) => process.stdout.write(`[web] ${c.toString()}`));
-  console.log(`\nDev UI: ${DEV_ORIGIN}/#token=${token}\n`);
+  console.log(`\nDev UI: ${DEV_ORIGIN}/\n`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {

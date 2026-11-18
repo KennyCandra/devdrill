@@ -10,7 +10,11 @@ export function createSessionToken(): string {
 }
 
 export interface SecurityOptions {
-  token: string;
+  /**
+   * Hosted mode only: the token every API request must send. Undefined locally, where
+   * there is no token (see the comment on apiSecurity).
+   */
+  token?: string;
   /** Extra origins allowed to call the API, e.g. the Vite dev server. */
   extraOrigins?: string[];
   /** Hosted mode: the public URL the app is served at (e.g. https://x.up.railway.app). */
@@ -23,11 +27,18 @@ export interface SecurityOptions {
  * 1. Host is this server (blocks DNS rebinding).
  * 2. Origin, if sent, is this server or an allowed dev origin (blocks CSRF).
  * 3. Requests with a body send JSON (a cross-site form can't, without a preflight).
- * 4. The session token from the URL the browser was opened with. Browsers can't add
+ * 4. Hosted only: the session token from the link the server printed. Browsers can't add
  *    this header cross-site without a preflight, which this server never approves.
+ *
+ * Locally there is no token, so checks 1 to 3 are the whole protection. They stop a
+ * web page in the user's browser: a page on another site can't send a request that
+ * passes the Host check, and a browser always sends an Origin on a cross-site POST, and
+ * a cross-site request can't send JSON without a preflight this server refuses. Checks
+ * 1 to 3 don't stop other programs on this machine, which can send any request they like.
+ * Hosted mode keeps check 4 because the server is reachable from the internet.
  */
 export function apiSecurity({ token, extraOrigins = [], publicUrl }: SecurityOptions) {
-  const expected = Buffer.from(token);
+  const expected = token === undefined ? null : Buffer.from(token);
   const publicOrigin = publicUrl ? [new URL(publicUrl).origin] : [];
 
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -53,12 +64,14 @@ export function apiSecurity({ token, extraOrigins = [], publicUrl }: SecurityOpt
       throw new HttpError(415, 'Requests must be JSON.');
     }
 
-    const given = Buffer.from(req.get(TOKEN_HEADER) ?? '');
-    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
-      throw new HttpError(
-        401,
-        'Missing or wrong session token. Reopen the link from the terminal.',
-      );
+    if (expected !== null) {
+      const given = Buffer.from(req.get(TOKEN_HEADER) ?? '');
+      if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+        throw new HttpError(
+          401,
+          'Missing or wrong access token. Open the full link you were given.',
+        );
+      }
     }
 
     next();

@@ -51,7 +51,8 @@ export interface AppOptions {
   challenges: Map<string, Challenge>;
   /** Where workspaces, progress.json and settings.json live (normally ~/.devdrill). */
   dataDir: string;
-  token: string;
+  /** Hosted mode only: every API request must send it. Undefined locally (no token). */
+  token?: string;
   extraOrigins?: string[];
   testTimeoutMs?: number;
   /** The built web UI to serve, if any (in development Vite serves it instead). */
@@ -82,7 +83,7 @@ export function createApp(options: AppOptions) {
   const api = express.Router();
   api.use(
     apiSecurity({
-      token: options.token,
+      ...(options.token !== undefined ? { token: options.token } : {}),
       extraOrigins: options.extraOrigins ?? [],
       ...(options.publicUrl ? { publicUrl: options.publicUrl } : {}),
     }),
@@ -175,7 +176,7 @@ export function createApp(options: AppOptions) {
 
   // ---- Session ----
 
-  // Lets the UI check its token at startup, and a second launch find this server.
+  // Lets the UI check it can reach the API at startup, and a second launch find this server.
   api.get('/session', (_req, res: Response<SessionInfo>) => {
     res.json({ ok: true, appName: APP_NAME });
   });
