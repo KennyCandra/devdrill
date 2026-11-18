@@ -25,6 +25,7 @@ export function CodeEditor({
   onSaveShortcut,
   onRunShortcut,
   onSubmitShortcut,
+  onTestsShortcut,
 }: {
   workspaceId: string;
   activePath: string | null;
@@ -34,6 +35,7 @@ export function CodeEditor({
   onSaveShortcut: () => void;
   onRunShortcut: () => void;
   onSubmitShortcut: () => void;
+  onTestsShortcut: () => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -42,9 +44,21 @@ export function CodeEditor({
   const shownPath = useRef<string | null>(null);
   const applyingDisk = useRef(false);
 
-  const callbacks = useRef({ onEdit, onSaveShortcut, onRunShortcut, onSubmitShortcut });
+  const callbacks = useRef({
+    onEdit,
+    onSaveShortcut,
+    onRunShortcut,
+    onSubmitShortcut,
+    onTestsShortcut,
+  });
   useLayoutEffect(() => {
-    callbacks.current = { onEdit, onSaveShortcut, onRunShortcut, onSubmitShortcut };
+    callbacks.current = {
+      onEdit,
+      onSaveShortcut,
+      onRunShortcut,
+      onSubmitShortcut,
+      onTestsShortcut,
+    };
   });
 
   // Create the editor once.
@@ -66,6 +80,7 @@ export function CodeEditor({
     instance.addCommand(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Enter, () =>
       callbacks.current.onSubmitShortcut(),
     );
+    instance.addCommand(KeyMod.CtrlCmd | KeyCode.KeyJ, () => callbacks.current.onTestsShortcut());
     setEditor(instance);
 
     const owned = models.current;

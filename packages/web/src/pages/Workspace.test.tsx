@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import type { ChallengeDetail } from '@devdrill/shared';
+import type { ChallengeDetail, TestRunResult } from '@devdrill/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
 import { Workspace } from './Workspace';
@@ -58,6 +58,106 @@ async function openWorkspace() {
     tree: within(screen.getByRole('navigation', { name: 'Files' })),
   };
 }
+
+const hideButton = () => screen.queryByRole('button', { name: 'Hide tests panel' });
+const showButton = () => screen.queryByRole('button', { name: 'Show tests panel' });
+
+describe('Workspace tests panel', () => {
+  const passing = {
+    status: 'passed',
+    passed: 1,
+    failed: 0,
+    total: 1,
+    tests: [],
+    fileErrors: [],
+    durationMs: 1200,
+  } as TestRunResult;
+
+  it('hides with its button, and the bar brings it back', async () => {
+    await openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide tests panel' }));
+
+    // Hidden, the panel is gone and the bar's button takes focus.
+    const show = await screen.findByRole('button', { name: 'Show tests panel' });
+    expect(hideButton()).toBeNull();
+    expect(document.activeElement).toBe(show);
+    expect(localStorage.getItem('devdrill-tests-hidden')).toBe('true');
+
+    fireEvent.click(show);
+    const hide = await screen.findByRole('button', { name: 'Hide tests panel' });
+    expect(showButton()).toBeNull();
+    expect(document.activeElement).toBe(hide);
+    expect(localStorage.getItem('devdrill-tests-hidden')).toBe('false');
+  });
+
+  it('remembers a hidden panel across a remount', async () => {
+    await openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide tests panel' }));
+    await screen.findByRole('button', { name: 'Show tests panel' });
+
+    cleanup();
+    await openWorkspace();
+    expect(await screen.findByRole('button', { name: 'Show tests panel' })).toBeTruthy();
+    expect(hideButton()).toBeNull();
+  });
+
+  it('starts hidden when the stored choice says so', async () => {
+    localStorage.setItem('devdrill-tests-hidden', 'true');
+    await openWorkspace();
+    expect(screen.getByRole('button', { name: 'Show tests panel' })).toBeTruthy();
+    expect(hideButton()).toBeNull();
+  });
+
+  it('opens for a run made while it is hidden', async () => {
+    vi.mocked(api.run).mockResolvedValue(passing);
+    await openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide tests panel' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Run tests/ }));
+    expect(await screen.findByRole('button', { name: 'Hide tests panel' })).toBeTruthy();
+    expect(showButton()).toBeNull();
+  });
+
+  it('opens for a submit made while it is hidden', async () => {
+    // The submit never finishes here, so the page stays put and the panel is what's checked.
+    vi.mocked(api.submit).mockReturnValue(new Promise<never>(() => undefined));
+    await openWorkspace();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide tests panel' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /^Submit/ }));
+    expect(await screen.findByRole('button', { name: 'Hide tests panel' })).toBeTruthy();
+    expect(showButton()).toBeNull();
+  });
+
+  it('Ctrl+J toggles the panel from outside the editor', async () => {
+    await openWorkspace();
+    fireEvent.keyDown(window, { key: 'j', ctrlKey: true });
+    expect(await screen.findByRole('button', { name: 'Show tests panel' })).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: 'j', metaKey: true });
+    expect(await screen.findByRole('button', { name: 'Hide tests panel' })).toBeTruthy();
+  });
+
+  it('Ctrl+J from inside the tests area moves focus to the bar', async () => {
+    await openWorkspace();
+    const hide = screen.getByRole('button', { name: 'Hide tests panel' });
+    hide.focus();
+
+    fireEvent.keyDown(window, { key: 'j', ctrlKey: true });
+    const show = await screen.findByRole('button', { name: 'Show tests panel' });
+    expect(document.activeElement).toBe(show);
+  });
+
+  it('Ctrl+J from outside the tests area leaves focus where it was', async () => {
+    await openWorkspace();
+    const reset = screen.getByRole('button', { name: 'Reset' });
+    reset.focus();
+
+    fireEvent.keyDown(window, { key: 'j', ctrlKey: true });
+    expect(await screen.findByRole('button', { name: 'Show tests panel' })).toBeTruthy();
+    expect(document.activeElement).toBe(reset);
+  });
+});
 
 describe('Workspace README tab', () => {
   it('lists the README first in the file tree and opens it as the first, active tab', async () => {

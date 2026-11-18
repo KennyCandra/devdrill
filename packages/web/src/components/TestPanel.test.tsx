@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { TestRunResult } from '@devdrill/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { TestPanel } from './TestPanel';
+import { TestPanel, TestsBar } from './TestPanel';
 
 const silentRun: TestRunResult = {
   status: 'passed',
@@ -32,6 +32,38 @@ const noisyRun: TestRunResult = {
 const openConsole = () => fireEvent.click(screen.getByRole('button', { name: /Console/ }));
 
 afterEach(cleanup);
+
+describe('TestPanel hide button', () => {
+  it('is only there when the panel can be folded', () => {
+    render(<TestPanel result={null} running={false} error={null} />);
+    expect(screen.queryByRole('button', { name: 'Hide tests panel' })).toBeNull();
+  });
+
+  it('calls onHide', () => {
+    let hidden = 0;
+    render(<TestPanel result={null} running={false} error={null} onHide={() => hidden++} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide tests panel' }));
+    expect(hidden).toBe(1);
+  });
+});
+
+describe('TestsBar', () => {
+  it('shows the last run summary and opens the panel on click', () => {
+    let shown = 0;
+    render(<TestsBar result={silentRun} running={false} onShow={() => shown++} />);
+    expect(screen.getByText('Tests')).toBeTruthy();
+    expect(screen.getByText('1 passed')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show tests panel' }));
+    expect(shown).toBe(1);
+  });
+
+  it('says so while tests run', () => {
+    render(<TestsBar result={silentRun} running onShow={() => undefined} />);
+    expect(screen.getByText('Running tests…')).toBeTruthy();
+    expect(screen.queryByText('1 passed')).toBeNull();
+  });
+});
 
 describe('TestPanel console', () => {
   it('has no switch before the first run', () => {
