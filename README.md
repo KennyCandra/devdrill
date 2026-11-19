@@ -7,12 +7,19 @@ AI writes a lot of code now. What's left for you, and what interviews increasing
 DevDrill gives you small, realistic projects to practice exactly that, in **JavaScript or TypeScript**, in a VS Code-style editor in your browser. Everything runs on your own machine.
 
 ```bash
-npx devdrill
+git clone https://github.com/KennyCandra/devdrill.git
+cd devdrill
+npm install
+npm run dev
 ```
+
+Then open http://localhost:5173/. `npm run dev` prints `Dev UI: http://localhost:5173/` once it's ready.
+
+An `npx devdrill` package is coming later. Until then, run DevDrill from source as above.
 
 ![A debug challenge: the task on the left, the code in the middle, failing tests below](docs/screenshot.jpg)
 
-Requires [Node.js](https://nodejs.org) 22 (22.12+), 24, or 26 and newer.
+Requires [Node.js](https://nodejs.org) 22.13+, 24, or 26 and newer.
 
 ## How it works
 
@@ -69,11 +76,7 @@ New challenges are very welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Options
 
-```
-npx devdrill --port 4000   # use a specific port (default 3000, or a free one)
-npx devdrill --no-open     # don't open a browser; just print the link
-npx devdrill --help
-```
+The `--port`, `--no-open` and `--help` options belong to the upcoming npm package. From source, `npm run dev` ignores extra arguments and uses its own ports. To see the options from source, run `npx tsx packages/server/src/index.ts --help`.
 
 ## Your data and safety
 
