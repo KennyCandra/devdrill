@@ -55,6 +55,26 @@ Pick **Claude**, **OpenAI**, **Ollama** (local models: free, offline, nothing le
 
 **Honor system:** the hidden tests and solutions ship with the app, and you can read them if you go looking. It's practice; the only person you'd be fooling is yourself.
 
+### Free AI in a few minutes
+
+Both options below cost nothing to run, and each takes a few minutes to set up. Settings is under **Settings → AI**.
+
+**OpenCode** (its free models, tested with OpenCode 1.18)
+
+1. Install OpenCode: see [OpenCode's install guide](https://opencode.ai).
+2. In a terminal, start its server with `opencode serve` and leave it running.
+3. In DevDrill, pick **OpenCode** as the provider. Keep the **Server URL** at `http://127.0.0.1:4096` (DevDrill's default, which must match the address your server listens on).
+4. Set **Model** to `default` (OpenCode's own default model), or a free model written as `provider/model`, for example `opencode/deepseek-v4.1-flash-free`. Leave **Server password** empty unless you set `OPENCODE_SERVER_PASSWORD`; if you did, enter that password.
+5. Click **Save**, then **Test connection**.
+
+**Ollama** (local models: nothing leaves your machine)
+
+1. Install Ollama: see [Ollama's install guide](https://ollama.com).
+2. Download the small model DevDrill was tested with: `ollama pull qwen3.5:4b`.
+3. Start the server with `ollama serve` and leave it running.
+4. In DevDrill, pick **Ollama (local)** as the provider. Set **Model** to `qwen3.5:4b` (the exact name you downloaded) and keep the **Server URL** at `http://localhost:11434`. No key is needed.
+5. Click **Save**, then **Test connection**. If it reports an empty answer, the model isn't downloaded yet.
+
 ## Challenges
 
 | Mode    | Challenge                       | Difficulty |
